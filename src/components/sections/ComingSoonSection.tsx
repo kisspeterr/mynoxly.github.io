@@ -48,16 +48,17 @@ const ComingSoonSection = () => {
         </p>
         
         <div className="max-w-2xl mx-auto">
-          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-3xl p-8 md:p-12 backdrop-blul-sm">
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-3xl p-8 md:p-12 backdrop-blur-sm">
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-white mb-4">Fejlesztési állapot</h3>
               
               <div className="mb-6">
-                <Progress 
-                  value={progressValue} 
-                  className="h-3 bg-slate-700 mb-2"
-                  indicatorClassName="bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000 ease-out"
-                />
+                <div className="h-3 bg-slate-700 rounded-full mb-2 overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000 ease-out"
+                    style={{ width: `${progressValue}%` }}
+                  />
+                </div>
                 <p className="text-sm text-gray-400">
                   {displayValue}% - Fejlesztés folyamatban
                 </p>
