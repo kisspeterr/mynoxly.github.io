@@ -174,31 +174,6 @@ const BenefitsSection = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm group hover:scale-105 transition-transform duration-300">
-              <CardHeader>
-                <QrCode className="h-12 w-12 text-purple-400 mb-4 group-hover:rotate-12 transition-transform duration-500" />
-                <CardTitle className="text-purple-300">Modern Kuponrendszer</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Hatékony és könnyen kezelhető megoldások
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-gray-300">
-                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300">
-                    <Zap className="h-4 w-4 text-purple-400 mr-2" />
-                    Gyors QR kód beolvasás
-                  </li>
-                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-100">
-                    <Sparkles className="h-4 w-4 text-purple-400 mr-2" />
-                    Automatikus kuponkezelés
-                  </li>
-                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-200">
-                    <Shield className="h-4 w-4 text-purple-400 mr-2" />
-                    Biztonságos és hamisítássaló rendszer
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
