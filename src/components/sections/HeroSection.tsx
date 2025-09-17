@@ -22,7 +22,7 @@ const HeroSection = () => {
       <div className="container mx-auto text-center">
         <Badge className="mb-6 bg-cyan-500/20 text-cyan-300 border-cyan-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
-          Hamarosan itt!
+          Hamarosan Pécsett!
         </Badge>
         
         <div className="flex justify-center mb-6">
