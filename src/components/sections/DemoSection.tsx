@@ -36,7 +36,7 @@ const DemoSection = () => {
         </div>
 
         <div className="max-w-md mx-auto">
-          <Card className="bg-gradient-to-br from-cyan-900/30 via-purple-900/20 to-blue-900/30 border border-cyan-500/30 backdrop-blur-sm hover:shadow-2xl hover:shadow-cyan-500/20 transition-all duration-500 text-white [&_*]:text-white">
+          <Card className="">
             <CardHeader className="pb-4">
               <div className="relative">
                 <div className="w-full h-48 bg-gradient-to-r from-purple-600/20 to-cyan-600/20 rounded-lg mb-4 flex items-center justify-center">
