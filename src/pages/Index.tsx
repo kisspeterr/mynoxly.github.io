@@ -29,9 +29,9 @@ const Index = () => {
       <div className="bg-black/30">
         <FeaturesSection />
         <MapSection />
+        <BenefitsSection />
         <DemoSection />
         <ComingSoonSection />
-        <BenefitsSection />
         <TestimonialsSection />
         <WaitlistSection />
       </div>
