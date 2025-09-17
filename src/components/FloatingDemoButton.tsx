@@ -22,7 +22,7 @@ const FloatingDemoButton = () => {
         // Show button when scrolled past hero section
         setIsScrolledPastHero(window.scrollY > heroSection.offsetHeight);
         
-        // Hide button when demo section is in view
+        // Show button when demo section is NOT in view
         setIsVisible(window.scrollY > heroSection.offsetHeight && demoTop > window.innerHeight);
       }
     };
@@ -48,13 +48,10 @@ const FloatingDemoButton = () => {
     } ${isMobile ? 'bottom-6 left-6' : 'bottom-8 left-8'}`}>
       <Button
         onClick={scrollToDemo}
-        className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-full shadow-2xl shadow-cyan-500/40 hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-110 group animate-bounce"
-        size={isMobile ? "icon" : "lg"}
+        className="w-12 h-12 bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-full shadow-2xl shadow-cyan-500/40 hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-110 group"
+        size="icon"
       >
-        <Play className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} group-hover:scale-110 transition-transform`} />
-        {!isMobile && (
-          <span className="ml-2 font-semibold">Kipróbálom</span>
-        )}
+        <Play className="h-6 w-6 group-hover:scale-110 transition-transform" />
       </Button>
     </div>
   );
