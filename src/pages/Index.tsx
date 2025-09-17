@@ -27,10 +27,10 @@ const Index = () => {
       <Navigation isScrolled={isScrolled} />
       <HeroSection />
       <div className="bg-black/30">
+        <FeaturesSection />
         <DemoSection />
         <MapSection />
         <ComingSoonSection />
-        <FeaturesSection />
         <BenefitsSection />
         <TestimonialsSection />
         <WaitlistSection />
