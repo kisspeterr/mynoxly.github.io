@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MadeWithDyad } from "@/components/made-with-dyad";
-import { Star, MapPin, Calendar, Users, Sparkles, Moon } from "lucide-react";
+import { Star, MapPin, Calendar, Users, Sparkles, Moon, Ticket, Smartphone, BarChart3, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -28,9 +28,9 @@ const Index = () => {
               </span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
+              <a href="#users" className="hover:text-cyan-300 transition-colors">Felhasználóknak</a>
+              <a href="#partners" className="hover:text-cyan-300 transition-colors">Partnereknek</a>
               <a href="#features" className="hover:text-cyan-300 transition-colors">Funkciók</a>
-              <a href="#about" className="hover:text-cyan-300 transition-colors">Rólunk</a>
-              <a href="#contact" className="hover:text-cyan-300 transition-colors">Kapcsolat</a>
             </div>
             <Button className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 border-0">
               Letöltés
@@ -49,12 +49,16 @@ const Index = () => {
             </div>
           </div>
           
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             NOXLY
           </h1>
           
-          <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
-            Fedezd fel Pécs éjszakai életét egy modern, letisztult alkalmazással
+          <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
+            Pécs Éjszakai Élete Egy Helyen
+          </p>
+          
+          <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
+            Modern platform a legjobb események, akciók és szórakozási lehetőségek követésére Pécsben
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -69,14 +73,116 @@ const Index = () => {
         </div>
       </section>
 
+      {/* For Users Section */}
+      <section id="users" className="py-20 px-6 bg-black/30">
+        <div className="container mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-cyan-300">
+            Miért jó a Noxly a felhasználóknak?
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="bg-slate-900/50 border-cyan-500/20 backdrop-blur-sm hover:border-cyan-400/40 transition-all duration-300">
+              <CardHeader>
+                <Ticket className="h-12 w-12 text-cyan-400 mb-4" />
+                <CardTitle className="text-cyan-300">Kedvezmények és akciók</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Exkluzív kuponok és akciók a kedvenc helyeidben. 1+1 italakciók, happy hour kedvezmények és felfedező akciók.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm hover:border-purple-400/40 transition-all duration-300">
+              <CardHeader>
+                <Calendar className="h-12 w-12 text-purple-400 mb-4" />
+                <CardTitle className="text-purple-300">Események követése</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Minden pécsi esemény egy helyen. Ne maradj le semmiről, kövesd a legfrissebb koncerteket és bulikat.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-slate-900/50 border-pink-500/20 backdrop-blur-sm hover:border-pink-400/40 transition-all duration-300">
+              <CardHeader>
+                <Zap className="h-12 w-12 text-pink-400 mb-4" />
+                <CardTitle className="text-pink-300">Egyszerű kuponbeváltás</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Gyors és kényelmes kuponbeváltás animált felülettel és QR-kódos aktiválással.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-sm hover:border-blue-400/40 transition-all duration-300">
+              <CardHeader>
+                <Smartphone className="h-12 w-12 text-blue-400 mb-4" />
+                <CardTitle className="text-blue-300">Modern felhasználói élmény</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Letisztult, sötét módú dizájn egyedülálló élményért. Intuitív navigáció és szórakoztató felület.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* For Partners Section */}
+      <section id="partners" className="py-20 px-6">
+        <div className="container mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-300">
+            Miért érdemes partnernek lenni a Noxly-ban?
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="bg-slate-900/50 border-cyan-500/20 backdrop-blur-sm hover:border-cyan-400/40 transition-all duration-300">
+              <CardHeader>
+                <Users className="h-12 w-12 text-cyan-400 mb-4" />
+                <CardTitle className="text-cyan-300">Közvetlen kapcsolat a célcsoporttal</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Érj el közvetlenül a pécsi éjszakai életet kedvelő fiatal közönséget. Hirdesd akcióidat és rendezvényeidet.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm hover:border-purple-400/40 transition-all duration-300">
+              <CardHeader>
+                <BarChart3 className="h-12 w-12 text-purple-400 mb-4" />
+                <CardTitle className="text-purple-300">Növekvő láthatóság</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Növeld az online jelenlétedet és látogatószámodat. Folyamatos hirdetés új akciókkal és VIP eseményekkel.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-slate-900/50 border-pink-500/20 backdrop-blur-sm hover:border-pink-400/40 transition-all duration-300">
+              <CardHeader>
+                <BarChart3 className="h-12 w-12 text-pink-400 mb-4" />
+                <CardTitle className="text-pink-300">Akciók és statisztikák</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Kezeld könnyedén kuponjaidat és akcióidat. Statisztikák a beváltásokról és látogatókról.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="bg-slate-900/50 border-blue-500/20 backdrop-blur-sm hover:border-blue-400/40 transition-all duration-300">
+              <CardHeader>
+                <Zap className="h-12 w-12 text-blue-400 mb-4" />
+                <CardTitle className="text-blue-300">Egyszerű integráció</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Felhasználóbarát partnerkezelés fejlesztési ismeretek nélkül. Gyors és kényelmes adminisztráció.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="py-20 px-6 bg-black/30">
         <div className="container mx-auto">
           <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-cyan-300">
-            Miért válaszd a NOXLY-t?
+            Főbb Funkciók
           </h2>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             <Card className="bg-slate-900/50 border-cyan-500/20 backdrop-blur-sm hover:border-cyan-400/40 transition-all duration-300">
               <CardHeader>
                 <MapPin className="h-12 w-12 text-cyan-400 mb-4" />
@@ -90,19 +196,19 @@ const Index = () => {
             <Card className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm hover:border-purple-400/40 transition-all duration-300">
               <CardHeader>
                 <Calendar className="h-12 w-12 text-purple-400 mb-4" />
-                <CardTitle className="text-purple-300">Események</CardTitle>
+                <CardTitle className="text-purple-300">Eseménynaptár</CardTitle>
                 <CardDescription className="text-gray-400">
-                  Minden fontos esemény egy helyen
+                  Minden fontos esemény egy helyen, időrendi sorrendben
                 </CardDescription>
               </CardHeader>
             </Card>
 
             <Card className="bg-slate-900/50 border-pink-500/20 backdrop-blur-sm hover:border-pink-400/40 transition-all duration-300">
               <CardHeader>
-                <Users className="h-12 w-12 text-pink-400 mb-4" />
-                <CardTitle className="text-pink-300">Közösség</CardTitle>
+                <Ticket className="h-12 w-12 text-pink-400 mb-4" />
+                <CardTitle className="text-pink-300">Kuponkezelés</CardTitle>
                 <CardDescription className="text-gray-400">
-                  Találkozz új emberekkel és barátokkal
+                  Egyszerű kuponkezelés és QR-kódos beváltás
                 </CardDescription>
               </CardHeader>
             </Card>
