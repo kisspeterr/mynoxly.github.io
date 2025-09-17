@@ -1,6 +1,5 @@
-import { MapPin, Users2, TrendingUp, Heart } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState, useEffect } from "react";
 
 const HungaryMap = () => {
@@ -64,8 +63,8 @@ const HungaryMap = () => {
       <div className="absolute inset-0">
         {/* Line from Pécs to other cities */}
         <div className={`absolute bottom-12 right-16 w-20 h-20 border-r-2 border-t-2 border-cyan-400/30 rounded-tr-lg transition-all duration-1000 delay-500 ${
-          isMapVisible ? 'opacity-100' : 'opacity-0'
-        }`} style={{transform: 'translate(50%, -50%)'}}></div>
+            isMapVisible ? 'opacity-100' : 'opacity-0'
+          }`} style={{transform: 'translate(50%, -50%)'}}></div>
       </div>
       
       {/* Animated pulse effect */}
@@ -93,33 +92,6 @@ const MapSection = () => {
         
         <div className="mb-12">
           <HungaryMap />
-        </div>
-        
-        <div className="max-w-2xl mx-auto">
-          <Card className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border-cyan-500/30">
-            <CardHeader>
-              <CardTitle className="text-2xl text-cyan-300">Miért Pécs?</CardTitle>
-              <CardDescription className="text-gray-300">
-                A diákváros vibráló éjszakai élete és aktív közössége ideális terep az innováció bemutatására.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div className="p-4 bg-cyan-500/10 rounded-lg hover:scale-105 transition-transform duration-300">
-                  <Users2 className="h-8 w-8 text-cyan-400 mx-auto mb-2" />
-                  <div className="text-cyan-300 font-semibold">Aktív közösség</div>
-                </div>
-                <div className="p-4 bg-purple-500/10 rounded-lg hover:scale-105 transition-transform duration-300">
-                  <TrendingUp className="h-8 w-8 text-purple-400 mx-auto mb-2" />
-                  <div className="text-purple-300 font-semibold">Növekvő piac</div>
-                </div>
-                <div className="p-4 bg-pink-500/10 rounded-lg hover:scale-105 transition-transform duration-300">
-                  <Heart className="h-8 w-8 text-pink-400 mx-auto mb-2" />
-                  <div className="text-pink-300 font-semibold">Innovációbarát</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </section>
