@@ -11,6 +11,7 @@ import WaitlistSection from "@/components/sections/WaitlistSection";
 import FooterSection from "@/components/sections/FooterSection";
 import DemoSection from "@/components/sections/DemoSection";
 import FloatingDemoButton from "@/components/FloatingDemoButton";
+import FloatingScrollArrow from "@/components/FloatingScrollArrow";
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -42,6 +43,7 @@ const Index = () => {
       </div>
       <FooterSection />
       <FloatingDemoButton />
+      <FloatingScrollArrow />
     </div>
   );
 };
