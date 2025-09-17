@@ -20,7 +20,7 @@ const Navigation = () => {
   }, []);
 
   const scrollToWaitlist = () => {
-    const waitlistSection = document.getElementById("waitlist");
+    const waitlistSection = document.getElementById("waitlist-section");
     if (waitlistSection) {
       waitlistSection.scrollIntoView({ behavior: "smooth" });
     }
@@ -77,8 +77,7 @@ const Navigation = () => {
           <div className="flex items-center space-x-4">
             <Button 
               onClick={scrollToWaitlist}
-              variant="outline" 
-              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 hover:scale-105"
+              className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white transition-all duration-300 hover:scale-105"
             >
               Csatlakozom
             </Button>
