@@ -36,7 +36,6 @@ const Index = () => {
         <WaitlistSection />
       </div>
       <FooterSection />
-      <MadeWithDyad />
     </div>
   );
 };
