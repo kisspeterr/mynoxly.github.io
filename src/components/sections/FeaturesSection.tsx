@@ -1,72 +1,72 @@
-import { MapPin, Calendar, Ticket, Users2, Bell, TrendingUp } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, MapPin, Clock, Users, Star, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const FeaturesSection = () => {
   const features = [
     {
-      icon: <MapPin className="h-8 w-8" />,
-      title: "Élő Térkép",
-      description: "Valós idejű információ városod legjobb helyeiről"
+      icon: <Calendar className="h-12 w-12 text-cyan-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Okos foglalás",
+      description: "Intelligens rendszer, amely az időjárást, forgalmat és eseményeket figyelembe véve javasolja a legjobb időpontokat."
     },
     {
-      icon: <Calendar className="h-8 w-8" />,
-      title: "Eseménynaptár",
-      description: "Minden fontos esemény egy helyen"
+      icon: <MapPin className="h-12 w-12 text-purple-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Térképes navigáció",
+      description: "Valós idejű térkép az elérhető szolgáltatásokkal és a leggyorsabb útvonalakat mutatja."
     },
     {
-      icon: <Ticket className="h-8 w-8" />,
-      title: "Kuponkezelés",
-      description: "QR-kódos egyszerű beváltás"
+      icon: <Clock className="h-12 w-12 text-pink-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Időpont kezelés",
+      description: "Automatikus időpont-kezelés, amely optimalizálja az ügyfélforgalmat és csökkenti a várakozási időt."
     },
     {
-      icon: <Users2 className="h-8 w-8" />,
-      title: "Közösség",
-      description: "Találkozz új emberekkel"
+      icon: <Users className="h-12 w-12 text-blue-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Közösségi élmény",
+      description: "Értékelések, visszajelzések és közösségi funkciók, amelyek segítenek megtalálni a legjobb szolgáltatókat."
     },
     {
-      icon: <Bell className="h-8 w-8" />,
-      title: "Értesítések",
-      description: "Személyre szabott figyelmeztetések"
+      icon: <Star className="h-12 w-12 text-yellow-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Minőség garancia",
+      description: "Szigorú minőségi követelményeknek megfelelő partnerek és átlátható értékelési rendszer."
     },
     {
-      icon: <TrendingUp className="h-8 w-8" />,
-      title: "Statisztikák",
-      description: "Részletes elemzés a kedvenc helyeidről"
+      icon: <Zap className="h-12 w-12 text-green-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Gyors szolgáltatás",
+      description: "Prioritásos foglalási rendszer, amely biztosítja a gyors és hatékony szolgáltatásnyújtást."
     }
   ];
 
   return (
     <section id="features" className="py-20 px-6 bg-black/30">
       <div className="container mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-cyan-300">
+        <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
+          <Zap className="h-4 w-4 mr-2" />
+          Funkciók
+        </Badge>
+        
+        <h2 className="text-4xl md:text-5xl font-bold text-center mb-6 text-cyan-300">
           Mit kínál majd a NOXLY?
         </h2>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <p className="text-xl text-gray-300 text-center mb-16 max-w-2xl mx-auto">
+          Forradalmi megoldások, amelyek megkönnyítik az éjszakai életet<br className="hidden md:block" /> és emellett időt és pénzt is spórolhatsz.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card 
-              key={index}
-              className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm hover:border-cyan-400/40 transition-all duration-300 group hover:scale-105 cursor-pointer animate-fade-in-up"
-              style={{ animationDelay: `${index * 100}ms` }}
+            <div 
+              key={index} 
+              className="group bg-gradient-to-br from-gray-900/50 to-gray-800/30 p-8 rounded-2xl border border-gray-700/50 hover:border-cyan-500/50 transition-all duration-300 hover:shadow-lg hover:shadow-cyan-500/20 backdrop-blur-sm"
             >
-              <CardHeader>
-                <div className="text-cyan-400 mb-4 group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
-                  {feature.icon}
-                </div>
-                <CardTitle className="text-cyan-300 group-hover:text-cyan-200 transition-colors duration-300">
-                  {feature.title}
-                </CardTitle>
-                <CardDescription className="text-gray-400">
-                  {feature.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Badge variant="outline" className="bg-cyan-500/10 text-cyan-300 border-cyan-400/30 group-hover:bg-cyan-500/20 transition-colors">
-                  Hamarosan
-                </Badge>
-              </CardContent>
-            </Card>
+              <div className="mb-6">
+                {feature.icon}
+              </div>
+              <h3 className="text-2xl font-bold mb-4 text-white group-hover:text-cyan-300 transition-colors duration-300">
+                {feature.title}
+              </h3>
+              <p className="text-gray-300">
+                {feature.description}
+              </p>
+            </div>
           ))}
         </div>
       </div>
