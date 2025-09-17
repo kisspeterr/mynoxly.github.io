@@ -36,7 +36,7 @@ const FeaturesSection = () => {
   ];
 
   return (
-    <section id="features" className="py-20 px-6 bg-black/30">
+    <section id="features" className="py-20 px-6">
       <div className="container mx-auto">
         <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
           <Zap className="h-4 w-4 mr-2" />
