@@ -42,42 +42,60 @@ const Index = () => {
       {/* Hero Section with Pécs Skyline */}
       <section className="pt-32 pb-20 px-6 relative overflow-hidden">
         {/* Pécs Skyline Neon Outline */}
-        <div className="absolute inset-0 z-0 opacity-30">
-          <div className="absolute bottom-0 left-0 right-0 h-48">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute bottom-0 left-0 right-0 h-80">
             {/* Székesegyház és belváros neon körvonalak */}
-            <svg viewBox="0 0 1200 200" className="w-full h-full">
+            <svg viewBox="0 0 1200 300" className="w-full h-full">
               {/* Székesegyház körvonal */}
               <path 
-                d="M500,150 L520,120 L540,100 L560,80 L580,70 L600,60 L620,70 L640,80 L660,100 L680,120 L700,150 Z" 
+                d="M500,200 L520,170 L540,150 L560,130 L580,120 L600,110 L620,120 L640,130 L660,150 L680,170 L700,200 Z" 
                 fill="none" 
                 stroke="url(#neonGradient)" 
-                strokeWidth="3"
+                strokeWidth="4"
                 strokeLinejoin="round"
                 className="drop-shadow-glow"
               />
               
               {/* Egyháztornyok */}
               <path 
-                d="M580,70 L580,40 L600,30 L620,40 L620,70" 
+                d="M580,120 L580,80 L600,70 L620,80 L620,120" 
                 fill="none" 
                 stroke="url(#neonGradient)" 
-                strokeWidth="2"
+                strokeWidth="3"
                 className="drop-shadow-glow"
               />
               
-              {/* Belváros épületek */}
+              {/* Belváros épületek bal oldalon */}
               <path 
-                d="M300,150 L320,130 L340,110 L360,90 L380,80 L400,70 L420,80 L440,90 L460,110 L480,130 L500,150" 
+                d="M200,200 L220,180 L240,160 L260,140 L280,130 L300,120 L320,130 L340,140 L360,160 L380,180 L400,200" 
                 fill="none" 
                 stroke="url(#neonPurple)" 
+                strokeWidth="3"
+                className="drop-shadow-glow"
+              />
+              
+              {/* Belváros épületek jobb oldalon */}
+              <path 
+                d="M800,200 L820,180 L840,160 L860,140 L880,130 L900,120 L920,130 L940,140 L960,160 L980,180 L1000,200" 
+                fill="none" 
+                stroke="url(#neonPink)" 
+                strokeWidth="3"
+                className="drop-shadow-glow"
+              />
+              
+              {/* További épületek a középen */}
+              <path 
+                d="M450,200 L460,190 L470,180 L480,170 L490,160 L500,150 L510,160 L520,170 L530,180 L540,190 L550,200" 
+                fill="none" 
+                stroke="url(#neonCyan)" 
                 strokeWidth="2"
                 className="drop-shadow-glow"
               />
               
               <path 
-                d="M700,150 L720,130 L740,110 L760,90 L780,80 L800,70 L820,80 L840,90 L860,110 L880,130 L900,150" 
+                d="M650,200 L660,190 L670,180 L680,170 L690,160 L700,150 L710,160 L720,170 L730,180 L740,190 L750,200" 
                 fill="none" 
-                stroke="url(#neonPink)" 
+                stroke="url(#neonCyan)" 
                 strokeWidth="2"
                 className="drop-shadow-glow"
               />
@@ -95,6 +113,10 @@ const Index = () => {
                 <linearGradient id="neonPink" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="#EC4899" />
                   <stop offset="100%" stopColor="#F97316" />
+                </linearGradient>
+                <linearGradient id="neonCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#00FFFF" />
+                  <stop offset="100%" stopColor="#0EA5E9" />
                 </linearGradient>
               </defs>
             </svg>
