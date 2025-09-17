@@ -64,7 +64,7 @@ const FloatingScrollArrow = () => {
 
   return (
     <div className={`fixed z-40 transition-all duration-500 ease-in-out ${
-      isMobile ? 'bottom-20 left-6' : 'bottom-8 left-8'
+      isMobile ? 'bottom-20 right-6' : 'bottom-8 left-8'
     }`}>
       <Button
         onClick={scrollToNextSection}
