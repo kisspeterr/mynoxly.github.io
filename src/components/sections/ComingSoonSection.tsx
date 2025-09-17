@@ -1,37 +1,62 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 
 const ComingSoonSection = () => {
   const [progressValue, setProgressValue] = useState(0);
   const [displayValue, setDisplayValue] = useState(0);
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setProgressValue(75);
-      
-      // Animate the counter from 0 to 75
-      let start = 0;
-      const end = 75;
-      const duration = 2000; // 2 seconds (slower)
-      const steps = duration / (1000 / 30); // 30fps
-      const stepValue = end / steps;
-      
-      const counter = setInterval(() => {
-        start += stepValue;
-        if (start >= end) {
-          setDisplayValue(end);
-          clearInterval(counter);
-        } else {
-          setDisplayValue(Math.floor(start));
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
         }
-      }, 1000 / 30);
-      
-    }, 100);
-    return () => clearTimeout(timer);
+      },
+      { threshold: 0.1 }
+    );
+
+    if (sectionRef.current) {
+      observer.observe(sectionRef.current);
+    }
+
+    return () => {
+      if (sectionRef.current) {
+        observer.unobserve(sectionRef.current);
+      }
+    };
   }, []);
 
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(() => {
+        setProgressValue(75);
+        
+        // Animate the counter from 0 to 75
+        let start = 0;
+        const end = 75;
+        const duration = 2000; // 2 seconds (slower)
+        const steps = duration / (1000 / 30); // 30fps
+        const stepValue = end / steps;
+        
+        const counter = setInterval(() => {
+          start += stepValue;
+          if (start >= end) {
+            setDisplayValue(end);
+            clearInterval(counter);
+          } else {
+            setDisplayValue(Math.floor(start));
+          }
+        }, 1000 / 30);
+        
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible]);
+
   return (
-    <section id="coming-soon" className="py-20 px-6 bg-black/30">
+    <section id="coming-soon" className="py-20 px-6 bg-black/30" ref={sectionRef}>
       <div className="container mx-auto text-center">
         <Badge className="mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
           Hamarosan
