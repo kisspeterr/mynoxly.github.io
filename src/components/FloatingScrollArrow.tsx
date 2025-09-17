@@ -7,7 +7,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const FloatingScrollArrow = () => {
   const [currentSection, setCurrentSection] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
   const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
   const isMobile = useIsMobile();
 
@@ -25,9 +24,8 @@ const FloatingScrollArrow = () => {
   useEffect(() => {
     const handleScroll = () => {
       const heroSection = document.getElementById('hero-section');
-      const demoSection = document.getElementById('demo-section');
       
-      if (heroSection && demoSection) {
+      if (heroSection) {
         const scrollPosition = window.scrollY;
         const sectionPositions = sections.map(id => {
           const element = document.getElementById(id);
@@ -44,12 +42,7 @@ const FloatingScrollArrow = () => {
         }
 
         setCurrentSection(current);
-        
-        // Show button when scrolled past hero section
         setIsScrolledPastHero(window.scrollY > heroSection.offsetHeight);
-        
-        // Show button when demo section is NOT in view
-        setIsVisible(window.scrollY > heroSection.offsetHeight && demoSection.getBoundingClientRect().top > window.innerHeight);
       }
     };
 
@@ -79,7 +72,7 @@ const FloatingScrollArrow = () => {
 
   return (
     <div className={`fixed z-40 transition-all duration-500 ease-in-out ${
-      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+      isScrolledPastHero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
     } ${isMobile ? 'bottom-20 left-6' : 'bottom-32 left-8'}`}>
       <Button
         onClick={scrollToNextSection}

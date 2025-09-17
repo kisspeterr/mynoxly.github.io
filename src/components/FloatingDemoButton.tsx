@@ -6,24 +6,15 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const FloatingDemoButton = () => {
-  const [isVisible, setIsVisible] = useState(false);
   const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleScroll = () => {
       const heroSection = document.getElementById('hero-section');
-      const demoSection = document.getElementById('demo-section');
       
-      if (heroSection && demoSection) {
-        const heroBottom = heroSection.getBoundingClientRect().bottom;
-        const demoTop = demoSection.getBoundingClientRect().top;
-        
-        // Show button when scrolled past hero section
+      if (heroSection) {
         setIsScrolledPastHero(window.scrollY > heroSection.offsetHeight);
-        
-        // Show button when demo section is NOT in view
-        setIsVisible(window.scrollY > heroSection.offsetHeight && demoTop > window.innerHeight);
       }
     };
 
@@ -44,7 +35,7 @@ const FloatingDemoButton = () => {
 
   return (
     <div className={`fixed z-50 transition-all duration-500 ease-in-out ${
-      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+      isScrolledPastHero ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
     } ${isMobile ? 'bottom-6 left-6' : 'bottom-8 left-8'}`}>
       <Button
         onClick={scrollToDemo}
