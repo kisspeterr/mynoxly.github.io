@@ -1,4 +1,4 @@
-import { Crown, TrendingUp, Sparkles, Calendar, MapPin, Users2, QrCode, Star, Shield, BarChart3, Target, Heart } from "lucide-react";
+import { Crown, TrendingUp, Sparkles, Calendar, MapPin, Users2, QrCode, Star, Shield, BarChart3, Target, Heart, Gift, Zap } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
