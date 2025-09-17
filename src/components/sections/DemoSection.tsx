@@ -20,7 +20,7 @@ const DemoSection = () => {
   const emojis = ['🍹', '🍸', '🥂', '🍷', '🍺', '🎉', '✨', '🌟', '💫', '🎊'];
 
   return (
-    <section id="demo-section" className="py-20 px-6 bg-gradient-to-br from-purple-900/30 to-cyan-900/30">
+    <section id="demo-section" className="py-20 px-6">
       <div className="container mx-auto">
         <div className="text-center mb-12">
           <Badge className="mb-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">

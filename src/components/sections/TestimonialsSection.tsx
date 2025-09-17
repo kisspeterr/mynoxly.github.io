@@ -36,7 +36,7 @@ const TestimonialsSection = () => {
   };
 
   return (
-    <section id="testimonials" className="py-20 px-6 bg-black/30">
+    <section id="testimonials" className="py-20 px-6">
       <div className="container mx-auto text-center">
         <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
           <Quote className="h-4 w-4 mr-2" />
