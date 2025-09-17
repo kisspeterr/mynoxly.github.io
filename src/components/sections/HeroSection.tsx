@@ -7,7 +7,7 @@ const HeroSection = () => {
     { number: "500+", label: "Előregisztrált felhasználó" },
     { number: "30+", label: "Érdeklődő partner" },
     { number: "2026", label: "Bemutató éve" },
-    { number: "24/7", label: "Támogatás" }
+    { number: "10+", label: "Induló akció" }
   ];
 
   const scrollToDemo = () => {
