@@ -7,7 +7,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const FloatingScrollArrow = () => {
   const [currentSection, setCurrentSection] = useState(0);
-  const [isScrollingUp, setIsScrollingUp] = useState(false);
   const isMobile = useIsMobile();
 
   const sections = [
@@ -39,7 +38,6 @@ const FloatingScrollArrow = () => {
       }
 
       setCurrentSection(current);
-      setIsScrollingUp(scrollPosition < (window.scrollY || 0));
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -49,28 +47,19 @@ const FloatingScrollArrow = () => {
   }, []);
 
   const scrollToNextSection = () => {
-    const nextSection = isScrollingUp ? currentSection - 1 : currentSection + 1;
+    const nextSection = currentSection + 1;
     
-    if (nextSection >= 0 && nextSection < sections.length) {
+    if (nextSection < sections.length) {
       const element = document.getElementById(sections[nextSection]);
       if (element) {
         element.scrollIntoView({ behavior: 'smooth' });
       }
-    } else if (nextSection >= sections.length) {
+    } else {
       // Scroll to top when at bottom
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      setIsScrollingUp(true);
-    } else if (nextSection < 0) {
-      // Scroll to bottom when at top
-      const lastSection = document.getElementById(sections[sections.length - 1]);
-      if (lastSection) {
-        lastSection.scrollIntoView({ behavior: 'smooth' });
-        setIsScrollingUp(false);
-      }
     }
   };
 
-  const isAtTop = currentSection === 0;
   const isAtBottom = currentSection === sections.length - 1;
 
   return (
@@ -82,7 +71,7 @@ const FloatingScrollArrow = () => {
         className="w-12 h-12 bg-gradient-to-r from-purple-500 to-cyan-500 hover:from-purple-600 hover:to-cyan-600 text-white rounded-full shadow-2xl shadow-purple-500/40 hover:shadow-purple-500/60 transition-all duration-300 hover:scale-110 group"
         size="icon"
       >
-        {isScrollingUp || isAtBottom ? (
+        {isAtBottom ? (
           <ChevronUp className="h-6 w-6 group-hover:scale-110 transition-transform" />
         ) : (
           <ChevronDown className="h-6 w-6 group-hover:scale-110 transition-transform" />
