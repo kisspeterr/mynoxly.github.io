@@ -26,15 +26,13 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white">
       <Navigation isScrolled={isScrolled} />
       <HeroSection />
-      <div className="bg-black/30">
-        <DemoSection />
-        <MapSection />
-        <ComingSoonSection />
-        <FeaturesSection />
-        <BenefitsSection />
-        <TestimonialsSection />
-        <WaitlistSection />
-      </div>
+      <DemoSection />
+      <MapSection />
+      <ComingSoonSection />
+      <FeaturesSection />
+      <BenefitsSection />
+      <TestimonialsSection />
+      <WaitlistSection />
       <FooterSection />
       <MadeWithDyad />
     </div>
