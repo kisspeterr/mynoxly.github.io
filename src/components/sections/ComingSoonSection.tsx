@@ -58,7 +58,7 @@ const ComingSoonSection = () => {
   }, [isVisible]);
 
   return (
-    <section id="coming-soon" className="py-20 px-6 bg-black/30" ref={sectionRef}>
+    <section id="coming-soon" className="py-20 px-6" ref={sectionRef}>
       <div className="container mx-auto text-center">
         <Badge className="mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 animate-pulse">
           <Sparkles className="h-4 w-4 mr-2" />
