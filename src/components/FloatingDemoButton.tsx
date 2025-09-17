@@ -45,7 +45,7 @@ const FloatingDemoButton = () => {
   return (
     <div className={`fixed z-50 transition-all duration-500 ease-in-out ${
       isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-    } ${isMobile ? 'bottom-6 right-6' : 'bottom-8 right-8'}`}>
+    } ${isMobile ? 'bottom-6 left-6' : 'bottom-8 left-8'}`}>
       <Button
         onClick={scrollToDemo}
         className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-full shadow-2xl shadow-cyan-500/40 hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-110 group animate-bounce"
