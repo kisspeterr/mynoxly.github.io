@@ -78,31 +78,6 @@ const BenefitsSection = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900/50 border-cyan-500/20 backdrop-blur-sm group hover:scale-105 transition-transform duration-300">
-              <CardHeader>
-                <Shield className="h-12 w-12 text-cyan-400 mb-4 group-hover:rotate-12 transition-transform duration-500" />
-                <CardTitle className="text-cyan-300">Biztonság & Könnyedség</CardTitle>
-                <CardDescription className="text-gray-400">
-                  Zökkenőmentes élmény minden lépésben
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2 text-gray-300">
-                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300">
-                    <QrCode className="h-4 w-4 text-cyan-400 mr-2" />
-                    Azonnali kuponbeváltás
-                  </li>
-                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-100">
-                    <Sparkles className="h-4 w-4 text-cyan-400 mr-2" />
-                    Egyszerű és intuitív felület
-                  </li>
-                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-200">
-                    <Shield className="h-4 w-4 text-cyan-400 mr-2" />
-                    Biztonságos fizetési lehetőségek
-                  </li>
-                </ul>
-              </CardContent>
-            </Card>
           </div>
         </div>
 
