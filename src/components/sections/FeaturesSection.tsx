@@ -23,11 +23,7 @@ const FeaturesSection = () => {
       title: "Gyors Beváltás",
       description: "QR kód beolvasás és azonnali kuponaktiválás. Nem kell várnod, azonnal élvezheted az akciót!"
     },
-    {
-      icon: <Users className="h-12 w-12 text-yellow-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Közösségi Ajánlatok",
-      description: "Több fős csoportos kedvezmények. Minél többen vagytok, annál jobb az akció!"
-    },
+
     {
       icon: <Calendar className="h-12 w-12 text-green-400 transition-transform duration-300 group-hover:scale-110" />,
       title: "Heti Akciók",
