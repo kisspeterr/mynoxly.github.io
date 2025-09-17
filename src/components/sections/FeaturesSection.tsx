@@ -35,7 +35,7 @@ const FeaturesSection = () => {
         </Badge>
         
         <h2 className="text-4xl md:text-5xl font-bold text-center mb-6 text-cyan-300">
-          Spórolj a kocsmában!
+          Spórolj a szórakozóhelyeken!
         </h2>
         
         <p className="text-xl text-gray-300 text-center mb-16 max-w-2xl mx-auto">
