@@ -19,7 +19,7 @@ const WaitlistSection = () => {
   };
 
   return (
-    <section className="py-20 px-6">
+    <section id="waitlist" className="py-20 px-6">
       <div className="max-w-4xl mx-auto text-center">
         <h2 className="text-4xl font-bold mb-4 text-white">Csatlakozz a Várólistához</h2>
         <p className="text-xl mb-12 text-gray-300">

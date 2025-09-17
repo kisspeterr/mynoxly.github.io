@@ -20,9 +20,12 @@ const Navigation = () => {
   }, []);
 
   const scrollToWaitlist = () => {
-    const waitlistSection = document.getElementById("waitlist-section");
+    const waitlistSection = document.getElementById("waitlist");
     if (waitlistSection) {
-      waitlistSection.scrollIntoView({ behavior: "smooth" });
+      waitlistSection.scrollIntoView({ 
+        behavior: "smooth",
+        block: "start"
+      });
     }
   };
 
