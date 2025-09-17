@@ -13,7 +13,7 @@ const ComingSoonSection = () => {
   }, []);
 
   return (
-    <section id="coming-soon" className="py-20 px-6 bg-gradient-to-b from-gray-900 via-black to-black">
+    <section id="coming-soon" className="py-20 px-6 bg-black/30">
       <div className="container mx-auto text-center">
         <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
           Hamarosan
