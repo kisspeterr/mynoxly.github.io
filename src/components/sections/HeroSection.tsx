@@ -40,7 +40,7 @@ const HeroSection = () => {
         </h1>
         
         <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-          Akciók, Kuponok és Kedvezmények - Helyieknek, Egyetemistáknak és Bulizóknak
+          Akciók, Kuponok és Kedvezmények - Helyieknek
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
