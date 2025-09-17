@@ -1,65 +1,76 @@
-import { Gift, Bell } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
+"use client";
+
+import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const WaitlistSection = () => {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      alert(`Köszönjük az érdeklődést! Hamarosan értesítünk a bemutatóról: ${email}`);
-      setEmail("");
-    }
+    // Itt lehetne API hívás is
+    console.log('Email submitted:', email);
+    setIsSubmitted(true);
+    setEmail('');
   };
 
   return (
-    <section id="waitlist" className="py-20 px-6">
-      <div className="container mx-auto text-center">
-        <div className="max-w-2xl mx-auto">
-          <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0 animate-pulse">
-            <Gift className="h-4 w-4 mr-2" />
-            Korai hozzáférés
-          </Badge>
-          
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-cyan-300">
-            Legyen az elsők között Pécsen!
-          </h2>
-          
-          <p className="text-xl text-gray-300 mb-8">
-            Iratkozzon fel a várólistára, és kapjon exkluzív kedvezményt<br className="hidden md:block" /> az alkalmazás megjelenésekor!
-          </p>
-          
-          <Card className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border-cyan-500/30 hover:scale-105 transition-transform duration-300">
-            <CardHeader>
-              <CardTitle className="text-2xl text-cyan-300">Előregisztráció</CardTitle>
-              <CardDescription className="text-gray-300">
-                Add meg az email címed, és értesítünk amint elindul a NOXLY Pécsen!
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-4">
-                <Input
-                  type="email"
-                  placeholder="Email címed"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-slate-800/50 border-cyan-500/30 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-400 transition-all duration-300"
-                  required
-                />
-                <Button type="submit" className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white transition-all duration-300 hover:scale-105">
-                  <Bell className="h-4 w-4 mr-2" />
-                  Feliratkozás
-                </Button>
+    <section className="py-20 px-6">
+      <div className="max-w-4xl mx-auto text-center">
+        <h2 className="text-4xl font-bold mb-4 text-white">Csatlakozz a Várólistához</h2>
+        <p className="text-xl mb-12 text-gray-300">
+          Legyél az elsők között, akik kipróbálhatják az alkalmazásunkat
+        </p>
+        
+        <div className="max-w-md mx-auto">
+          {isSubmitted ? (
+            <Card className="bg-black/30 border-gray-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl text-green-400">Köszönjük!</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-300">
+                  Sikeresen feliratkoztál a várólistára. Hamarosan küldünk egy e-mailt, amint az alkalmazás elérhető.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-black/30 border-gray-700 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-2xl text-cyan-300">Előregisztráció</CardTitle>
+                <CardDescription className="text-gray-300">
+                  Add meg az e-mail címed, és értesítünk, amint az alkalmazás elérhető
+                </CardDescription>
+              </CardHeader>
+              <form onSubmit={handleSubmit}>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-gray-300">E-mail cím</Label>
+                      <Input 
+                        id="email"
+                        type="email" 
+                        placeholder="email@example.com" 
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
+                    Feliratkozás
+                  </Button>
+                </CardFooter>
               </form>
-              <p className="text-sm text-gray-400 mt-4">
-                Az első 100 regisztrált felhasználó 50% kedvezményt kap az első havi prémium szolgáltatásunkra!
-              </p>
-            </CardContent>
-          </Card>
+            </Card>
+          )}
         </div>
       </div>
     </section>
