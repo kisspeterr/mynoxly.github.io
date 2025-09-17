@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Sparkles, Zap, Clock, TrendingUp } from "lucide-react";
+import { Sparkles, TrendingUp } from "lucide-react";
 
 const ComingSoonSection = () => {
   const [progressValue, setProgressValue] = useState(0);
@@ -57,30 +56,6 @@ const ComingSoonSection = () => {
       return () => clearTimeout(timer);
     }
   }, [isVisible]);
-
-  const handleRestartAnimation = () => {
-    setProgressValue(0);
-    setDisplayValue(0);
-    setTimeout(() => {
-      setProgressValue(75);
-      
-      let start = 0;
-      const end = 75;
-      const duration = 3500;
-      const steps = duration / (1000 / 30);
-      const stepValue = end / steps;
-      
-      const counter = setInterval(() => {
-        start += stepValue;
-        if (start >= end) {
-          setDisplayValue(end);
-          clearInterval(counter);
-        } else {
-          setDisplayValue(Math.floor(start));
-        }
-      }, 1000 / 30);
-    }, 300);
-  };
 
   return (
     <section id="coming-soon" className="py-20 px-6 bg-black/30" ref={sectionRef}>
@@ -141,48 +116,21 @@ const ComingSoonSection = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div className="bg-gradient-to-br from-blue-600/30 to-blue-800/30 p-6 rounded-2xl border border-blue-500/30 hover:scale-105 transition-transform duration-300 group">
                 <div className="text-3xl font-bold text-blue-300 mb-2 group-hover:scale-110 transition-transform duration-300">1.0</div>
                 <p className="text-gray-300">Verzió</p>
-                <div className="absolute -top-2 -right-2">
-                  <Zap className="h-4 w-4 text-blue-400 animate-ping" />
-                </div>
               </div>
               
               <div className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-6 rounded-2xl border border-purple-500/30 hover:scale-105 transition-transform duration-300 group">
                 <div className="text-3xl font-bold text-purple-300 mb-2 group-hover:scale-110 transition-transform duration-300">100+</div>
                 <p className="text-gray-300">Partner</p>
-                <div className="absolute -top-2 -right-2">
-                  <Sparkles className="h-4 w-4 text-purple-400 animate-ping" />
-                </div>
               </div>
               
               <div className="bg-gradient-to-br from-pink-600/30 to-pink-800/30 p-6 rounded-2xl border border-pink-500/30 hover:scale-105 transition-transform duration-300 group">
                 <div className="text-3xl font-bold text-pink-300 mb-2 group-hover:scale-110 transition-transform duration-300">24/7</div>
                 <p className="text-gray-300">Támogatás</p>
-                <div className="absolute -top-2 -right-2">
-                  <Clock className="h-4 w-4 text-pink-400 animate-ping" />
-                </div>
               </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button 
-                onClick={handleRestartAnimation}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105 group"
-              >
-                <Zap className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
-                Animáció újraindítása
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-6 py-3 rounded-xl group transition-all duration-300 hover:scale-105"
-              >
-                <Sparkles className="mr-2 h-4 w-4 group-hover:scale-110 transition-transform" />
-                Értesítést kérek
-              </Button>
             </div>
             
             {/* Interactive hover effect */}
