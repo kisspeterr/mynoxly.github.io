@@ -4,10 +4,30 @@ import { Progress } from "@/components/ui/progress";
 
 const ComingSoonSection = () => {
   const [progressValue, setProgressValue] = useState(0);
+  const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setProgressValue(75);
+      
+      // Animate the counter from 0 to 75
+      let start = 0;
+      const end = 75;
+      const duration = 1000; // 1 second
+      const increment = 1;
+      const steps = duration / (1000 / 30); // 30fps
+      const stepValue = end / steps;
+      
+      const counter = setInterval(() => {
+        start += stepValue;
+        if (start >= end) {
+          setDisplayValue(end);
+          clearInterval(counter);
+        } else {
+          setDisplayValue(Math.floor(start));
+        }
+      }, 1000 / 30);
+      
     }, 100);
     return () => clearTimeout(timer);
   }, []);
@@ -39,7 +59,7 @@ const ComingSoonSection = () => {
                   indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-1000 ease-out"
                 />
                 <p className="text-sm text-gray-400">
-                  {progressValue}% - Fejlesztés folyamatban
+                  {displayValue}% - Fejlesztés folyamatban
                 </p>
               </div>
             </div>
