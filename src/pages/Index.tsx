@@ -28,8 +28,8 @@ const Index = () => {
       <HeroSection />
       <div className="bg-black/30">
         <FeaturesSection />
-        <DemoSection />
         <MapSection />
+        <DemoSection />
         <ComingSoonSection />
         <BenefitsSection />
         <TestimonialsSection />
