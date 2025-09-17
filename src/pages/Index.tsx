@@ -10,6 +10,7 @@ import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import WaitlistSection from "@/components/sections/WaitlistSection";
 import FooterSection from "@/components/sections/FooterSection";
 import DemoSection from "@/components/sections/DemoSection";
+import FloatingDemoButton from "@/components/FloatingDemoButton";
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -25,17 +26,22 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white">
       <Navigation isScrolled={isScrolled} />
-      <HeroSection />
+      <div id="hero-section">
+        <HeroSection />
+      </div>
       <div className="bg-black/30">
         <FeaturesSection />
         <MapSection />
         <BenefitsSection />
-        <DemoSection />
+        <div id="demo-section">
+          <DemoSection />
+        </div>
         <ComingSoonSection />
         <TestimonialsSection />
         <WaitlistSection />
       </div>
       <FooterSection />
+      <FloatingDemoButton />
     </div>
   );
 };
