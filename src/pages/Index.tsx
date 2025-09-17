@@ -11,20 +11,30 @@ const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [email, setEmail] = useState("");
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isMapVisible, setIsMapVisible] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    
+    // Map animation trigger
+    const timer = setTimeout(() => {
+      setIsMapVisible(true);
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      clearTimeout(timer);
+    };
   }, []);
 
   const features = [
     {
       icon: <MapPin className="h-8 w-8" />,
       title: "Élő Térkép",
-      description: "Valós idejű információ Pécs legjobb helyeiről"
+      description: "Valós idejű információ városod legjobb helyeiről"
     },
     {
       icon: <Calendar className="h-8 w-8" />,
@@ -57,7 +67,7 @@ const Index = () => {
     {
       name: "Anna",
       role: "Egyetemista",
-      text: "Alig várom, hogy kipróbálhassam! Pontosan ez hiányzott Pécs éjszakai életéből.",
+      text: "Alig várom, hogy kipróbálhassam! Pontosan ez hiányzott városunk éjszakai életéből.",
       rating: 5
     },
     {
@@ -97,6 +107,46 @@ const Index = () => {
     }
   };
 
+  // Simplified Hungary map with Pécs highlighted
+  const HungaryMap = () => (
+    <div className="relative w-full max-w-md mx-auto">
+      <div className="relative bg-slate-800/30 rounded-2xl p-8 border border-cyan-500/20 backdrop-blur-sm">
+        {/* Hungary outline */}
+        <div className="relative mx-auto w-48 h-32 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 rounded-lg border border-purple-400/30">
+          {/* Pécs location marker */}
+          <div className={`absolute bottom-8 right-12 transition-all duration-1000 ${
+            isMapVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-50'
+          }`}>
+            <div className="relative">
+              <div className="absolute -inset-4 bg-cyan-400/20 rounded-full animate-ping"></div>
+              <div className="w-4 h-4 bg-cyan-400 rounded-full ring-4 ring-cyan-400/30 relative z-10"></div>
+            </div>
+            <div className={`absolute -top-8 -left-4 bg-cyan-500 text-white text-xs px-2 py-1 rounded-md font-semibold transition-all duration-700 delay-300 ${
+              isMapVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}>
+              Pécs
+            </div>
+          </div>
+          
+          {/* Other major cities - faint markers */}
+          <div className="absolute top-4 left-8 w-2 h-2 bg-gray-400/30 rounded-full"></div>
+          <div className="absolute top-12 left-16 w-2 h-2 bg-gray-400/30 rounded-full"></div>
+          <div className="absolute bottom-4 left-20 w-2 h-2 bg-gray-400/30 rounded-full"></div>
+        </div>
+        
+        {/* Map legend */}
+        <div className={`mt-4 text-center transition-all duration-700 delay-500 ${
+          isMapVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}>
+          <div className="inline-flex items-center space-x-2 bg-black/30 px-3 py-2 rounded-lg">
+            <div className="w-3 h-3 bg-cyan-400 rounded-full ring-2 ring-cyan-400/30"></div>
+            <span className="text-sm text-cyan-300 font-medium">Első város: Pécs</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white">
       {/* Navigation */}
@@ -104,19 +154,19 @@ const Index = () => {
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Moon className="h-8 w-8 text-cyan-400" />
+              <Moon className="h-8 w-8 text-cyan-400 animate-pulse" />
               <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 NOXLY
               </span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="hover:text-cyan-300 transition-colors">Funkciók</a>
-              <a href="#benefits" className="hover:text-cyan-300 transition-colors">Előnyök</a>
-              <a href="#testimonials" className="hover:text-cyan-300 transition-colors">Vélemények</a>
-              <a href="#waitlist" className="hover:text-cyan-300 transition-colors">Várólista</a>
+              <a href="#features" className="hover:text-cyan-300 transition-colors duration-300">Funkciók</a>
+              <a href="#map" className="hover:text-cyan-300 transition-colors duration-300">Térkép</a>
+              <a href="#testimonials" className="hover:text-cyan-300 transition-colors duration-300">Vélemények</a>
+              <a href="#waitlist" className="hover:text-cyan-300 transition-colors duration-300">Várólista</a>
             </div>
             <div className="flex items-center space-x-4">
-              <Button variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
+              <Button variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 hover:scale-105">
                 Partnerként
               </Button>
             </div>
@@ -127,27 +177,27 @@ const Index = () => {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-6">
         <div className="container mx-auto text-center">
-          <Badge className="mb-6 bg-cyan-500/20 text-cyan-300 border-cyan-400/30">
+          <Badge className="mb-6 bg-cyan-500/20 text-cyan-300 border-cyan-400/30 animate-bounce">
             <Sparkles className="h-4 w-4 mr-2" />
-            Hamarosan Pécsben
+            Hamarosan itt!
           </Badge>
           
           <div className="flex justify-center mb-6">
             <div className="relative">
               <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full animate-pulse"></div>
               <div className="relative z-10">
-                <Moon className="h-20 w-20 text-cyan-400 mx-auto" />
+                <Moon className="h-20 w-20 text-cyan-400 mx-auto animate-float" />
                 <div className="absolute -inset-4 bg-cyan-400/10 rounded-full animate-ping"></div>
               </div>
             </div>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent animate-gradient">
             NOXLY
           </h1>
           
           <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-            Pécs Éjszakai Élete Egy Modern Platformon
+            Városod Éjszakai Élete Egy Modern Platformon
           </p>
           
           <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
@@ -155,11 +205,11 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <Button className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white px-8 py-6 text-lg border-0 rounded-2xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all">
+            <Button className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white px-8 py-6 text-lg border-0 rounded-2xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105 animate-pulse">
               <Bell className="mr-2 h-5 w-5" />
               Értesítést kérek
             </Button>
-            <Button variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group">
+            <Button variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105">
               <Play className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
               Bemutató videó
             </Button>
@@ -169,7 +219,9 @@ const Index = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
-                <div className="text-2xl md:text-3xl font-bold text-cyan-300 mb-2">{stat.number}</div>
+                <div className="text-2xl md:text-3xl font-bold text-cyan-300 mb-2 animate-count">
+                  {stat.number}
+                </div>
                 <div className="text-sm text-gray-400">{stat.label}</div>
               </div>
             ))}
@@ -177,27 +229,74 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Map Section - Pécs as first city */}
+      <section id="map" className="py-20 px-6 bg-black/30">
+        <div className="container mx-auto text-center">
+          <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-400/30">
+            <MapPin className="h-4 w-4 mr-2" />
+            Elindulás helye
+          </Badge>
+          
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-cyan-300">
+            Pécs lesz az első!
+          </h2>
+          
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+            A NOXLY először Pécsen indítja el szolgáltatását, majd fokozatosan terjeszkedünk<br className="hidden md:block" /> egész Magyarország szerte.
+          </p>
+          
+          <HungaryMap />
+          
+          <div className="mt-8 max-w-2xl mx-auto">
+            <Card className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border-cyan-500/30">
+              <CardHeader>
+                <CardTitle className="text-2xl text-cyan-300">Miért Pécs?</CardTitle>
+                <CardDescription className="text-gray-300">
+                  A diákváros vibráló éjszakai élete és aktív közössége ideális terep az innováció bemutatására.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                  <div className="p-4 bg-cyan-500/10 rounded-lg">
+                    <Users2 className="h-8 w-8 text-cyan-400 mx-auto mb-2" />
+                    <div className="text-cyan-300 font-semibold">Aktív közösség</div>
+                  </div>
+                  <div className="p-4 bg-purple-500/10 rounded-lg">
+                    <TrendingUp className="h-8 w-8 text-purple-400 mx-auto mb-2" />
+                    <div className="text-purple-300 font-semibold">Növekvő piac</div>
+                  </div>
+                  <div className="p-4 bg-pink-500/10 rounded-lg">
+                    <Heart className="h-8 w-8 text-pink-400 mx-auto mb-2" />
+                    <div className="text-pink-300 font-semibold">Innovációbarát</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
       {/* Coming Soon Section */}
-      <section className="py-20 px-6 bg-black/30">
+      <section className="py-20 px-6">
         <div className="container mx-auto text-center">
           <div className="max-w-4xl mx-auto">
-            <Badge className="mb-4 bg-purple-500/20 text-purple-300 border-purple-400/30">
+            <Badge className="mb-4 bg-cyan-500/20 text-cyan-300 border-cyan-400/30">
               <Clock className="h-4 w-4 mr-2" />
               Előkészületben
             </Badge>
             
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-cyan-300">
+            <h2 className="text-4xl md:text-5xl font-bold mb-6 text-purple-300">
               Készüljön fel valami nagyszerűre!
             </h2>
             
             <p className="text-xl text-gray-300 mb-8">
-              A NOXLY csapata keményen dolgozik azon, hogy hamarosan bemutathassuk Önöknek<br className="hidden md:block" /> a legmodernebb platformot Pécs éjszakai életéhez.
+              A NOXLY csapata keményen dolgozik azon, hogy hamarosan bemutathassuk Önöknek<br className="hidden md:block" /> a legmodernebb platformot városod éjszakai életéhez.
             </p>
             
-            <div className="bg-slate-900/50 rounded-2xl p-8 border border-cyan-500/20 backdrop-blur-sm">
+            <div className="bg-slate-900/50 rounded-2xl p-8 border border-cyan-500/20 backdrop-blur-sm hover:scale-105 transition-transform duration-500">
               <div className="flex items-center justify-center mb-6">
                 <div className="relative">
-                  <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center animate-spin-slow">
                     <Zap className="h-8 w-8 text-white" />
                   </div>
                   <div className="absolute -inset-2 bg-cyan-500/20 rounded-full animate-pulse"></div>
@@ -206,7 +305,7 @@ const Index = () => {
               
               <h3 className="text-2xl font-bold text-cyan-300 mb-4">Közeledik a bemutató!</h3>
               <p className="text-gray-400 mb-6">
-                Iratkozzon fel értesítőnkre, és legyen az első, aki kipróbálja a NOXLY-t!
+                Iratkozzon fel értesítőnkre, és legyen az első, aki kipróbálja a NOXLY-t Pécsen!
               </p>
               
               <Progress value={75} className="mb-4 bg-slate-700" />
@@ -217,9 +316,9 @@ const Index = () => {
       </section>
 
       {/* Features Preview */}
-      <section id="features" className="py-20 px-6">
+      <section id="features" className="py-20 px-6 bg-black/30">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-300">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-cyan-300">
             Mit kínál majd a NOXLY?
           </h2>
           
@@ -227,13 +326,14 @@ const Index = () => {
             {features.map((feature, index) => (
               <Card 
                 key={index}
-                className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm hover:border-cyan-400/40 transition-all duration-300 group hover:scale-105 cursor-pointer"
+                className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm hover:border-cyan-400/40 transition-all duration-300 group hover:scale-105 cursor-pointer animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 <CardHeader>
-                  <div className="text-cyan-400 mb-4 group-hover:scale-110 transition-transform">
+                  <div className="text-cyan-400 mb-4 group-hover:scale-110 transition-transform duration-300 group-hover:rotate-12">
                     {feature.icon}
                   </div>
-                  <CardTitle className="text-cyan-300 group-hover:text-cyan-200 transition-colors">
+                  <CardTitle className="text-cyan-300 group-hover:text-cyan-200 transition-colors duration-300">
                     {feature.title}
                   </CardTitle>
                   <CardDescription className="text-gray-400">
@@ -241,7 +341,7 @@ const Index = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Badge variant="outline" className="bg-cyan-500/10 text-cyan-300 border-cyan-400/30">
+                  <Badge variant="outline" className="bg-cyan-500/10 text-cyan-300 border-cyan-400/30 group-hover:bg-cyan-500/20 transition-colors">
                     Hamarosan
                   </Badge>
                 </CardContent>
@@ -252,18 +352,18 @@ const Index = () => {
       </section>
 
       {/* Benefits Section */}
-      <section id="benefits" className="py-20 px-6 bg-black/30">
+      <section id="benefits" className="py-20 px-6">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-cyan-300">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-300">
             Miért érdemes várni a NOXLY-ra?
           </h2>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <Card className="bg-slate-900/50 border-cyan-500/20 backdrop-blur-sm group">
+            <Card className="bg-slate-900/50 border-cyan-500/20 backdrop-blur-sm group hover:scale-105 transition-transform duration-300">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <Crown className="h-12 w-12 text-cyan-400 mb-4" />
-                  <Badge className="bg-amber-500">Prémium</Badge>
+                  <Crown className="h-12 w-12 text-cyan-400 mb-4 group-hover:rotate-12 transition-transform duration-500" />
+                  <Badge className="bg-amber-500 animate-pulse">Prémium</Badge>
                 </div>
                 <CardTitle className="text-cyan-300">Felhasználóknak</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -272,15 +372,15 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-gray-300">
-                  <li className="flex items-center">
+                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300">
                     <Sparkles className="h-4 w-4 text-cyan-400 mr-2" />
                     Ingyenes kuponok és akciók
                   </li>
-                  <li className="flex items-center">
+                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-100">
                     <Calendar className="h-4 w-4 text-cyan-400 mr-2" />
                     Személyre szabott eseményajánlók
                   </li>
-                  <li className="flex items-center">
+                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-200">
                     <MapPin className="h-4 w-4 text-cyan-400 mr-2" />
                     Valós idejű térkép és információk
                   </li>
@@ -288,11 +388,11 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm group">
+            <Card className="bg-slate-900/50 border-purple-500/20 backdrop-blur-sm group hover:scale-105 transition-transform duration-300">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <TrendingUp className="h-12 w-12 text-purple-400 mb-4" />
-                  <Badge className="bg-green-500">Business</Badge>
+                  <TrendingUp className="h-12 w-12 text-purple-400 mb-4 group-hover:rotate-12 transition-transform duration-500" />
+                  <Badge className="bg-green-500 animate-pulse">Business</Badge>
                 </div>
                 <CardTitle className="text-purple-300">Partnereknek</CardTitle>
                 <CardDescription className="text-gray-400">
@@ -301,15 +401,15 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-gray-300">
-                  <li className="flex items-center">
+                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300">
                     <TrendingUp className="h-4 w-4 text-purple-400 mr-2" />
                     Részletes üzleti statisztikák
                   </li>
-                  <li className="flex items-center">
+                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-100">
                     <Users2 className="h-4 w-4 text-purple-400 mr-2" />
                     Célzott közönségelérés
                   </li>
-                  <li className="flex items-center">
+                  <li className="flex items-center group-hover:translate-x-2 transition-transform duration-300 delay-200">
                     <QrCode className="h-4 w-4 text-purple-400 mr-2" />
                     Modern kuponkezelési rendszer
                   </li>
@@ -321,29 +421,29 @@ const Index = () => {
       </section>
 
       {/* Testimonials Carousel */}
-      <section id="testimonials" className="py-20 px-6">
+      <section id="testimonials" className="py-20 px-6 bg-black/30">
         <div className="container mx-auto">
-          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-300">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-cyan-300">
             Mit mondanak az érdeklődők?
           </h2>
           
           <div className="max-w-4xl mx-auto relative">
-            <div className="relative bg-slate-900/50 rounded-3xl p-8 border border-cyan-500/20 backdrop-blur-sm">
+            <div className="relative bg-slate-900/50 rounded-3xl p-8 border border-cyan-500/20 backdrop-blur-sm hover:scale-102 transition-transform duration-300">
               <div className="text-center">
                 <div className="flex justify-center mb-6">
                   {[...Array(testimonials[currentSlide].rating)].map((_, i) => (
-                    <Star key={i} className="h-6 w-6 text-yellow-400 fill-yellow-400 mx-1" />
+                    <Star key={i} className="h-6 w-6 text-yellow-400 fill-yellow-400 mx-1 animate-bounce" style={{ animationDelay: `${i * 100}ms` }} />
                   ))}
                 </div>
                 
-                <p className="text-xl text-gray-200 mb-6 italic">
+                <p className="text-xl text-gray-200 mb-6 italic animate-fade-in">
                   "{testimonials[currentSlide].text}"
                 </p>
                 
-                <div className="text-cyan-300 font-semibold">
+                <div className="text-cyan-300 font-semibold animate-fade-in">
                   {testimonials[currentSlide].name}
                 </div>
-                <div className="text-gray-400 text-sm">
+                <div className="text-gray-400 text-sm animate-fade-in">
                   {testimonials[currentSlide].role}
                 </div>
               </div>
@@ -353,7 +453,7 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 hover:scale-110"
                 onClick={prevSlide}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -363,8 +463,8 @@ const Index = () => {
                 {testimonials.map((_, index) => (
                   <button
                     key={index}
-                    className={`w-3 h-3 rounded-full transition-all ${
-                      index === currentSlide ? 'bg-cyan-400' : 'bg-gray-600'
+                    className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      index === currentSlide ? 'bg-cyan-400 scale-125' : 'bg-gray-600'
                     }`}
                     onClick={() => setCurrentSlide(index)}
                   />
@@ -374,7 +474,7 @@ const Index = () => {
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 hover:scale-110"
                 onClick={nextSlide}
               >
                 <ChevronRight className="h-5 w-5" />
@@ -385,27 +485,27 @@ const Index = () => {
       </section>
 
       {/* Waitlist Section */}
-      <section id="waitlist" className="py-20 px-6 bg-black/30">
+      <section id="waitlist" className="py-20 px-6">
         <div className="container mx-auto text-center">
           <div className="max-w-2xl mx-auto">
-            <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
+            <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0 animate-pulse">
               <Gift className="h-4 w-4 mr-2" />
               Korai hozzáférés
             </Badge>
             
             <h2 className="text-4xl md:text-5xl font-bold mb-6 text-cyan-300">
-              Legyen az elsők között!
+              Legyen az elsők között Pécsen!
             </h2>
             
             <p className="text-xl text-gray-300 mb-8">
               Iratkozzon fel a várólistára, és kapjon exkluzív kedvezményt<br className="hidden md:block" /> az alkalmazás megjelenésekor!
             </p>
             
-            <Card className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border-cyan-500/30">
+            <Card className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border-cyan-500/30 hover:scale-105 transition-transform duration-300">
               <CardHeader>
                 <CardTitle className="text-2xl text-cyan-300">Előregisztráció</CardTitle>
                 <CardDescription className="text-gray-300">
-                  Add meg az email címed, és értesítünk amint elindul a NOXLY!
+                  Add meg az email címed, és értesítünk amint elindul a NOXLY Pécsen!
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -415,10 +515,10 @@ const Index = () => {
                     placeholder="Email címed"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-slate-800/50 border-cyan-500/30 text-white placeholder-gray-400"
+                    className="bg-slate-800/50 border-cyan-500/30 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-400 transition-all duration-300"
                     required
                   />
-                  <Button type="submit" className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white">
+                  <Button type="submit" className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white transition-all duration-300 hover:scale-105">
                     <Bell className="h-4 w-4 mr-2" />
                     Feliratkozás
                   </Button>
@@ -438,43 +538,43 @@ const Index = () => {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <Moon className="h-8 w-8 text-cyan-400" />
+                <Moon className="h-8 w-8 text-cyan-400 animate-pulse" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                   NOXLY
                 </span>
               </div>
               <p className="text-gray-400">
-                Pécs éjszakai élete egy modern alkalmazásban. Hamarosan!
+                Városod éjszakai élete egy modern alkalmazásban. Hamarosan!
               </p>
             </div>
             
             <div>
               <h3 className="text-cyan-300 font-semibold mb-4">Kapcsolat</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors">info@noxly.hu</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors">+36 70 123 4567</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">info@noxly.hu</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">+36 70 123 4567</a></li>
               </ul>
             </div>
             
             <div>
               <h3 className="text-cyan-300 font-semibold mb-4">Partnereknek</h3>
               <ul className="space-y-2">
-                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors">Partneri program</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors">Árak</a></li>
-                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors">Demo igénylés</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Partneri program</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Árak</a></li>
+                <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Demo igénylés</a></li>
               </ul>
             </div>
             
             <div>
               <h3 className="text-cyan-300 font-semibold mb-4">Kövess minket</h3>
               <div className="flex space-x-4">
-                <Button variant="ghost" size="icon" className="text-cyan-400 hover:bg-cyan-400/10">
+                <Button variant="ghost" size="icon" className="text-cyan-400 hover:bg-cyan-400/10 hover:scale-110 transition-all duration-300">
                   <MessageCircle className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-purple-400 hover:bg-purple-400/10">
+                <Button variant="ghost" size="icon" className="text-purple-400 hover:bg-purple-400/10 hover:scale-110 transition-all duration-300">
                   <Share className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="text-pink-400 hover:bg-pink-400/10">
+                <Button variant="ghost" size="icon" className="text-pink-400 hover:bg-pink-400/10 hover:scale-110 transition-all duration-300">
                   <Heart className="h-5 w-5" />
                 </Button>
               </div>
@@ -483,13 +583,46 @@ const Index = () => {
           
           <div className="border-t border-gray-700/50 mt-8 pt-8 text-center">
             <p className="text-gray-400">
-              © 2024 NOXLY - Pécs éjszakai élete. Minden jog fenntartva. | Hamarosan!
+              © 2024 NOXLY - Városod éjszakai élete. Minden jog fenntartva. | Hamarosan Pécsen!
             </p>
           </div>
         </div>
       </footer>
 
       <MadeWithDyad />
+      
+      {/* Custom animations */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes spin-slow {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-gradient { 
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite; 
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.6s ease-out forwards; }
+        .animate-fade-in { animation: fadeInUp 0.8s ease-out forwards; }
+        .animate-spin-slow { animation: spin-slow 10s linear infinite; }
+        .animate-count { 
+          animation: fadeInUp 1s ease-out forwards;
+          animation-delay: 0.3s;
+        }
+      `}</style>
     </div>
   );
 };
