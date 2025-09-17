@@ -35,11 +35,11 @@ const ComingSoonSection = () => {
   return (
     <section id="coming-soon" className="py-20 px-6 bg-black/30">
       <div className="container mx-auto text-center">
-        <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
+        <Badge className="mb-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0">
           Hamarosan
         </Badge>
         
-        <h2 className="text-4xl md:text-5xl font-bold mb-6 text-cyan-300">
+        <h2 className="text-4xl md:text-5xl font-bold mb-6 text-blue-300">
           Készülj fel az élményre!
         </h2>
         
@@ -48,7 +48,7 @@ const ComingSoonSection = () => {
         </p>
         
         <div className="max-w-2xl mx-auto">
-          <div className="bg-gradient-to-r from-cyan-600/20 to-purple-600/20 border border-cyan-500/30 rounded-3xl p-8 md:p-12 backdrop-blur-sm">
+          <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-3xl p-8 md:p-12 backdrop-blul-sm">
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-white mb-4">Fejlesztési állapot</h3>
               
@@ -56,7 +56,7 @@ const ComingSoonSection = () => {
                 <Progress 
                   value={progressValue} 
                   className="h-3 bg-slate-700 mb-2"
-                  indicatorClassName="bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-1000 ease-out"
+                  indicatorClassName="bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000 ease-out"
                 />
                 <p className="text-sm text-gray-400">
                   {displayValue}% - Fejlesztés folyamatban
@@ -66,7 +66,7 @@ const ComingSoonSection = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div className="bg-gray-900/50 p-6 rounded-2xl border border-gray-700/50">
-                <div className="text-3xl font-bold text-cyan-300 mb-2">1.0</div>
+                <div className="text-3xl font-bold text-blue-300 mb-2">1.0</div>
                 <p className="text-gray-300">Verzió</p>
               </div>
               
@@ -82,7 +82,7 @@ const ComingSoonSection = () => {
             </div>
             
             <div className="mt-8">
-              <button className="bg-gradient-to-r from-cyan-500 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-cyan-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105">
+              <button className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-300 transform hover:scale-105">
                 Értesítést kérek
               </button>
             </div>
