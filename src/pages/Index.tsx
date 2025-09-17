@@ -9,6 +9,7 @@ import BenefitsSection from "@/components/sections/BenefitsSection";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
 import WaitlistSection from "@/components/sections/WaitlistSection";
 import FooterSection from "@/components/sections/FooterSection";
+import DemoSection from "@/components/sections/DemoSection";
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -25,6 +26,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white">
       <Navigation isScrolled={isScrolled} />
       <HeroSection />
+      <DemoSection />
       <MapSection />
       <ComingSoonSection />
       <FeaturesSection />

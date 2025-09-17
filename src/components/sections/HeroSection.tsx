@@ -10,6 +10,13 @@ const HeroSection = () => {
     { number: "24/7", label: "Támogatás" }
   ];
 
+  const scrollToDemo = () => {
+    const demoSection = document.getElementById('demo-section');
+    if (demoSection) {
+      demoSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
     <section className="pt-32 pb-20 px-6">
       <div className="container mx-auto text-center">
@@ -45,9 +52,13 @@ const HeroSection = () => {
             <Bell className="mr-2 h-5 w-5" />
             Értesítést kérek
           </Button>
-          <Button variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105">
+          <Button 
+            variant="outline" 
+            className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
+            onClick={scrollToDemo}
+          >
             <Play className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
-            Bemutató videó
+            Kipróbálom
           </Button>
         </div>
 
