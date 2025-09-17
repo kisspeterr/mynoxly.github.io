@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 
 const ComingSoonSection = () => {
   const [progressValue, setProgressValue] = useState(0);
@@ -13,8 +12,7 @@ const ComingSoonSection = () => {
       // Animate the counter from 0 to 75
       let start = 0;
       const end = 75;
-      const duration = 1000; // 1 second
-      const increment = 1;
+      const duration = 2000; // 2 seconds (slower)
       const steps = duration / (1000 / 30); // 30fps
       const stepValue = end / steps;
       
@@ -55,7 +53,7 @@ const ComingSoonSection = () => {
               <div className="mb-6">
                 <div className="h-3 bg-slate-700 rounded-full mb-2 overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000 ease-out"
+                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-2000 ease-out"
                     style={{ width: `${progressValue}%` }}
                   />
                 </div>
