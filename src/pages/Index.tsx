@@ -39,9 +39,69 @@ const Index = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center">
+      {/* Hero Section with Pécs Skyline */}
+      <section className="pt-32 pb-20 px-6 relative overflow-hidden">
+        {/* Pécs Skyline Neon Outline */}
+        <div className="absolute inset-0 z-0 opacity-30">
+          <div className="absolute bottom-0 left-0 right-0 h-48">
+            {/* Székesegyház és belváros neon körvonalak */}
+            <svg viewBox="0 0 1200 200" className="w-full h-full">
+              {/* Székesegyház körvonal */}
+              <path 
+                d="M500,150 L520,120 L540,100 L560,80 L580,70 L600,60 L620,70 L640,80 L660,100 L680,120 L700,150 Z" 
+                fill="none" 
+                stroke="url(#neonGradient)" 
+                strokeWidth="3"
+                strokeLinejoin="round"
+                className="drop-shadow-glow"
+              />
+              
+              {/* Egyháztornyok */}
+              <path 
+                d="M580,70 L580,40 L600,30 L620,40 L620,70" 
+                fill="none" 
+                stroke="url(#neonGradient)" 
+                strokeWidth="2"
+                className="drop-shadow-glow"
+              />
+              
+              {/* Belváros épületek */}
+              <path 
+                d="M300,150 L320,130 L340,110 L360,90 L380,80 L400,70 L420,80 L440,90 L460,110 L480,130 L500,150" 
+                fill="none" 
+                stroke="url(#neonPurple)" 
+                strokeWidth="2"
+                className="drop-shadow-glow"
+              />
+              
+              <path 
+                d="M700,150 L720,130 L740,110 L760,90 L780,80 L800,70 L820,80 L840,90 L860,110 L880,130 L900,150" 
+                fill="none" 
+                stroke="url(#neonPink)" 
+                strokeWidth="2"
+                className="drop-shadow-glow"
+              />
+              
+              {/* Gradiens definíciók */}
+              <defs>
+                <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#00FFFF" />
+                  <stop offset="100%" stopColor="#FF00FF" />
+                </linearGradient>
+                <linearGradient id="neonPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#9333EA" />
+                  <stop offset="100%" stopColor="#EC4899" />
+                </linearGradient>
+                <linearGradient id="neonPink" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#EC4899" />
+                  <stop offset="100%" stopColor="#F97316" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+        </div>
+
+        <div className="container mx-auto text-center relative z-10">
           <div className="flex justify-center mb-6">
             <div className="relative">
               <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full"></div>
