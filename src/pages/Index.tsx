@@ -302,7 +302,7 @@ const Index = () => {
               <CardContent>
                 <ul className="space-y-2 text-gray-300">
                   <li className="flex items-center">
-                    <BarChart3 className="h-4 w-4 text-purple-400 mr-2" />
+                    <TrendingUp className="h-4 w-4 text-purple-400 mr-2" />
                     Részletes üzleti statisztikák
                   </li>
                   <li className="flex items-center">
