@@ -51,7 +51,7 @@ const FloatingDemoButton = () => {
         className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white rounded-full shadow-2xl shadow-cyan-500/40 hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-110 group animate-bounce"
         size={isMobile ? "icon" : "lg"}
       >
-        <Play className="h-5 w-5 group-hover:scale-110 transition-transform" />
+        <Play className={`${isMobile ? 'h-6 w-6' : 'h-5 w-5'} group-hover:scale-110 transition-transform`} />
         {!isMobile && (
           <span className="ml-2 font-semibold">Kipróbálom</span>
         )}
