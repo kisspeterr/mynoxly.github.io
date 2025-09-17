@@ -68,22 +68,6 @@ const HungaryMap = () => {
         }`} style={{transform: 'translate(50%, -50%)'}}></div>
       </div>
       
-      {/* Map legend */}
-      <div className={`absolute bottom-4 left-1/2 transform -translate-x-1/2 transition-all duration-700 delay-700 ${
-        isMapVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-      }`}>
-        <div className="inline-flex items-center space-x-4 bg-black/50 px-4 py-2 rounded-lg backdrop-blur-sm">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-cyan-400 rounded-full ring-2 ring-cyan-400/40"></div>
-            <span className="text-sm text-cyan-300 font-medium">Első város</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-purple-400/40 rounded-full ring-2 ring-purple-400/20"></div>
-            <span className="text-sm text-purple-300">Következő városok</span>
-          </div>
-        </div>
-      </div>
-      
       {/* Animated pulse effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/5 via-purple-400/5 to-blue-400/5 animate-pulse"></div>
     </div>
