@@ -1,37 +1,37 @@
-import { Calendar, MapPin, Clock, Users, Star, Zap } from "lucide-react";
+import { Gift, MapPin, Star, Zap, Users, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const FeaturesSection = () => {
   const features = [
     {
-      icon: <Calendar className="h-12 w-12 text-cyan-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Okos foglalás",
-      description: "Intelligens rendszer, amely az időjárást, forgalmat és eseményeket figyelembe véve javasolja a legjobb időpontokat."
+      icon: <Gift className="h-12 w-12 text-cyan-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Kuponok & Akciók",
+      description: "Exkluzív kedvezmények és 1+1 ital akciók a legjobb helyeken. Mindig friss ajánlatok várnak rád!"
     },
     {
       icon: <MapPin className="h-12 w-12 text-purple-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Térképes navigáció",
-      description: "Valós idejű térkép az elérhető szolgáltatásokkal és a leggyorsabb útvonalakat mutatja."
+      title: "Új Helyek Fedezése",
+      description: "Ismerd meg Pécs rejtett kincseit kedvezményes áron. Mindig találsz valami újat és izgalmasat!"
     },
     {
-      icon: <Clock className="h-12 w-12 text-pink-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Időpont kezelés",
-      description: "Automatikus időpont-kezelés, amely optimalizálja az ügyfélforgalmat és csökkenti a várakozási időt."
+      icon: <Star className="h-12 w-12 text-pink-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Prémium Kedvezmények",
+      description: "VIP akciók és speciális ajánlatok csak a NOXLY felhasználóinak. Jobb, mint bármi más!"
     },
     {
-      icon: <Users className="h-12 w-12 text-blue-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Közösségi élmény",
-      description: "Értékelések, visszajelzések és közösségi funkciók, amelyek segítenek megtalálni a legjobb szolgáltatókat."
+      icon: <Zap className="h-12 w-12 text-blue-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Gyors Beváltás",
+      description: "QR kód beolvasás és azonnali kuponaktiválás. Nem kell várnod, azonnal élvezheted az akciót!"
     },
     {
-      icon: <Star className="h-12 w-12 text-yellow-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Minőség garancia",
-      description: "Szigorú minőségi követelményeknek megfelelő partnerek és átlátható értékelési rendszer."
+      icon: <Users className="h-12 w-12 text-yellow-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Közösségi Ajánlatok",
+      description: "Több fős csoportos kedvezmények. Minél többen vagytok, annál jobb az akció!"
     },
     {
-      icon: <Zap className="h-12 w-12 text-green-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Gyors szolgáltatás",
-      description: "Prioritásos foglalási rendszer, amely biztosítja a gyors és hatékony szolgáltatásnyújtást."
+      icon: <Calendar className="h-12 w-12 text-green-400 transition-transform duration-300 group-hover:scale-110" />,
+      title: "Heti Akciók",
+      description: "Rendszeresen frissülő ajánlatok és heti kiemelt helyek. Soha nem unatkozol a hétvégén!"
     }
   ];
 
@@ -39,16 +39,16 @@ const FeaturesSection = () => {
     <section id="features" className="py-20 px-6">
       <div className="container mx-auto">
         <Badge className="mb-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white border-0">
-          <Zap className="h-4 w-4 mr-2" />
-          Funkciók
+          <Gift className="h-4 w-4 mr-2" />
+          Akciók & Kedvezmények
         </Badge>
         
         <h2 className="text-4xl md:text-5xl font-bold text-center mb-6 text-cyan-300">
-          Mit kínál majd a NOXLY?
+          Hogyan spórolj az éjszakai életben?
         </h2>
         
         <p className="text-xl text-gray-300 text-center mb-16 max-w-2xl mx-auto">
-          Forradalmi megoldások, amelyek megkönnyítik az éjszakai életet<br className="hidden md:block" /> és emellett időt és pénzt is spórolhatsz.
+          Fedezd fel Pécs legjobb helyeit kedvezményes áron!<br className="hidden md:block" /> Ingyenes italok, csoportos akciók és exkluzív ajánlatok.
         </p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
