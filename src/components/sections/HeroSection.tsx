@@ -40,11 +40,11 @@ const HeroSection = () => {
         </h1>
         
         <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-          Városod Éjszakai Élete Egy Modern Platformon
+          Akciók, Kuponok és Kedvezmények az Éjszakai Életért
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
-          Az első intelligens alkalmazás, ami összeköti a helyi szórakozóhelyeket, eseményeket és a közösséget. Hamarosan elérhető!
+          Fedezd fel Pécs legjobb éjszakai helyeit kedvezményes áron. Exkluzív akciók, 1+1 italok és VIP kedvezmények egy alkalmazásban!
         </p>
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
