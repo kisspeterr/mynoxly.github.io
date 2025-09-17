@@ -6,7 +6,7 @@ const HeroSection = () => {
   const stats = [
     { number: "500+", label: "Előregisztrált felhasználó" },
     { number: "30+", label: "Érdeklődő partner" },
-    { number: "2024", label: "Bemutató éve" },
+    { number: "2026", label: "Bemutató éve" },
     { number: "24/7", label: "Támogatás" }
   ];
 
