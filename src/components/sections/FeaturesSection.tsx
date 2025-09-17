@@ -18,11 +18,6 @@ const FeaturesSection = () => {
       title: "Prémium Kedvezmények",
       description: "VIP akciók és speciális ajánlatok csak a NOXLY felhasználóinak. Jobb, mint bármi más!"
     },
-    {
-      icon: <Zap className="h-12 w-12 text-blue-400 transition-transform duration-300 group-hover:scale-110" />,
-      title: "Gyors Beváltás",
-      description: "QR kód beolvasás és azonnali kuponaktiválás. Nem kell várnod, azonnal élvezheted az akciót!"
-    },
 
     {
       icon: <Calendar className="h-12 w-12 text-green-400 transition-transform duration-300 group-hover:scale-110" />,
