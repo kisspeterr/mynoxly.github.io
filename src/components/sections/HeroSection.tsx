@@ -17,6 +17,16 @@ const HeroSection = () => {
     }
   };
 
+  const scrollToWaitlist = () => {
+  const waitlistSection = document.getElementById("waitlist");
+  if (waitlistSection) {
+    waitlistSection.scrollIntoView({ 
+      behavior: "smooth",
+      block: "start"
+    });
+  }
+};
+
   return (
     <section className="pt-32 pb-20 px-6">
       <div className="container mx-auto text-center">
