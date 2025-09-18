@@ -14,13 +14,19 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
+    console.log('AdminRouteGuard - Auth state:', { user, profile, isLoading });
+    
     if (!isLoading) {
       if (!user) {
+        console.log('No user, redirecting to /auth');
         // Not logged in, redirect to login
         navigate('/auth', { replace: true });
       } else if (profile?.role !== 'admin') {
+        console.log('User not admin, redirecting to /');
         // Logged in but not admin, redirect to home
         navigate('/', { replace: true });
+      } else {
+        console.log('User is admin, allowing access');
       }
     }
   }, [user, profile, isLoading, navigate]);
@@ -60,6 +66,14 @@ const AdminRouteGuard: React.FC<AdminRouteGuardProps> = ({ children }) => {
           <p className="text-gray-400 text-sm mt-2">
             Szerepkör: {profile?.role || 'user'}
           </p>
+          <div className="mt-4">
+            <button 
+              onClick={() => navigate('/')}
+              className="text-cyan-400 hover:text-cyan-300 transition-colors"
+            >
+              Vissza a főoldalra
+            </button>
+          </div>
         </div>
       </div>
     );

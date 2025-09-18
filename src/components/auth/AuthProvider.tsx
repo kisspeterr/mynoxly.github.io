@@ -40,6 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
+      
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
@@ -47,9 +49,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
       
       if (!error && profileData) {
+        console.log('Profile found:', profileData);
         setProfile(profileData as Profile);
       } else {
-        console.error('Error fetching profile:', error);
+        console.log('Profile not found or error:', error);
         setProfile(null);
       }
     } catch (error) {
@@ -63,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initializeAuth = async () => {
       try {
+        console.log('Initializing auth...');
         // Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         
@@ -71,8 +75,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(initialSession?.user ?? null);
           
           if (initialSession?.user) {
+            console.log('User logged in, fetching profile...');
             await fetchProfile(initialSession.user.id);
           } else {
+            console.log('No user logged in');
             setProfile(null);
           }
           setIsLoading(false);
@@ -89,6 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('Auth state changed:', event, newSession?.user?.id);
       if (isMounted) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
