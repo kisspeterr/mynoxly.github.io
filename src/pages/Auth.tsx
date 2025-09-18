@@ -82,16 +82,6 @@ const Auth = () => {
     }
   };
 
-  useEffect(() => {
-    if (emailExists !== null) {
-      if (emailExists) {
-        setStep('login');
-      } else {
-        setStep('register');
-      }
-    }
-  }, [emailExists]);
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
