@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail, UserPlus, Home, Lock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Loader2, Mail, UserPlus, Home, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,30 +21,18 @@ const Auth = () => {
   const [step, setStep] = useState<'login' | 'register'>('login');
   const { user, isLoading: authLoading } = useAuth();
 
-  useEffect(() => {
-    // If user is already logged in, redirect immediately
-    if (user && !authLoading) {
-      window.location.href = '/';
-      return;
-    }
-    
-    // If auth loading takes too long, set a timeout
-    const timeout = setTimeout(() => {
-      if (authLoading) {
-        console.log('Auth loading timeout - forcing state');
-        // We can't directly change the context state, but we can log this
-      }
-    }, 10000);
-
-    return () => clearTimeout(timeout);
-  }, [user, authLoading]);
+  // If user is logged in, redirect immediately
+  if (user) {
+    window.location.href = '/';
+    return null;
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
@@ -55,7 +43,6 @@ const Auth = () => {
       }
 
       showSuccess('Sikeres bejelentkezés!');
-      // The auth state change will handle the redirect
     } catch (error) {
       showError('Bejelentkezési hiba');
       console.error('Login error:', error);
@@ -75,7 +62,7 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
         options: {
@@ -107,18 +94,6 @@ const Auth = () => {
         <div className="text-center">
           <Loader2 className="h-12 w-12 text-cyan-400 animate-spin mx-auto mb-4" />
           <p className="text-gray-300">Betöltés...</p>
-          <p className="text-sm text-gray-500 mt-2">Ha ez túl sokáig tart, próbáld meg frissíteni az oldalt</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    // This should redirect automatically, but just in case
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-300">Átirányítás...</p>
         </div>
       </div>
     );

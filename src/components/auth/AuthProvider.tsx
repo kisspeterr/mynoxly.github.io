@@ -40,48 +40,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
-    let authSubscription: any = null;
+    let timeoutId: NodeJS.Timeout;
 
     const initializeAuth = async () => {
       try {
-        console.log('Initializing auth...');
+        console.log('🚀 Initializing auth...');
         
-        // Get initial session with timeout
-        const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<{ data: { session: Session | null } }>((resolve) => 
-          setTimeout(() => {
-            resolve({ data: { session: null } });
-          }, 5000)
-        );
-
-        const { data: sessionData } = await Promise.race([sessionPromise, timeoutPromise]);
-        
-        if (isMounted) {
-          setSession(sessionData.session);
-          setUser(sessionData.session?.user ?? null);
-          
-          if (sessionData.session?.user) {
-            console.log('User logged in, fetching profile...');
-            // Don't wait for profile fetch to complete
-            fetchProfile(sessionData.session.user.id).then(profileData => {
-              if (isMounted && profileData) {
-                setProfile(profileData);
-              }
-            });
-          } else {
-            console.log('No user logged in');
-            setProfile(null);
+        // IMMEDIATE timeout - don't wait for Supabase
+        timeoutId = setTimeout(() => {
+          if (isMounted) {
+            console.log('⏰ Auth initialization timeout - Supabase not responding');
+            setIsLoading(false);
           }
+        }, 3000); // Only 3 seconds timeout!
+
+        // Try to get session but don't wait too long
+        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Supabase session error:', error);
+          if (isMounted) {
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        if (isMounted) {
+          setSession(initialSession);
+          setUser(initialSession?.user ?? null);
           
-          // Always set loading to false after max 5 seconds
-          setTimeout(() => {
-            if (isMounted) {
-              setIsLoading(false);
-            }
-          }, 5000);
+          if (initialSession?.user) {
+            console.log('✅ User logged in, ID:', initialSession.user.id);
+            // Don't wait for profile - set loading false immediately
+            setTimeout(() => {
+              if (isMounted) {
+                setIsLoading(false);
+              }
+            }, 1000);
+          } else {
+            console.log('ℹ️ No user logged in');
+            setIsLoading(false);
+          }
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error('💥 Auth initialization error:', error);
         if (isMounted) {
           setIsLoading(false);
         }
@@ -90,72 +92,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Listen for auth state changes
-    authSubscription = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('Auth state changed:', event, newSession?.user?.id);
-      if (isMounted) {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          fetchProfile(newSession.user.id).then(profileData => {
-            if (isMounted && profileData) {
-              setProfile(profileData);
-            }
-          });
-        } else {
-          setProfile(null);
-        }
-        
-        // Always set loading to false when auth state changes
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+    // Simple auth state listener with immediate timeout
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      console.log('🔄 Auth state changed:', event);
+      
+      if (!isMounted) return;
+
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      setIsLoading(false);
     });
 
     return () => {
       isMounted = false;
-      if (authSubscription?.subscription) {
-        authSubscription.subscription.unsubscribe();
-      }
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
     };
   }, []);
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
-    try {
-      console.log('Fetching profile for user:', userId);
-      
-      const timeoutPromise = new Promise<null>((resolve) => 
-        setTimeout(() => {
-          console.log('Profile fetch timeout');
-          resolve(null);
-        }, 3000)
-      );
-
-      const profilePromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Supabase profile error:', error);
-            return null;
-          }
-          return data as Profile;
-        });
-
-      const result = await Promise.race([profilePromise, timeoutPromise]);
-      return result;
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      return null;
-    }
-  };
-
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const value = {
