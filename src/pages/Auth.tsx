@@ -63,24 +63,32 @@ const Auth = () => {
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.includes('@')) {
-      showError('Kérjük, érvényes email címet adj meg');
-      return;
-    }
+ const handleEmailSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!email.includes('@')) {
+    showError('Kérjük, érvényes email címet adj meg');
+    return;
+  }
 
-    setIsCheckingEmail(true);
-    try {
-      const exists = await checkEmailExists(email);
-      setEmailExists(exists);
-    } catch (error) {
-      showError('Hiba történt az email ellenőrzése során');
-      setEmailExists(false);
-    } finally {
-      setIsCheckingEmail(false);
+  setIsCheckingEmail(true);
+  try {
+    const exists = await checkEmailExists(email);
+    setEmailExists(exists);
+    
+    // Azonnal állítsuk be a következő lépést az emailExists alapján
+    if (exists) {
+      setStep('login');
+    } else {
+      setStep('register');
     }
-  };
+  } catch (error) {
+    showError('Hiba történt az email ellenőrzése során');
+    setEmailExists(false);
+    setStep('register'); // Hiba esetén is menjünk regisztrációra
+  } finally {
+    setIsCheckingEmail(false);
+  }
+};
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
