@@ -105,18 +105,18 @@ const ComingSoonSection = () => {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
               <div className="bg-gradient-to-br from-blue-600/30 to-blue-800/30 p-6 rounded-2xl border border-blue-500/30 hover:scale-105 transition-transform duration-300 group">
-                <div className="text-3xl font-bold text-blue-300 mb-2 group-hover:scale-110 transition-transform duration-300">1.0</div>
-                <p className="text-gray-300">Verzió</p>
+                <div className="text-3xl font-bold text-blue-300 mb-2 group-hover:scale-110 transition-transform duration-300">99+</div>
+                <p className="text-gray-300">Tesztelés</p>
               </div>
               
               <div className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-6 rounded-2xl border border-purple-500/30 hover:scale-105 transition-transform duration-300 group">
-                <div className="text-3xl font-bold text-purple-300 mb-2 group-hover:scale-110 transition-transform duration-300">100+</div>
-                <p className="text-gray-300">Partner</p>
+                <div className="text-3xl font-bold text-purple-300 mb-2 group-hover:scale-110 transition-transform duration-300">1 év</div>
+                <p className="text-gray-300">Tervezés partner</p>
               </div>
               
               <div className="bg-gradient-to-br from-pink-600/30 to-pink-800/30 p-6 rounded-2xl border border-pink-500/30 hover:scale-105 transition-transform duration-300 group">
-                <div className="text-3xl font-bold text-pink-300 mb-2 group-hover:scale-110 transition-transform duration-300">24/7</div>
-                <p className="text-gray-300">Támogatás</p>
+                <div className="text-3xl font-bold text-pink-300 mb-2 group-hover:scale-110 transition-transform duration-300">5+</div>
+                <p className="text-gray-300">Csapattag</p>
               </div>
             </div>
             
