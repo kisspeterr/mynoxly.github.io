@@ -20,18 +20,8 @@ const Index = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
-    
-    // Close any open user menus when navigating to home
-    const closeUserMenus = () => {
-      document.dispatchEvent(new CustomEvent('close-user-menus'));
-    };
-    
-    closeUserMenus();
     window.addEventListener("scroll", handleScroll);
-    
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
