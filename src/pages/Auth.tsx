@@ -41,8 +41,7 @@ const Auth = () => {
   const isPasswordStrong = Object.values(passwordStrength).every(Boolean);
   const passwordsMatch = password === confirmPassword && password.length > 0;
 
-  const checkEmailExists = async (email: string) => {
-    setIsCheckingEmail(true);
+  const checkEmailExists = async (email: string): Promise<boolean> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -51,21 +50,16 @@ const Auth = () => {
         .single();
 
       if (error && error.code === 'PGRST116') {
-        // No rows found - email doesn't exist
-        setEmailExists(false);
+        return false; // No rows found - email doesn't exist
       } else if (error) {
-        // Other error
         console.error('Email check error:', error);
-        setEmailExists(false);
+        return false;
       } else {
-        // Email exists
-        setEmailExists(true);
+        return !!data; // Email exists
       }
     } catch (error) {
       console.error('Email check failed:', error);
-      setEmailExists(false);
-    } finally {
-      setIsCheckingEmail(false);
+      return false;
     }
   };
 
@@ -78,18 +72,11 @@ const Auth = () => {
 
     setIsCheckingEmail(true);
     try {
-      await checkEmailExists(email);
-      
-      // Wait for the email check to complete and state to update
-      setTimeout(() => {
-        if (emailExists === true) {
-          setStep('login');
-        } else if (emailExists === false) {
-          setStep('register');
-        }
-      }, 100);
+      const exists = await checkEmailExists(email);
+      setEmailExists(exists);
     } catch (error) {
       showError('Hiba történt az email ellenőrzése során');
+      setEmailExists(false);
     } finally {
       setIsCheckingEmail(false);
     }
