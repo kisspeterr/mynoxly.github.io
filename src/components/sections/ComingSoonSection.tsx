@@ -111,7 +111,7 @@ const ComingSoonSection = () => {
               
               <div className="bg-gradient-to-br from-purple-600/30 to-purple-800/30 p-6 rounded-2xl border border-purple-500/30 hover:scale-105 transition-transform duration-300 group">
                 <div className="text-3xl font-bold text-purple-300 mb-2 group-hover:scale-110 transition-transform duration-300">1 év</div>
-                <p className="text-gray-300">Tervezés partner</p>
+                <p className="text-gray-300">Tervezés</p>
               </div>
               
               <div className="bg-gradient-to-br from-pink-600/30 to-pink-800/30 p-6 rounded-2xl border border-pink-500/30 hover:scale-105 transition-transform duration-300 group">
