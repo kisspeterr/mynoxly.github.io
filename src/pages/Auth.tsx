@@ -90,27 +90,29 @@ const Auth = () => {
 };
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  e.preventDefault();
+  setIsLoading(true);
 
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.toLowerCase(),
-        password,
-      });
+  try {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase(),
+      password,
+    });
 
-      if (error) {
-        showError('Hibás email vagy jelszó');
-        return;
-      }
-
-      showSuccess('Sikeres bejelentkezés!');
-    } catch (error) {
-      showError('Váratlan hiba történt');
-    } finally {
-      setIsLoading(false);
+    if (error) {
+      showError('Hibás email vagy jelszó');
+      return;
     }
-  };
+
+    showSuccess('Sikeres bejelentkezés!');
+    // Átirányítás a home page-re
+    window.location.href = '/';
+  } catch (error) {
+    showError('Váratlan hiba történt');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
