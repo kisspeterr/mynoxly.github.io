@@ -10,19 +10,19 @@ const TestimonialsSection = () => {
     {
       name: "Kovács Anna",
       role: "Egyetemi hallgató",
-      content: "Végre egy olyan app, ami tényleg megérti az éjszakai életet! A NOXLY teljesen megváltoztatta, hogyan szervezem a programjaimat.",
+      content: "Az első tesztelésnél minden zökkenőmentesen futott, a barátnőmmel beváltottuk az 1+1 italakciót az egyik leghíresebb pécsi kocsmában..",
       avatar: "/api/placeholder/80/80"
     },
     {
       name: "Nagy Bence",
       role: "Szórakozóhely tulajdonos",
-      content: "Az ügyfeleink imádják! A foglalási rendszer csökkentette a várakozási időt és növelte az elégedettséget.",
+      content: "Az egyetemisták imádják. Múlt héten három lelkes béta tesztelő látogatott el az üzletembe, az óta a barátaival mindig isznak egy sört nálunk.",
       avatar: "/api/placeholder/80/80"
     },
     {
       name: "Tóth Eszter",
-      role: "Turista",
-      content: "Hihetetlen, hogy mennyire egyszerű lett megtalálni a legjobb helyeket és időpontokat. Mindenkinek ajánlom!",
+      role: "Helyi lakos",
+      content: "Nagyon egyszerű megtalálni a legjobb helyeket és időpontokat. Mindenkinek ajánlom!",
       avatar: "/api/placeholder/80/80"
     }
   ];
