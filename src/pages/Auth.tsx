@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail, UserPlus, Home } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail, UserPlus, Home, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -57,6 +57,31 @@ const Auth = () => {
       showSuccess('Sikeres bejelentkezés!');
       // Átirányítás a home page-re
       window.location.href = '/';
+    } catch (error) {
+      showError('Váratlan hiba történt');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      showError('Kérjük, add meg az email címedet');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+
+      if (error) {
+        showError('Hiba történt a jelszó visszaállításnál');
+        return;
+      }
+
+      showSuccess('Jelszó visszaállító email elküldve!');
     } catch (error) {
       showError('Váratlan hiba történt');
     } finally {
@@ -188,7 +213,19 @@ const Auth = () => {
           Bejelentkezés
         </Button>
 
-        <div className="text-center">
+        <div className="text-center mt-4">
+          <button
+            type="button"
+            onClick={handlePasswordReset}
+            disabled={isLoading}
+            className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center justify-center gap-2 w-full text-sm"
+          >
+            <Lock className="h-4 w-4" />
+            Elfelejtetted a jelszavad?
+          </button>
+        </div>
+
+        <div className="text-center mt-6">
           <button
             type="button"
             onClick={() => setStep('register')}
