@@ -53,7 +53,7 @@ const FooterSection = () => {
         
         <div className="border-t border-gray-700/50 mt-8 pt-8 text-center">
           <p className="text-gray-400">
-            © 2024 NOXLY - Városod éjszakai élete. Minden jog fenntartva. | Hamarosan Pécsen!
+            © 2025 NOXLY - Városod éjszakai élete. Minden jog fenntartva. | Hamarosan Pécsen!
           </p>
         </div>
       </div>
