@@ -43,19 +43,19 @@ const Auth = () => {
 
   const checkEmailExists = async (email: string): Promise<boolean> => {
   try {
-    // Próbáljunk meg bejelentkezni a felhasználóval
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase(),
-      password: 'dummy_password', // Csak teszteléshez
-    });
+    // Próbáljuk meg lekérdezni a profilt az email cím alapján
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
 
-    // Ha nincs hiba, vagy a hiba az, hogy rossz a jelszó, akkor a felhasználó létezik
-    if (!error || error.message.includes('Invalid login credentials')) {
-      return true;
+    if (error) {
+      console.error('Profile check error:', error);
+      return false;
     }
 
-    // Ha más hiba van, akkor valószínűleg nem létezik a felhasználó
-    return false;
+    return !!data; // Ha van adat, akkor létezik a felhasználó
   } catch (error) {
     console.error('Email check failed:', error);
     return false;
