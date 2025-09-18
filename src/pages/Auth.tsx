@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail, UserPlus, Home } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
-import { Home } from "lucide-react";
 
 interface PasswordStrength {
   hasLength: boolean;
@@ -123,206 +122,220 @@ const Auth = () => {
   );
 
   const renderLoginStep = () => (
-    <form onSubmit={handleLogin} className="space-y-6">
+    <div>
+      <div className="absolute left-4 top-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:text-cyan-400"
+          onClick={() => window.location.href = '/'}
+        >
+          <Home className="h-5 w-5" />
+        </Button>
+      </div>
       <div className="text-center">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/20 rounded-full mb-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/20 rounded-full mb-4 mx-auto">
           <Mail className="h-8 w-8 text-cyan-400" />
         </div>
         <h2 className="text-2xl font-bold text-cyan-300 mb-2">Bejelentkezés</h2>
         <p className="text-gray-300">Add meg az adataidat a folytatáshoz</p>
       </div>
 
-      <div className="space-y-4">
-        <Label htmlFor="email" className="text-gray-300">Email cím</Label>
-        <Input
-          id="email"
-          type="email"
-          placeholder="email@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-      </div>
-
-      <div className="space-y-4">
-        <Label htmlFor="password" className="text-gray-300">Jelszó</Label>
-        <div className="relative">
+      <form onSubmit={handleLogin} className="space-y-6 mt-8">
+        <div className="space-y-4">
+          <Label htmlFor="email" className="text-gray-300">Email cím</Label>
           <Input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Jelszó"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            id="email"
+            type="email"
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
-            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 pr-12"
+            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
           />
+        </div>
+
+        <div className="space-y-4">
+          <Label htmlFor="password" className="text-gray-300">Jelszó</Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Jelszó"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 pr-12"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-cyan-400"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
+          disabled={isLoading || !email || !password}
+        >
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          ) : null}
+          Bejelentkezés
+        </Button>
+
+        <div className="text-center">
           <button
             type="button"
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-cyan-400"
-            onClick={() => setShowPassword(!showPassword)}
+            onClick={() => setStep('register')}
+            className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center justify-center gap-2 w-full"
           >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <UserPlus className="h-4 w-4" />
+            Nincs még fiókod? Regisztrálj most!
           </button>
         </div>
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
-        disabled={isLoading || !email || !password}
-      >
-        {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        ) : null}
-        Bejelentkezés
-      </Button>
-
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={() => setStep('register')}
-          className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center justify-center gap-2 w-full"
-        >
-          <UserPlus className="h-4 w-4" />
-          Nincs még fiókod? Regisztrálj most!
-        </button>
-      </div>
-    </form>
+      </form>
+    </div>
   );
 
   const renderRegisterStep = () => (
-    <form onSubmit={handleRegister} className="space-y-6">
+    <div>
       <div className="flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={() => setStep('login')}
-          className="flex items-center text-cyan-400 hover:text-cyan-300 transition-colors"
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:text-cyan-400"
+          onClick={() => window.location.href = '/'}
         >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Vissza
-        </button>
+          <Home className="h-5 w-5" />
+        </Button>
         <h2 className="text-xl font-bold text-cyan-300">Regisztráció</h2>
         <div className="w-6"></div>
       </div>
 
-      <div className="space-y-4">
-        <Label htmlFor="reg-email" className="text-gray-300">Email cím</Label>
-        <Input
-          id="reg-email"
-          type="email"
-          placeholder="email@example.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="firstName" className="text-gray-300">Keresztnév</Label>
+      <form onSubmit={handleRegister} className="space-y-6">
+        <div className="space-y-4">
+          <Label htmlFor="reg-email" className="text-gray-300">Email cím</Label>
           <Input
-            id="firstName"
-            type="text"
-            placeholder="Keresztnév"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            id="reg-email"
+            type="email"
+            placeholder="email@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="lastName" className="text-gray-300">Vezetéknév</Label>
-          <Input
-            id="lastName"
-            type="text"
-            placeholder="Vezetéknév"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-          />
-        </div>
-      </div>
 
-      <div className="space-y-4">
-        <Label htmlFor="reg-password" className="text-gray-300">Jelszó</Label>
-        <div className="relative">
-          <Input
-            id="reg-password"
-            type={showPassword ? 'text' : 'password'}
-            placeholder="Jelszó"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 pr-12"
-          />
-          <button
-            type="button"
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-cyan-400"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword" className="text-gray-300">Jelszó megerősítése</Label>
-        <Input
-          id="confirmPassword"
-          type="password"
-          placeholder="Jelszó újra"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-        {!passwordsMatch && confirmPassword && (
-          <p className="text-sm text-red-400">A jelszavak nem egyeznek</p>
-        )}
-      </div>
-
-      {password && (
-        <div className="space-y-2 p-4 bg-gray-800/30 rounded-lg">
-          <p className="text-sm text-gray-300 font-medium">Jelszó erőssége:</p>
-          <div className="space-y-1">
-            <PasswordRequirement met={passwordStrength.hasLength} text="Legalább 8 karakter" />
-            <PasswordRequirement met={passwordStrength.hasUppercase} text="Tartalmaz nagybetűt" />
-            <PasswordRequirement met={passwordStrength.hasLowercase} text="Tartalmaz kisbetűt" />
-            <PasswordRequirement met={passwordStrength.hasNumber} text="Tartalmaz számot" />
-            <PasswordRequirement met={passwordStrength.hasSpecial} text="Tartalmaz speciális karaktert" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="firstName" className="text-gray-300">Keresztnév</Label>
+            <Input
+              id="firstName"
+              type="text"
+              placeholder="Keresztnév"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="lastName" className="text-gray-300">Vezetéknév</Label>
+            <Input
+              id="lastName"
+              type="text"
+              placeholder="Vezetéknév"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+            />
           </div>
         </div>
-      )}
 
-      <Button
-        type="submit"
-        className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
-        disabled={isLoading || !isPasswordStrong || !passwordsMatch || !firstName || !lastName || !email}
-      >
-        {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        ) : null}
-        Regisztráció
-      </Button>
+        <div className="space-y-4">
+          <Label htmlFor="reg-password" className="text-gray-300">Jelszó</Label>
+          <div className="relative">
+            <Input
+              id="reg-password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Jelszó"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 pr-12"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-cyan-400"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
 
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={() => setStep('login')}
-          className="text-cyan-400 hover:text-cyan-300 transition-colors"
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword" className="text-gray-300">Jelszó megerősítése</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            placeholder="Jelszó újra"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+          />
+          {!passwordsMatch && confirmPassword && (
+            <p className="text-sm text-red-400">A jelszavak nem egyeznek</p>
+          )}
+        </div>
+
+        {password && (
+          <div className="space-y-2 p-4 bg-gray-800/30 rounded-lg">
+            <p className="text-sm text-gray-300 font-medium">Jelszó erőssége:</p>
+            <div className="space-y-1">
+              <PasswordRequirement met={passwordStrength.hasLength} text="Legalább 8 karakter" />
+              <PasswordRequirement met={passwordStrength.hasUppercase} text="Tartalmaz nagybetűt" />
+              <PasswordRequirement met={passwordStrength.hasLowercase} text="Tartalmaz kisbetűt" />
+              <PasswordRequirement met={passwordStrength.hasNumber} text="Tartalmaz számot" />
+              <PasswordRequirement met={passwordStrength.hasSpecial} text="Tartalmaz speciális karaktert" />
+            </div>
+          </div>
+        )}
+
+        <Button
+          type="submit"
+          className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
+          disabled={isLoading || !isPasswordStrong || !passwordsMatch || !firstName || !lastName || !email}
         >
-          Már van fiókod? Jelentkezz be!
-        </button>
-      </div>
-    </form>
+          {isLoading ? (
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+          ) : null}
+          Regisztráció
+        </Button>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setStep('login')}
+            className="text-cyan-400 hover:text-cyan-300 transition-colors"
+          >
+            Már van fiókod? Jelentkezz be!
+          </button>
+        </div>
+      </form>
+    </div>
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md bg-black/30 border-cyan-500/30 backdrop-blur-sm">
+      <Card className="w-full max-w-md bg-black/30 border-cyan-500/30 backdrop-blur-sm relative">
         <CardContent className="p-8">
           {step === 'login' && renderLoginStep()}
           {step === 'register' && renderRegisterStep()}
