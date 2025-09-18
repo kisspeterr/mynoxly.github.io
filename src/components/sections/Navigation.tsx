@@ -102,21 +102,12 @@ const Navigation = () => {
                 </Button>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Button 
-                  asChild
-                  variant="outline"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-                >
-                  <a href="/login">Bejelentkezés</a>
-                </Button>
-                <Button 
-                  asChild
-                  className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white"
-                >
-                  <a href="/register">Regisztráció</a>
-                </Button>
-              </div>
+              <Button 
+                asChild
+                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white"
+              >
+                <a href="/auth">Bejelentkezés</a>
+              </Button>
             )}
             
             <Button 
@@ -191,22 +182,13 @@ const Navigation = () => {
                   </button>
                 </>
               ) : (
-                <>
-                  <a
-                    href="/login"
-                    className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Bejelentkezés
-                  </a>
-                  <a
-                    href="/register"
-                    className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Regisztráció
-                  </a>
-                </>
+                <a
+                  href="/auth"
+                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Bejelentkezés
+                </a>
               )}
               
               <button
