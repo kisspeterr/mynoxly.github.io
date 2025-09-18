@@ -38,26 +38,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
       console.log('Fetching profile for user:', userId);
       
-      const { data: profileData, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => {
+          console.log('Profile fetch timeout');
+          resolve(null);
+        }, 5000)
+      );
+
+      const profilePromise = supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .single()
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('Supabase profile error:', error);
+            return null;
+          }
+          return data as Profile;
+        });
+
+      // Race between profile fetch and timeout
+      const result = await Promise.race([profilePromise, timeoutPromise]);
       
-      if (!error && profileData) {
-        console.log('Profile found:', profileData);
-        setProfile(profileData as Profile);
+      if (result) {
+        console.log('Profile found:', result);
+        return result;
       } else {
-        console.log('Profile not found or error:', error);
-        setProfile(null);
+        console.log('Profile not found or timeout');
+        return null;
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      setProfile(null);
+      return null;
     }
   };
 
@@ -76,12 +94,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (initialSession?.user) {
             console.log('User logged in, fetching profile...');
-            await fetchProfile(initialSession.user.id);
+            const userProfile = await fetchProfile(initialSession.user.id);
+            if (isMounted) {
+              setProfile(userProfile);
+            }
           } else {
             console.log('No user logged in');
             setProfile(null);
           }
-          setIsLoading(false);
+          if (isMounted) {
+            setIsLoading(false);
+          }
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -101,11 +124,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(newSession?.user ?? null);
         
         if (newSession?.user) {
-          await fetchProfile(newSession.user.id);
+          const userProfile = await fetchProfile(newSession.user.id);
+          if (isMounted) {
+            setProfile(userProfile);
+          }
         } else {
           setProfile(null);
         }
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     });
 
