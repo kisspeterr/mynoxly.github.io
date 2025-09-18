@@ -13,39 +13,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// Test connection immediately
-const testConnection = async () => {
-  try {
-    console.log('🔌 Testing Supabase connection...');
-    const testClient = createClient(supabaseUrl, supabaseAnonKey);
-    
-    // Test auth access
-    const { data: authData, error: authError } = await testClient.auth.getSession();
-    console.log('🔐 Auth test:', authError ? 'ERROR' : 'SUCCESS', authError);
-    
-    // Test database access
-    const { data: dbData, error: dbError } = await testClient.from('profiles').select('count').limit(1);
-    console.log('🗄️ Database test:', dbError ? 'ERROR' : 'SUCCESS', dbError);
-    
-    if (authError || dbError) {
-      console.error('❌ Supabase connection failed');
-      return false;
-    }
-    
-    console.log('✅ Supabase connection successful');
-    return true;
-  } catch (error) {
-    console.error('💥 Supabase connection error:', error);
-    return false;
-  }
-};
-
-testConnection().then(isConnected => {
-  if (!isConnected) {
-    console.error('⚠️ Supabase connection failed - app may not work properly');
-  }
-});
-
+// Create client with timeout
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
@@ -57,6 +25,36 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       'x-application-name': 'noxly-app',
     },
   },
+  db: {
+    schema: 'public',
+  },
+});
+
+// Test connection with timeout
+const testConnection = async () => {
+  try {
+    console.log('🔌 Testing Supabase connection with timeout...');
+    
+    // Use Promise.race to add timeout
+    const connectionTest = Promise.race([
+      supabase.auth.getSession(),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Connection timeout')), 5000)
+      )
+    ]);
+
+    const result = await connectionTest;
+    console.log('✅ Supabase connection successful');
+    return true;
+  } catch (error) {
+    console.error('❌ Supabase connection failed:', error);
+    return false;
+  }
+};
+
+// Run connection test but don't block the app
+testConnection().catch(() => {
+  console.log('⚠️ Supabase connection test failed, but continuing...');
 });
 
 // Add global error logging

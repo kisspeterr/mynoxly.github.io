@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Eye, EyeOff, Loader2, Mail, UserPlus, Home, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { showSuccess, showError } from '@/utils/toast';
-import { useAuth } from '@/components/auth/AuthProvider';
 
 const Auth = () => {
   const [email, setEmail] = useState('');
@@ -19,37 +18,29 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<'login' | 'register'>('login');
-  const { user, isLoading: authLoading } = useAuth();
-
-  useEffect(() => {
-    if (user && !authLoading) {
-      console.log('✅ User authenticated, redirecting to home...');
-      window.location.href = '/';
-    }
-  }, [user, authLoading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      console.log('🔐 Attempting login...');
+      console.log('🔐 Attempting direct login...');
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password: password.trim(),
       });
 
       if (error) {
-        console.error('❌ Login error:', error);
         showError(error.message);
         return;
       }
 
-      console.log('✅ Login successful');
       showSuccess('Sikeres bejelentkezés!');
+      // Redirect manually since auth provider might be slow
+      window.location.href = '/';
     } catch (error) {
-      console.error('💥 Login exception:', error);
       showError('Bejelentkezési hiba');
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +57,6 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      console.log('📝 Attempting registration...');
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password: password.trim(),
@@ -79,42 +69,19 @@ const Auth = () => {
       });
 
       if (error) {
-        console.error('❌ Registration error:', error);
         showError(error.message);
         return;
       }
 
-      console.log('✅ Registration successful');
       showSuccess('Sikeres regisztráció! Kérjük, erősítsd meg az email címed.');
       setStep('login');
     } catch (error) {
-      console.error('💥 Registration exception:', error);
       showError('Regisztrációs hiba');
+      console.error('Register error:', error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 text-cyan-400 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Betöltés...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-300">Átirányítás a főoldalra...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 flex items-center justify-center p-4">

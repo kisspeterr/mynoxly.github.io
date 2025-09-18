@@ -41,40 +41,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
 
-    console.log('🔐 Starting auth initialization');
+    console.log('🔐 Starting auth initialization - IMMEDIATE MODE');
 
-    // Set immediate timeout to prevent hanging
+    // Set IMMEDIATE timeout - don't wait for Supabase
     const timeoutId = setTimeout(() => {
       if (isMounted) {
-        console.log('⏰ Auth timeout - setting loading to false');
+        console.log('⏰ IMMEDIATE timeout - Supabase not responding, setting loading false');
         setIsLoading(false);
       }
-    }, 3000);
+    }, 1000); // Only 1 second!
 
     const initializeAuth = async () => {
       try {
-        console.log('📋 Getting session...');
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
+        console.log('📋 Getting session (non-blocking)...');
         
-        if (error) {
-          console.error('❌ Session error:', error);
-          if (isMounted) {
-            setIsLoading(false);
-            clearTimeout(timeoutId);
-          }
-          return;
-        }
+        // Use Promise.race to prevent hanging
+        const sessionPromise = Promise.race([
+          supabase.auth.getSession(),
+          new Promise<null>((resolve) => 
+            setTimeout(() => resolve(null), 2000)
+          )
+        ]);
 
-        console.log('✅ Session retrieved:', initialSession?.user?.email);
+        const result = await sessionPromise;
+        
+        if (!isMounted) return;
 
-        if (isMounted) {
-          setSession(initialSession);
-          setUser(initialSession?.user ?? null);
-          
-          // Don't wait for profile - set loading false immediately
-          setIsLoading(false);
-          clearTimeout(timeoutId);
+        if (result && !result.error) {
+          console.log('✅ Session retrieved:', result.data.session?.user?.email);
+          setSession(result.data.session);
+          setUser(result.data.session?.user ?? null);
+        } else {
+          console.log('ℹ️ No session found or timeout');
         }
+        
+        setIsLoading(false);
+        clearTimeout(timeoutId);
       } catch (error) {
         console.error('💥 Auth init error:', error);
         if (isMounted) {
@@ -86,9 +88,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes but don't wait for them
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
-      console.log('🔄 Auth state:', event);
+      console.log('🔄 Auth state change detected:', event);
       if (isMounted) {
         setSession(newSession);
         setUser(newSession?.user ?? null);
@@ -104,7 +106,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
   };
 
   const value = {
