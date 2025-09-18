@@ -1,16 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/components/auth/AuthProvider";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
-  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -79,37 +77,8 @@ const Navigation = () => {
             </div>
           )}
 
-          {/* Auth Buttons */}
+          {/* CTA Button */}
           <div className="flex items-center space-x-4">
-            {user ? (
-              <div className="flex items-center space-x-4">
-                <Button 
-                  asChild
-                  variant="outline"
-                  className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-                >
-                  <a href="/profile">
-                    <User className="h-4 w-4 mr-2" />
-                    Profil
-                  </a>
-                </Button>
-                <Button 
-                  onClick={signOut}
-                  variant="ghost"
-                  className="text-gray-300 hover:text-red-400 hover:bg-red-400/10"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                asChild
-                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white"
-              >
-                <a href="/auth">Bejelentkezés</a>
-              </Button>
-            )}
-            
             <Button 
               onClick={scrollToWaitlist}
               className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white transition-all duration-300 hover:scale-105"
@@ -161,36 +130,6 @@ const Navigation = () => {
               >
                 Vélemények
               </a>
-              
-              {user ? (
-                <>
-                  <a
-                    href="/profile"
-                    className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Profil
-                  </a>
-                  <button
-                    onClick={() => {
-                      signOut();
-                      setIsOpen(false);
-                    }}
-                    className="text-gray-300 hover:text-red-400 transition-colors duration-300 py-2 text-left"
-                  >
-                    Kijelentkezés
-                  </button>
-                </>
-              ) : (
-                <a
-                  href="/auth"
-                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Bejelentkezés
-                </a>
-              )}
-              
               <button
                 onClick={scrollToWaitlist}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
