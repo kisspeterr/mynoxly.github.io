@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState} from 'react';
-import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, CheckCircle, XCircle, Loader2, ArrowLeft, Mail, UserPlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,9 +25,7 @@ const Auth = () => {
   const [lastName, setLastName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  const [emailExists, setEmailExists] = useState<boolean | null>(null);
-  const [step, setStep] = useState<'email' | 'login' | 'register'>('email');
+  const [step, setStep] = useState<'login' | 'register'>('login');
 
   const checkPasswordStrength = (pwd: string): PasswordStrength => ({
     hasLength: pwd.length >= 8,
@@ -41,78 +39,30 @@ const Auth = () => {
   const isPasswordStrong = Object.values(passwordStrength).every(Boolean);
   const passwordsMatch = password === confirmPassword && password.length > 0;
 
-  const checkEmailExists = async (email: string): Promise<boolean> => {
-  try {
-    // Próbáljuk meg lekérdezni a profilt az email cím alapján
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('email')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
-
-    if (error) {
-      console.error('Profile check error:', error);
-      return false;
-    }
-
-    return !!data; // Ha van adat, akkor létezik a felhasználó
-  } catch (error) {
-    console.error('Email check failed:', error);
-    return false;
-  }
-};
-
- const handleEmailSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!email.includes('@')) {
-    showError('Kérjük, érvényes email címet adj meg');
-    return;
-  }
-
-  setIsCheckingEmail(true);
-  try {
-    const exists = await checkEmailExists(email);
-    setEmailExists(exists);
-    
-    // Azonnal állítsuk be a következő lépést az emailExists alapján
-    if (exists) {
-      setStep('login');
-    } else {
-      setStep('register');
-    }
-  } catch (error) {
-    showError('Hiba történt az email ellenőrzése során');
-    setEmailExists(false);
-    setStep('register'); // Hiba esetén is menjünk regisztrációra
-  } finally {
-    setIsCheckingEmail(false);
-  }
-};
-
   const handleLogin = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setIsLoading(true);
+    e.preventDefault();
+    setIsLoading(true);
 
-  try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase(),
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.toLowerCase(),
+        password,
+      });
 
-    if (error) {
-      showError('Hibás email vagy jelszó');
-      return;
+      if (error) {
+        showError('Hibás email vagy jelszó');
+        return;
+      }
+
+      showSuccess('Sikeres bejelentkezés!');
+      // Átirányítás a home page-re
+      window.location.href = '/';
+    } catch (error) {
+      showError('Váratlan hiba történt');
+    } finally {
+      setIsLoading(false);
     }
-
-    showSuccess('Sikeres bejelentkezés!');
-    // Átirányítás a home page-re
-    window.location.href = '/';
-  } catch (error) {
-    showError('Váratlan hiba történt');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,6 +96,13 @@ const Auth = () => {
       }
 
       showSuccess('Sikeres regisztráció! Kérjük, ellenőrizd az emailed a megerősítéshez.');
+      // Vissza a bejelentkezéshez
+      setStep('login');
+      setEmail('');
+      setPassword('');
+      setConfirmPassword('');
+      setFirstName('');
+      setLastName('');
     } catch (error) {
       showError('Váratlan hiba történt');
     } finally {
@@ -164,14 +121,14 @@ const Auth = () => {
     </div>
   );
 
-  const renderEmailStep = () => (
-    <form onSubmit={handleEmailSubmit} className="space-y-6">
+  const renderLoginStep = () => (
+    <form onSubmit={handleLogin} className="space-y-6">
       <div className="text-center">
         <div className="inline-flex items-center justify-center w-16 h-16 bg-cyan-500/20 rounded-full mb-4">
           <Mail className="h-8 w-8 text-cyan-400" />
         </div>
         <h2 className="text-2xl font-bold text-cyan-300 mb-2">Bejelentkezés</h2>
-        <p className="text-gray-300">Add meg az email címed a folytatáshoz</p>
+        <p className="text-gray-300">Add meg az adataidat a folytatáshoz</p>
       </div>
 
       <div className="space-y-4">
@@ -183,44 +140,8 @@ const Auth = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 text-center text-lg py-6"
+          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
         />
-      </div>
-
-      <Button
-        type="submit"
-        className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
-        disabled={isCheckingEmail || !email.includes('@')}
-      >
-        {isCheckingEmail ? (
-          <Loader2 className="h-5 w-5 animate-spin mr-2" />
-        ) : null}
-        Tovább
-      </Button>
-    </form>
-  );
-
-  const renderLoginStep = () => (
-    <form onSubmit={handleLogin} className="space-y-6">
-      <div className="flex items-center justify-between mb-4">
-        <button
-          type="button"
-          onClick={() => {
-            setStep('email');
-            setEmailExists(null);
-          }}
-          className="flex items-center text-cyan-400 hover:text-cyan-300 transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Vissza
-        </button>
-        <h2 className="text-xl font-bold text-cyan-300">Bejelentkezés</h2>
-        <div className="w-6"></div> {/* Spacer for balance */}
-      </div>
-
-      <div className="text-center mb-6">
-        <p className="text-gray-300">Bejelentkezés mint</p>
-        <p className="text-cyan-400 font-medium">{email}</p>
       </div>
 
       <div className="space-y-4">
@@ -233,14 +154,14 @@ const Auth = () => {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 pr-12 py-6 text-lg"
+            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 pr-12"
           />
           <button
             type="button"
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-cyan-400"
             onClick={() => setShowPassword(!showPassword)}
           >
-            {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -248,13 +169,24 @@ const Auth = () => {
       <Button
         type="submit"
         className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
-        disabled={isLoading || !password}
+        disabled={isLoading || !email || !password}
       >
         {isLoading ? (
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
         ) : null}
         Bejelentkezés
       </Button>
+
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={() => setStep('register')}
+          className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center justify-center gap-2 w-full"
+        >
+          <UserPlus className="h-4 w-4" />
+          Nincs még fiókod? Regisztrálj most!
+        </button>
+      </div>
     </form>
   );
 
@@ -263,22 +195,27 @@ const Auth = () => {
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
-          onClick={() => {
-            setStep('email');
-            setEmailExists(null);
-          }}
+          onClick={() => setStep('login')}
           className="flex items-center text-cyan-400 hover:text-cyan-300 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Vissza
         </button>
         <h2 className="text-xl font-bold text-cyan-300">Regisztráció</h2>
-        <div className="w-6"></div> {/* Spacer for balance */}
+        <div className="w-6"></div>
       </div>
 
-      <div className="text-center mb-6">
-        <p className="text-gray-300">Fiók létrehozása</p>
-        <p className="text-cyan-400 font-medium">{email}</p>
+      <div className="space-y-4">
+        <Label htmlFor="reg-email" className="text-gray-300">Email cím</Label>
+        <Input
+          id="reg-email"
+          type="email"
+          placeholder="email@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -309,10 +246,10 @@ const Auth = () => {
       </div>
 
       <div className="space-y-4">
-        <Label htmlFor="password" className="text-gray-300">Jelszó</Label>
+        <Label htmlFor="reg-password" className="text-gray-300">Jelszó</Label>
         <div className="relative">
           <Input
-            id="password"
+            id="reg-password"
             type={showPassword ? 'text' : 'password'}
             placeholder="Jelszó"
             value={password}
@@ -362,13 +299,23 @@ const Auth = () => {
       <Button
         type="submit"
         className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white py-6 text-lg"
-        disabled={isLoading || !isPasswordStrong || !passwordsMatch || !firstName || !lastName}
+        disabled={isLoading || !isPasswordStrong || !passwordsMatch || !firstName || !lastName || !email}
       >
         {isLoading ? (
           <Loader2 className="h-5 w-5 animate-spin mr-2" />
         ) : null}
         Regisztráció
       </Button>
+
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={() => setStep('login')}
+          className="text-cyan-400 hover:text-cyan-300 transition-colors"
+        >
+          Már van fiókod? Jelentkezz be!
+        </button>
+      </div>
     </form>
   );
 
@@ -376,7 +323,6 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 flex items-center justify-center p-4">
       <Card className="w-full max-w-md bg-black/30 border-cyan-500/30 backdrop-blur-sm">
         <CardContent className="p-8">
-          {step === 'email' && renderEmailStep()}
           {step === 'login' && renderLoginStep()}
           {step === 'register' && renderRegisterStep()}
         </CardContent>
