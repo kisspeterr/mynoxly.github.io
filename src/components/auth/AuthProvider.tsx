@@ -42,12 +42,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Fetching profile for user:', userId);
       
-      // Add timeout to prevent hanging
+      // Use a shorter timeout and more aggressive error handling
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => {
-          console.log('Profile fetch timeout');
+          console.log('Profile fetch timeout after 3 seconds');
           resolve(null);
-        }, 5000)
+        }, 3000)
       );
 
       const profilePromise = supabase
@@ -58,23 +58,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then(({ data, error }) => {
           if (error) {
             console.error('Supabase profile error:', error);
-            return null;
+            // If there's an error, try to create a default profile
+            return createDefaultProfile(userId);
           }
           return data as Profile;
         });
 
-      // Race between profile fetch and timeout
       const result = await Promise.race([profilePromise, timeoutPromise]);
+      return result;
+    } catch (error) {
+      console.error('Error in fetchProfile:', error);
+      return null;
+    }
+  };
+
+  const createDefaultProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      console.log('Creating default profile for user:', userId);
       
-      if (result) {
-        console.log('Profile found:', result);
-        return result;
-      } else {
-        console.log('Profile not found or timeout');
+      // Get user email from auth table
+      const { data: userData } = await supabase.auth.getUser();
+      const userEmail = userData?.user?.email || 'unknown@example.com';
+      
+      const { data: newProfile, error } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userEmail,
+          first_name: null,
+          last_name: null,
+          role: 'user',
+          display_name: null,
+          avatar_url: null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating default profile:', error);
         return null;
       }
+
+      console.log('Default profile created:', newProfile);
+      return newProfile as Profile;
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('Error in createDefaultProfile:', error);
       return null;
     }
   };
@@ -85,7 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initializeAuth = async () => {
       try {
         console.log('Initializing auth...');
-        // Get initial session
+        
+        // First get session quickly
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         
         if (isMounted) {
@@ -102,9 +131,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.log('No user logged in');
             setProfile(null);
           }
-          if (isMounted) {
-            setIsLoading(false);
-          }
+          
+          // Always set loading to false after 5 seconds max
+          setTimeout(() => {
+            if (isMounted) {
+              setIsLoading(false);
+            }
+          }, 5000);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -131,6 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
         }
+        
+        // Always set loading to false
         if (isMounted) {
           setIsLoading(false);
         }
