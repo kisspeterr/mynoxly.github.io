@@ -24,7 +24,12 @@ const Login = () => {
     try {
       if (isSignUp) {
         const { data, error } = await signUp(email, password, firstName, lastName);
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('already registered')) {
+            throw new Error('Ez az email cím már regisztrálva van.');
+          }
+          throw error;
+        }
         
         if (data.user) {
           showSuccess('Sikeres regisztráció! Kérjük, erősítse meg e-mail címét.');
@@ -34,7 +39,12 @@ const Login = () => {
         }
       } else {
         const { error } = await signIn(email, password);
-        if (error) throw error;
+        if (error) {
+          if (error.message.includes('Invalid login credentials')) {
+            throw new Error('Hibás email cím vagy jelszó.');
+          }
+          throw error;
+        }
         showSuccess('Sikeres bejelentkezés!');
         navigate('/');
       }
@@ -110,6 +120,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                minLength={6}
                 className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
               />
             </div>

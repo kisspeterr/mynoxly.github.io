@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -6,17 +6,22 @@ import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
 
 const Admin = () => {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, loading } = useAuth();
   const navigate = useNavigate();
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    if (profile && profile.role !== 'admin') {
-      showError('Nincs jogosultsága az admin oldal eléréséhez.');
-      navigate('/');
+    if (!loading) {
+      if (profile && profile.role === 'admin') {
+        setIsAuthorized(true);
+      } else {
+        showError('Nincs jogosultsága az admin oldal eléréséhez.');
+        navigate('/');
+      }
     }
-  }, [profile, navigate]);
+  }, [profile, loading, navigate]);
 
-  if (!profile) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
         <div className="text-center">
@@ -27,7 +32,7 @@ const Admin = () => {
     );
   }
 
-  if (profile.role !== 'admin') {
+  if (!isAuthorized) {
     return null;
   }
 
