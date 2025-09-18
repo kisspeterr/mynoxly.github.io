@@ -42,26 +42,26 @@ const Auth = () => {
   const passwordsMatch = password === confirmPassword && password.length > 0;
 
   const checkEmailExists = async (email: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('email')
-        .eq('email', email.toLowerCase())
-        .single();
-
-      if (error && error.code === 'PGRST116') {
-        return false; // No rows found - email doesn't exist
-      } else if (error) {
-        console.error('Email check error:', error);
-        return false;
-      } else {
-        return !!data; // Email exists
-      }
-    } catch (error) {
-      console.error('Email check failed:', error);
+  try {
+    // Ellenőrizzük közvetlenül az auth.users táblát
+    const { data, error } = await supabase.auth.admin.listUsers();
+    
+    if (error) {
+      console.error('Auth users list error:', error);
       return false;
     }
-  };
+    
+    // Ellenőrizzük, hogy létezik-e már ilyen email cím
+    const userExists = data.users.some(user => 
+      user.email?.toLowerCase() === email.toLowerCase()
+    );
+    
+    return userExists;
+  } catch (error) {
+    console.error('Email check failed:', error);
+    return false;
+  }
+};
 
  const handleEmailSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
