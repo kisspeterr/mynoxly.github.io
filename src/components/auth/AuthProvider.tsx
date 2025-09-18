@@ -20,6 +20,7 @@ interface AuthContextType {
   profile: Profile | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  isSupabaseAvailable: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,12 +38,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSupabaseAvailable, setIsSupabaseAvailable] = useState(true);
+
+  const testSupabaseConnection = async (): Promise<boolean> => {
+    try {
+      const { error } = await supabase.from('profiles').select('count').limit(1);
+      return !error;
+    } catch (error) {
+      console.error('Supabase connection test failed:', error);
+      return false;
+    }
+  };
 
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    if (!isSupabaseAvailable) {
+      console.log('Supabase not available, skipping profile fetch');
+      return null;
+    }
+
     try {
       console.log('Fetching profile for user:', userId);
       
-      // Use a shorter timeout and more aggressive error handling
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => {
           console.log('Profile fetch timeout after 3 seconds');
@@ -58,8 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .then(({ data, error }) => {
           if (error) {
             console.error('Supabase profile error:', error);
-            // If there's an error, try to create a default profile
-            return createDefaultProfile(userId);
+            return null;
           }
           return data as Profile;
         });
@@ -67,42 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const result = await Promise.race([profilePromise, timeoutPromise]);
       return result;
     } catch (error) {
-      console.error('Error in fetchProfile:', error);
-      return null;
-    }
-  };
-
-  const createDefaultProfile = async (userId: string): Promise<Profile | null> => {
-    try {
-      console.log('Creating default profile for user:', userId);
-      
-      // Get user email from auth table
-      const { data: userData } = await supabase.auth.getUser();
-      const userEmail = userData?.user?.email || 'unknown@example.com';
-      
-      const { data: newProfile, error } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
-          email: userEmail,
-          first_name: null,
-          last_name: null,
-          role: 'user',
-          display_name: null,
-          avatar_url: null
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating default profile:', error);
-        return null;
-      }
-
-      console.log('Default profile created:', newProfile);
-      return newProfile as Profile;
-    } catch (error) {
-      console.error('Error in createDefaultProfile:', error);
+      console.error('Error fetching profile:', error);
       return null;
     }
   };
@@ -114,7 +94,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         console.log('Initializing auth...');
         
-        // First get session quickly
+        // Test Supabase connection first
+        const supabaseAvailable = await testSupabaseConnection();
+        if (isMounted) {
+          setIsSupabaseAvailable(supabaseAvailable);
+        }
+
+        if (!supabaseAvailable) {
+          console.warn('Supabase is not available, using local auth state');
+          if (isMounted) {
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        // Get initial session
         const { data: { session: initialSession } } = await supabase.auth.getSession();
         
         if (isMounted) {
@@ -132,12 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setProfile(null);
           }
           
-          // Always set loading to false after 5 seconds max
-          setTimeout(() => {
-            if (isMounted) {
-              setIsLoading(false);
-            }
-          }, 5000);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
@@ -149,37 +138,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initializeAuth();
 
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('Auth state changed:', event, newSession?.user?.id);
-      if (isMounted) {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          const userProfile = await fetchProfile(newSession.user.id);
-          if (isMounted) {
-            setProfile(userProfile);
-          }
-        } else {
-          setProfile(null);
-        }
-        
-        // Always set loading to false
+    if (isSupabaseAvailable) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+        console.log('Auth state changed:', event, newSession?.user?.id);
         if (isMounted) {
+          setSession(newSession);
+          setUser(newSession?.user ?? null);
+          
+          if (newSession?.user) {
+            const userProfile = await fetchProfile(newSession.user.id);
+            if (isMounted) {
+              setProfile(userProfile);
+            }
+          } else {
+            setProfile(null);
+          }
           setIsLoading(false);
         }
-      }
-    });
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
 
     return () => {
       isMounted = false;
-      subscription.unsubscribe();
     };
-  }, []);
+  }, [isSupabaseAvailable]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseAvailable) {
+      await supabase.auth.signOut();
+    } else {
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+    }
   };
 
   const value = {
@@ -188,6 +183,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile,
     isLoading,
     signOut,
+    isSupabaseAvailable,
   };
 
   return (
