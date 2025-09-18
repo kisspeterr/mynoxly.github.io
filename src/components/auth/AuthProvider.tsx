@@ -40,75 +40,117 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: NodeJS.Timeout;
+    let subscription: any = null;
+
+    console.log('🚀 Starting auth initialization...');
+
+    // Immediate timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        console.log('⏰ Auth initialization timeout reached');
+        setIsLoading(false);
+      }
+    }, 5000);
 
     const initializeAuth = async () => {
       try {
-        console.log('🚀 Initializing auth...');
+        console.log('🔍 Getting initial session...');
         
-        // IMMEDIATE timeout - don't wait for Supabase
-        timeoutId = setTimeout(() => {
-          if (isMounted) {
-            console.log('⏰ Auth initialization timeout - Supabase not responding');
-            setIsLoading(false);
-          }
-        }, 3000); // Only 3 seconds timeout!
-
-        // Try to get session but don't wait too long
         const { data: { session: initialSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ Supabase session error:', error);
+          console.error('❌ Session error:', error);
           if (isMounted) {
             setIsLoading(false);
           }
           return;
         }
 
+        console.log('✅ Session retrieved:', initialSession?.user?.id);
+
         if (isMounted) {
           setSession(initialSession);
           setUser(initialSession?.user ?? null);
           
           if (initialSession?.user) {
-            console.log('✅ User logged in, ID:', initialSession.user.id);
-            // Don't wait for profile - set loading false immediately
-            setTimeout(() => {
-              if (isMounted) {
-                setIsLoading(false);
+            console.log('👤 User found, fetching profile...');
+            // Fetch profile but don't wait for it
+            fetchProfile(initialSession.user.id).then(profileData => {
+              if (isMounted && profileData) {
+                setProfile(profileData);
               }
-            }, 1000);
-          } else {
-            console.log('ℹ️ No user logged in');
-            setIsLoading(false);
+            }).catch(err => {
+              console.error('❌ Profile fetch error:', err);
+            });
           }
+          
+          setIsLoading(false);
+          clearTimeout(timeoutId);
         }
       } catch (error) {
         console.error('💥 Auth initialization error:', error);
         if (isMounted) {
           setIsLoading(false);
+          clearTimeout(timeoutId);
         }
       }
     };
 
     initializeAuth();
 
-    // Simple auth state listener with immediate timeout
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+    // Set up auth state change listener
+    subscription = supabase.auth.onAuthStateChange((event, newSession) => {
       console.log('🔄 Auth state changed:', event);
       
       if (!isMounted) return;
 
       setSession(newSession);
       setUser(newSession?.user ?? null);
+      
+      if (newSession?.user) {
+        fetchProfile(newSession.user.id).then(profileData => {
+          if (isMounted && profileData) {
+            setProfile(profileData);
+          }
+        });
+      } else {
+        setProfile(null);
+      }
+      
       setIsLoading(false);
     });
 
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
-      subscription.unsubscribe();
+      if (subscription?.subscription) {
+        subscription.subscription.unsubscribe();
+      }
     };
   }, []);
+
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      console.log('📋 Fetching profile for user:', userId);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('❌ Profile fetch error:', error);
+        return null;
+      }
+
+      console.log('✅ Profile fetched successfully');
+      return data as Profile;
+    } catch (error) {
+      console.error('💥 Profile fetch exception:', error);
+      return null;
+    }
+  };
 
   const signOut = async () => {
     try {
