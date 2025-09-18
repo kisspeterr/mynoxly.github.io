@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, TrendingUp } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 const ComingSoonSection = () => {
   const [progressValue, setProgressValue] = useState(0);
@@ -81,9 +81,7 @@ const ComingSoonSection = () => {
           >
             <div className="mb-8">
               <h3 className="text-2xl font-bold text-white mb-6 flex items-center justify-center gap-2">
-                <TrendingUp className="h-6 w-6 text-blue-300 animate-bounce" />
                 Fejlesztési állapot
-                <TrendingUp className="h-6 w-6 text-purple-300 animate-bounce" />
               </h3>
               
               <div className="mb-6 relative">
@@ -101,17 +99,6 @@ const ComingSoonSection = () => {
                     {displayValue}% - Fejlesztés folyamatban
                   </span>
                   <span className="text-sm text-gray-400">100%</span>
-                </div>
-                
-                {/* Animated particles */}
-                <div className="absolute -top-2 left-0 right-0 h-4">
-                  {[0, 25, 50, 75, 100].map((position) => (
-                    <div
-                      key={position}
-                      className="absolute w-2 h-2 bg-white rounded-full transform -translate-y-1/2 opacity-60"
-                      style={{ left: `${position}%` }}
-                    />
-                  ))}
                 </div>
               </div>
             </div>
