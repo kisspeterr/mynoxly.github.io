@@ -27,6 +27,7 @@ const Navigation = () => {
         block: "start"
       });
     }
+    setIsOpen(false);
   };
 
   return (
@@ -129,6 +130,12 @@ const Navigation = () => {
               >
                 Vélemények
               </a>
+              <button
+                onClick={scrollToWaitlist}
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
+              >
+                Csatlakozom
+              </button>
             </div>
           </div>
         )}

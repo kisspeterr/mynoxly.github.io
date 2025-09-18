@@ -5,17 +5,29 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useWaitlist } from '@/hooks/use-waitlist';
 
 const WaitlistSection = () => {
   const [email, setEmail] = useState('');
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [name, setName] = useState('');
+  const { subscribeToWaitlist, isLoading } = useWaitlist();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Itt lehetne API hívás is
-    console.log('Email submitted:', email);
-    setIsSubmitted(true);
-    setEmail('');
+    
+    if (!email.trim()) {
+      return;
+    }
+
+    const result = await subscribeToWaitlist({
+      email: email.trim(),
+      name: name.trim() || undefined
+    });
+
+    if (result.success) {
+      setEmail('');
+      setName('');
+    }
   };
 
   return (
@@ -27,50 +39,50 @@ const WaitlistSection = () => {
         </p>
         
         <div className="max-w-md mx-auto">
-          {isSubmitted ? (
-            <Card className="bg-black/30 border-gray-700 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl text-green-400">Köszönjük!</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-300">
-                  Sikeresen feliratkoztál a várólistára. Hamarosan küldünk egy e-mailt, amint az alkalmazás elérhető.
-                </p>
+          <Card className="bg-black/30 border-cyan-500/30 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="text-2xl text-cyan-300">Előregisztráció</CardTitle>
+              <CardDescription className="text-gray-300">
+                Add meg az adataidat, és értesítünk, amint az alkalmazás elérhető
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSubmit}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-gray-300">Név (opcionális)</Label>
+                  <Input 
+                    id="name"
+                    type="text" 
+                    placeholder="Add meg a neved"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-gray-300">E-mail cím *</Label>
+                  <Input 
+                    id="email"
+                    type="email" 
+                    placeholder="email@example.com" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                  />
+                </div>
               </CardContent>
-            </Card>
-          ) : (
-            <Card className="bg-black/30 border-gray-700 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-2xl text-cyan-300">Előregisztráció</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Add meg az e-mail címed, és értesítünk, amint az alkalmazás elérhető
-                </CardDescription>
-              </CardHeader>
-              <form onSubmit={handleSubmit}>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-gray-300">E-mail cím</Label>
-                      <Input 
-                        id="email"
-                        type="email" 
-                        placeholder="email@example.com" 
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white">
-                    Feliratkozás
-                  </Button>
-                </CardFooter>
-              </form>
-            </Card>
-          )}
+              <CardFooter>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Feldolgozás...' : 'Feliratkozás'}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
         </div>
       </div>
     </section>
