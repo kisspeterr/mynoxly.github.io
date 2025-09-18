@@ -50,8 +50,19 @@ const Auth = () => {
         .eq('email', email.toLowerCase())
         .single();
 
-      setEmailExists(!!data && !error);
+      if (error && error.code === 'PGRST116') {
+        // No rows found - email doesn't exist
+        setEmailExists(false);
+      } else if (error) {
+        // Other error
+        console.error('Email check error:', error);
+        setEmailExists(false);
+      } else {
+        // Email exists
+        setEmailExists(true);
+      }
     } catch (error) {
+      console.error('Email check failed:', error);
       setEmailExists(false);
     } finally {
       setIsCheckingEmail(false);
@@ -69,17 +80,30 @@ const Auth = () => {
     try {
       await checkEmailExists(email);
       
-      if (emailExists === true) {
-        setStep('login');
-      } else if (emailExists === false) {
-        setStep('register');
-      }
+      // Wait for the email check to complete and state to update
+      setTimeout(() => {
+        if (emailExists === true) {
+          setStep('login');
+        } else if (emailExists === false) {
+          setStep('register');
+        }
+      }, 100);
     } catch (error) {
       showError('Hiba történt az email ellenőrzése során');
     } finally {
       setIsCheckingEmail(false);
     }
   };
+
+  useEffect(() => {
+    if (emailExists !== null) {
+      if (emailExists) {
+        setStep('login');
+      } else {
+        setStep('register');
+      }
+    }
+  }, [emailExists]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -195,7 +219,10 @@ const Auth = () => {
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
-          onClick={() => setStep('email')}
+          onClick={() => {
+            setStep('email');
+            setEmailExists(null);
+          }}
           className="flex items-center text-cyan-400 hover:text-cyan-300 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -250,7 +277,10 @@ const Auth = () => {
       <div className="flex items-center justify-between mb-4">
         <button
           type="button"
-          onClick={() => setStep('email')}
+          onClick={() => {
+            setStep('email');
+            setEmailExists(null);
+          }}
           className="flex items-center text-cyan-400 hover:text-cyan-300 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
