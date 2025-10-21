@@ -139,14 +139,15 @@ const PublicCouponsSection = () => {
                       {isAuthenticated ? (
                         <>
                           {pending ? (
-                            // Reverting to vertical stacking on mobile (flex-col)
+                            // Vertical stacking on mobile (flex-col)
                             <div className="flex flex-col sm:flex-row gap-2">
                               <Button 
                                 className="w-full bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
                                 disabled
                               >
                                 <Clock className="h-4 w-4 mr-2" />
-                                Kód generálva
+                                <span className="hidden sm:inline">Kód generálva</span>
+                                <span className="sm:hidden">Aktív kód</span>
                               </Button>
                               <Button 
                                 asChild
@@ -155,8 +156,8 @@ const PublicCouponsSection = () => {
                               >
                                 <Link to="/profile" className="flex items-center justify-center">
                                   <User className="h-4 w-4 mr-2" />
-                                  {/* Use short text for all small screens */}
-                                  Fiók megtekintése
+                                  <span className="hidden sm:inline">Megtekintés fiókban</span>
+                                  <span className="sm:hidden">Fiók</span>
                                 </Link>
                               </Button>
                             </div>
