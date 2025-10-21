@@ -116,7 +116,7 @@ export const useCoupons = () => {
     isLoading,
     fetchCoupons,
     createCoupon,
-    updateCoupon, // Export the new function
+    updateCoupon,
     deleteCoupon,
     organizationName,
   };

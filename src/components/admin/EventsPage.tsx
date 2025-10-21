@@ -142,8 +142,11 @@ const EventsPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    // Fetch events whenever the organizationName changes (i.e., when profile loads)
+    if (organizationName) {
+      fetchEvents();
+    }
+  }, [organizationName]); // Dependency added
 
   if (isLoading && events.length === 0) {
     return (

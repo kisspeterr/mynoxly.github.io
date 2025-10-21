@@ -125,7 +125,7 @@ export const useEvents = () => {
     isLoading,
     fetchEvents,
     createEvent,
-    updateEvent, // Export the new function
+    updateEvent,
     deleteEvent,
     organizationName,
   };

@@ -126,8 +126,11 @@ const CouponsPage = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
-    fetchCoupons();
-  }, []);
+    // Fetch coupons whenever the organizationName changes (i.e., when profile loads)
+    if (organizationName) {
+      fetchCoupons();
+    }
+  }, [organizationName]); // Dependency added
 
   if (isLoading && coupons.length === 0) {
     return (
