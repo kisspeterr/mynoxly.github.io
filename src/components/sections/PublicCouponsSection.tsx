@@ -139,9 +139,10 @@ const PublicCouponsSection = () => {
                       {isAuthenticated ? (
                         <>
                           {pending ? (
-                            <div className="flex flex-col sm:flex-row gap-2">
+                            // Refactored pending button layout for better responsiveness
+                            <div className="flex gap-2">
                               <Button 
-                                className="w-full bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
+                                className="flex-grow bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
                                 disabled
                               >
                                 <Clock className="h-4 w-4 mr-2" />
@@ -150,12 +151,12 @@ const PublicCouponsSection = () => {
                               <Button 
                                 asChild
                                 variant="outline"
-                                className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                                size="icon" // Use icon size for small screens
+                                className="flex-shrink-0 w-10 h-10 sm:w-auto sm:h-auto border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
                               >
-                                <Link to="/profile" className="flex items-center justify-center">
+                                <Link to="/profile" className="flex items-center justify-center px-2 sm:px-4">
                                   <User className="h-4 w-4 sm:mr-2" />
                                   <span className="hidden sm:inline">Megtekintés fiókban</span>
-                                  <span className="sm:hidden">Fiók</span>
                                 </Link>
                               </Button>
                             </div>
