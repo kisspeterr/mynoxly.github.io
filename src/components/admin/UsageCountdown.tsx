@@ -12,13 +12,11 @@ const REDEMPTION_DURATION_MS = 3 * 60 * 1000;
 const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) => {
   const [timeLeftMs, setTimeLeftMs] = useState(0);
   const [isExpired, setIsExpired] = useState(false);
-  const [isValidDate, setIsValidDate] = useState(true);
 
   useEffect(() => {
     if (isUsed) {
       setIsExpired(false);
       setTimeLeftMs(0);
-      setIsValidDate(true);
       return;
     }
 
@@ -26,13 +24,12 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
     
     // CRITICAL CHECK: If date is invalid (NaN), stop execution and show error state
     if (isNaN(startTime)) {
+      // If the date is invalid, treat it as expired/invalid
       setIsExpired(true);
       setTimeLeftMs(0);
-      setIsValidDate(false); // Mark as invalid date
       return;
     }
-    
-    setIsValidDate(true); // Date is valid, proceed with countdown
+
     const expiryTime = startTime + REDEMPTION_DURATION_MS;
 
     const calculateTimeLeft = () => {
@@ -72,14 +69,6 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600/50 text-green-300">
         <CheckCircle className="h-3 w-3 mr-1" /> Beváltva
-      </span>
-    );
-  }
-  
-  if (!isValidDate) {
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-600/50 text-red-300">
-        <XCircle className="h-3 w-3 mr-1" /> Hiba (Dátum)
       </span>
     );
   }

@@ -3,28 +3,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
-interface BaseCouponUsageRecord {
+interface CouponUsageRecord {
   id: string;
   user_id: string;
   coupon_id: string;
-  redeemed_at: string | null;
+  redeemed_at: string | null; // Allow null for safety
   is_used: boolean;
   redemption_code: string;
   
+  // Joined data - made optional to handle potential null joins
   coupon: {
     title: string;
     organization_name: string;
   } | null;
 }
 
-// New type guaranteeing valid redeemed_at
-export interface ValidCouponUsageRecord extends Omit<BaseCouponUsageRecord, 'redeemed_at'> {
-  redeemed_at: string;
-}
-
 export const useCouponUsages = () => {
   const { profile, isAuthenticated, isAdmin } = useAuth();
-  const [usages, setUsages] = useState<ValidCouponUsageRecord[]>([]);
+  const [usages, setUsages] = useState<CouponUsageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const organizationName = profile?.organization_name;
@@ -37,6 +33,7 @@ export const useCouponUsages = () => {
 
     setIsLoading(true);
     try {
+      // Fetch all usages for coupons belonging to this organization
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -63,13 +60,12 @@ export const useCouponUsages = () => {
       // Filter data client-side:
       // 1. Ensure coupon data exists (join successful)
       // 2. Ensure coupon belongs to the current organization
-      // 3. CRITICAL: Ensure redeemed_at is a valid date string
-      const filteredData = (data as BaseCouponUsageRecord[]).filter(
-        (usage): usage is ValidCouponUsageRecord => 
-          usage.coupon !== null && 
+      // 3. CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
+      const filteredData = (data as CouponUsageRecord[]).filter(
+        (usage) => 
+          usage.coupon && 
           usage.coupon.organization_name === organizationName &&
-          typeof usage.redeemed_at === 'string' &&
-          !isNaN(new Date(usage.redeemed_at).getTime())
+          typeof usage.redeemed_at === 'string' // Must be a string for Date() constructor
       );
       
       setUsages(filteredData);
@@ -94,6 +90,7 @@ export const useCouponUsages = () => {
           table: 'coupon_usages',
         },
         (payload) => {
+          // Refetch all data to ensure consistency and correct filtering/sorting
           if (organizationName) {
              fetchUsages();
           }

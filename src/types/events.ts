@@ -9,11 +9,6 @@ export interface Event {
   coupon_id: string | null;
   created_at: string;
   
-  // New fields
-  latitude: number | null;
-  longitude: number | null;
-  event_link: string | null;
-  
   // Optional relation data (fetched via join)
   coupon?: {
     id: string;
@@ -29,9 +24,4 @@ export interface EventInsert {
   location: string | null;
   image_url: string | null;
   coupon_id: string | null;
-  
-  // New fields
-  latitude: number | null;
-  longitude: number | null;
-  event_link: string | null;
 }

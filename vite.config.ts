@@ -12,14 +12,6 @@ export default defineConfig(() => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      // Fix for react-dom/client resolution issues in some dependencies
-      "react-dom": "react-dom/client",
     },
-  },
-  // CRITICAL: Exclude Leaflet packages from optimization/pre-bundling
-  optimizeDeps: {
-    exclude: ['leaflet', 'react-leaflet'],
-    // Include Leaflet to ensure it's pre-bundled correctly as CommonJS
-    include: ['leaflet'],
   },
 }));
