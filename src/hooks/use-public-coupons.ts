@@ -15,7 +15,8 @@ interface CouponUsage {
 export const usePublicCoupons = () => {
   const { user, isAuthenticated } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [usages, setUsages] = useState<CouponUsage[]>([]);
+  // Store ALL usages (pending and used) to manage button state
+  const [allUsages, setAllUsages] = useState<CouponUsage[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetches all coupons and the current user's finalized usages
@@ -36,22 +37,20 @@ export const usePublicCoupons = () => {
       }
       setCoupons(couponData as Coupon[]);
 
-      // 2. Fetch current user's finalized usages if authenticated
+      // 2. Fetch current user's ALL usages if authenticated (pending and finalized)
       if (isAuthenticated && user) {
         const { data: usageData, error: usageError } = await supabase
           .from('coupon_usages')
           .select('id, coupon_id, is_used')
-          .eq('user_id', user.id)
-          .eq('is_used', true); // Only count finalized usages
+          .eq('user_id', user.id); // Fetch all usages for the user
 
         if (usageError) {
           console.error('Fetch user usages error:', usageError);
-          // Continue even if usage fetch fails, but log error
         } else {
-          setUsages(usageData as CouponUsage[]);
+          setAllUsages(usageData as CouponUsage[]);
         }
       } else {
-        setUsages([]);
+        setAllUsages([]);
       }
 
     } finally {
@@ -64,24 +63,30 @@ export const usePublicCoupons = () => {
   }, [isAuthenticated, user?.id]); // Re-fetch when auth state changes
 
   // Helper function to check if a coupon is fully used by the current user
+  // This now checks against finalized usages (is_used: true)
   const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
     if (maxUses === 0) return false; // Unlimited uses
     
-    const count = usages.filter(u => u.coupon_id === couponId && u.is_used).length;
+    const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used).length;
     return count >= maxUses;
   };
+  
+  // NEW Helper function to check if a coupon is currently PENDING redemption
+  const isCouponPending = (couponId: string): boolean => {
+    // Check if there is any usage record that is NOT yet used (is_used: false)
+    return allUsages.some(u => u.coupon_id === couponId && u.is_used === false);
+  };
 
-  // Function to manually refresh usages (called after successful redemption)
+  // Function to manually refresh usages (called after successful redemption or modal close)
   const refreshUsages = async () => {
     if (isAuthenticated && user) {
       const { data: usageData, error: usageError } = await supabase
         .from('coupon_usages')
         .select('id, coupon_id, is_used')
-        .eq('user_id', user.id)
-        .eq('is_used', true);
+        .eq('user_id', user.id);
 
       if (!usageError) {
-        setUsages(usageData as CouponUsage[]);
+        setAllUsages(usageData as CouponUsage[]);
       }
     }
   };
@@ -92,14 +97,19 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
     
-    // --- REAL-TIME USAGE CHECK ---
-    // 1. Fetch current usage count directly from the database
+    // 1. Check if already pending (prevents double-click/double-generation)
+    if (isCouponPending(coupon.id)) {
+        showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
+        return { success: false };
+    }
+
+    // 2. REAL-TIME USAGE CHECK (Finalized count)
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('coupon_id', coupon.id)
-      .eq('is_used', true);
+      .eq('is_used', true); // Only count finalized usages
 
     if (countError) {
       showError('Hiba történt a beváltási korlát ellenőrzésekor.');
@@ -107,19 +117,17 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
 
-    // 2. Check max uses per user limit using the fresh count
+    // 3. Check max uses per user limit using the fresh count
     if (coupon.max_uses_per_user !== 0 && count !== null && count >= coupon.max_uses_per_user) {
       showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
       return { success: false };
     }
-    // -----------------------------
     
-    // 3. Generate unique redemption code
+    // 4. Generate unique redemption code
     let redemptionCode: string;
     let codeIsUnique = false;
     let attempts = 0;
     
-    // Ensure the generated code is unique (simple retry loop)
     do {
       redemptionCode = generateRedemptionCode();
       const { count: codeCount } = await supabase
@@ -138,7 +146,7 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
 
-    // 4. Record usage intent (is_used = false initially)
+    // 5. Record usage intent (is_used = false initially)
     try {
       const { data, error } = await supabase
         .from('coupon_usages')
@@ -156,6 +164,9 @@ export const usePublicCoupons = () => {
         console.error('Insert usage error:', error);
         return { success: false };
       }
+      
+      // Manually update local state to include the new pending usage immediately
+      setAllUsages(prev => [...prev, { id: data.id, coupon_id: coupon.id, is_used: false }]);
 
       // Success: return the unique usage ID and the short code
       return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
@@ -172,6 +183,7 @@ export const usePublicCoupons = () => {
     isLoading,
     redeemCoupon,
     isCouponUsedUp,
-    refreshUsages, // Export refresh function
+    isCouponPending, // Export new check
+    refreshUsages, 
   };
 };

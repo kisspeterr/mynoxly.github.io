@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons'; // Import Coupon type
 
 const PublicCouponsSection = () => {
-  const { coupons, isLoading, redeemCoupon, isCouponUsedUp, refreshUsages } = usePublicCoupons();
+  const { coupons, isLoading, redeemCoupon, isCouponUsedUp, isCouponPending, refreshUsages } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -29,6 +29,11 @@ const PublicCouponsSection = () => {
     // Check local state before attempting redemption
     if (isCouponUsedUp(coupon.id, coupon.max_uses_per_user)) {
       showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
+      return;
+    }
+    
+    if (isCouponPending(coupon.id)) {
+      showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
       return;
     }
 
@@ -50,11 +55,9 @@ const PublicCouponsSection = () => {
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
     
-    // If the modal closed because the admin successfully redeemed it (Realtime event), 
-    // we must refresh the user's usage count immediately.
-    if (wasRedeemed) {
-      refreshUsages();
-    }
+    // If the modal closed (either redeemed or expired), we must refresh the user's usage count 
+    // to update the button state (e.g., if it was successfully redeemed, or if the pending status needs clearing).
+    refreshUsages();
   };
 
   return (
@@ -83,12 +86,14 @@ const PublicCouponsSection = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {coupons.map((coupon) => {
-              const isUsedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
+              const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
+              const pending = isAuthenticated && isCouponPending(coupon.id);
+              const isDisabled = usedUp || pending;
               
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${isUsedUp ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${usedUp ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                 >
                   <CardHeader className="pb-4">
                     {coupon.image_url && (
@@ -123,12 +128,17 @@ const PublicCouponsSection = () => {
                         <Button 
                           onClick={() => handleRedeemClick(coupon)}
                           className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
-                          disabled={isUsedUp}
+                          disabled={isDisabled}
                         >
-                          {isUsedUp ? (
+                          {usedUp ? (
                             <>
                               <CheckCircle className="h-4 w-4 mr-2" />
                               Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
+                            </>
+                          ) : pending ? (
+                            <>
+                              <Clock className="h-4 w-4 mr-2 animate-spin" />
+                              Kód generálva (Beváltás folyamatban)
                             </>
                           ) : (
                             <>

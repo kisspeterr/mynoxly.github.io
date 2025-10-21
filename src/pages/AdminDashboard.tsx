@@ -3,10 +3,11 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
-import EventsPage from '@/components/admin/EventsPage'; // Import EventsPage
+import EventsPage from '@/components/admin/EventsPage';
+import CouponUsagesPage from '@/components/admin/CouponUsagesPage'; // Import new page
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AdminDashboard = () => {
@@ -51,12 +52,15 @@ const AdminDashboard = () => {
           <p className="text-lg text-gray-400 mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-800/50 border border-gray-700/50">
+            <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 border border-gray-700/50">
               <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400">
                 <Tag className="h-4 w-4 mr-2" /> Kuponok
               </TabsTrigger>
               <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400">
                 <Calendar className="h-4 w-4 mr-2" /> Események
+              </TabsTrigger>
+              <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400">
+                <ListChecks className="h-4 w-4 mr-2" /> Beváltások
               </TabsTrigger>
             </TabsList>
             <div className="mt-6">
@@ -65,6 +69,9 @@ const AdminDashboard = () => {
               </TabsContent>
               <TabsContent value="events">
                 <EventsPage />
+              </TabsContent>
+              <TabsContent value="usages">
+                <CouponUsagesPage />
               </TabsContent>
             </div>
           </Tabs>
