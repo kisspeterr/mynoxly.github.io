@@ -1,22 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
-import CouponsPage from '@/components/admin/CouponsPage'; // Import CouponsPage
+import CouponsPage from '@/components/admin/CouponsPage';
+import EventsPage from '@/components/admin/EventsPage'; // Import EventsPage
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AdminDashboard = () => {
   const { isAuthenticated, isAdmin, isLoading, signOut, profile } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('coupons');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      // If not authenticated, redirect to login
       navigate('/login');
     }
-    // Note: We no longer redirect non-admins here. We render the UnauthorizedAccess component instead.
   }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
@@ -27,14 +28,10 @@ const AdminDashboard = () => {
     );
   }
 
-  // If authenticated but not admin, show unauthorized access page
   if (isAuthenticated && !isAdmin) {
     return <UnauthorizedAccess />;
   }
   
-  // If not authenticated, useEffect handles redirect to /login. If we reach here, 
-  // it means isAuthenticated is true AND isAdmin is true.
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-8">
       <div className="container mx-auto">
@@ -51,11 +48,26 @@ const AdminDashboard = () => {
 
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-6 shadow-2xl backdrop-blur-sm">
           <p className="text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
-          <p className="text-lg text-gray-400">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
+          <p className="text-lg text-gray-400 mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           
-          <div className="mt-8">
-            <CouponsPage />
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-800/50 border border-gray-700/50">
+              <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400">
+                <Tag className="h-4 w-4 mr-2" /> Kuponok
+              </TabsTrigger>
+              <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400">
+                <Calendar className="h-4 w-4 mr-2" /> Események
+              </TabsTrigger>
+            </TabsList>
+            <div className="mt-6">
+              <TabsContent value="coupons">
+                <CouponsPage />
+              </TabsContent>
+              <TabsContent value="events">
+                <EventsPage />
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
       </div>
     </div>
