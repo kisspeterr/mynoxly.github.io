@@ -139,10 +139,10 @@ const PublicCouponsSection = () => {
                       {isAuthenticated ? (
                         <>
                           {pending ? (
-                            // Vertical stacking on mobile (flex-col)
-                            <div className="flex flex-col sm:flex-row gap-2">
+                            // Horizontal layout for pending buttons
+                            <div className="flex gap-2 items-center">
                               <Button 
-                                className="w-full bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
+                                className="flex-grow bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
                                 disabled
                               >
                                 <Clock className="h-4 w-4 mr-2" />
@@ -152,12 +152,11 @@ const PublicCouponsSection = () => {
                               <Button 
                                 asChild
                                 variant="outline"
-                                className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                                size="icon" // Small, circular button
+                                className="flex-shrink-0 rounded-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
                               >
                                 <Link to="/profile" className="flex items-center justify-center">
-                                  <User className="h-4 w-4 mr-2" />
-                                  <span className="hidden sm:inline">Megtekintés fiókban</span>
-                                  <span className="sm:hidden">Fiók</span>
+                                  <User className="h-5 w-5" />
                                 </Link>
                               </Button>
                             </div>
