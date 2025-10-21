@@ -69,11 +69,6 @@ export const useAuth = () => {
         profile,
         isLoading: false,
       });
-      
-      // Clear timeout if session was successfully handled
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
     };
 
     // Set a timeout to force loading state to false after 8 seconds
@@ -92,6 +87,12 @@ export const useAuth = () => {
       // If fetch fails entirely, ensure loading state is cleared
       if (isMounted) {
         setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    }).finally(() => {
+      // Ensure timeout is cleared once the initial check is done, regardless of success/failure
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
     });
 
