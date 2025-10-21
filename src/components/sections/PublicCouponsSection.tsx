@@ -113,13 +113,10 @@ const PublicCouponsSection = () => {
                   <CardContent className="space-y-3 flex-grow text-left">
                     <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
                     
-                    <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
-                      <Tag className="h-4 w-4 mr-2 text-purple-400" />
-                      Kód: <span className="font-mono ml-1 text-cyan-300">{coupon.coupon_code}</span>
-                    </div>
+                    {/* Removed coupon code display here */}
                     
                     {coupon.expiry_date && (
-                      <div className="flex items-center text-sm text-gray-300">
+                      <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
                         <Calendar className="h-4 w-4 mr-2 text-purple-400" />
                         Lejárat: {format(new Date(coupon.expiry_date), 'yyyy. MM. dd.')}
                       </div>

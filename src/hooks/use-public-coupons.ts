@@ -25,7 +25,17 @@ export const usePublicCoupons = () => {
       // 1. Fetch all coupons (RLS policy allows public read)
       const { data: couponData, error: couponError } = await supabase
         .from('coupons')
-        .select('*')
+        .select(`
+          id,
+          organization_name,
+          title,
+          description,
+          image_url,
+          expiry_date,
+          max_uses_per_user,
+          total_max_uses,
+          created_at
+        `) // Removed coupon_code
         .order('created_at', { ascending: false });
 
       if (couponError) {
@@ -193,11 +203,6 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
       
-      // NOTE: We rely on the Realtime subscription (added above) to update allUsages, 
-      // but we manually update it here for immediate feedback if Realtime is slow.
-      // However, since we are about to open a modal, we can skip the manual update here 
-      // and rely on the Realtime subscription to handle subsequent updates (like the admin finalizing it).
-
       // Success: return the unique usage ID and the short code
       return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
 
