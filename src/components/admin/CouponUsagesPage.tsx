@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useCouponUsages, ValidCouponUsageRecord } from '@/hooks/use-coupon-usages';
 import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } => '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import UsageCountdown from './UsageCountdown'; // Import the new component
