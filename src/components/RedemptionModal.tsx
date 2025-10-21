@@ -20,13 +20,12 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
   const [timeLeft, setTimeLeft] = useState(REDEMPTION_DURATION_SECONDS);
   const [isExpired, setIsExpired] = useState(false);
 
-  // Function to handle invalidation (time ran out or user closed/left)
-  const handleInvalidation = useCallback(() => {
-    // We don't delete the usage record, we just mark it as expired client-side
-    // The admin validation page will check if the code is still valid (based on redeemed_at time)
+  // Function to handle expiration (time ran out client-side)
+  const handleExpiration = useCallback(() => {
     setIsExpired(true);
+    // We notify the user that the client-side timer ran out, but the code might still be valid for a few seconds server-side.
+    showError('A beváltási kód érvényessége lejárt a telefonodon. Kérjük, kérdezd meg a személyzetet.');
     onClose();
-    showError('A beváltási kód érvényessége lejárt vagy megszakadt.');
   }, [onClose]);
 
   useEffect(() => {
@@ -42,40 +41,29 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
       setTimeLeft(prevTime => {
         if (prevTime <= 1) {
           clearInterval(timer);
-          handleInvalidation(); // Auto-invalidate
+          handleExpiration(); // Auto-expire client-side
           return 0;
         }
         return prevTime - 1;
       });
     }, 1000);
 
-    // Handle window/tab closing or navigation away (simulating loss of validity)
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // If the user switches tabs or minimizes the app, invalidate the code
-        clearInterval(timer);
-        handleInvalidation();
-      }
-    };
-
-    window.addEventListener('visibilitychange', handleVisibilityChange);
+    // IMPORTANT: Removed visibilitychange listener. The code remains valid for 3 minutes regardless of navigation.
 
     return () => {
       clearInterval(timer);
-      window.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isOpen, handleInvalidation]);
+  }, [isOpen, handleExpiration]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   
-  // The short code is the unique visual element
   const uniqueCodeDisplay = redemptionCode;
 
   return (
     <Dialog open={isOpen && !isExpired} onOpenChange={(open) => {
-      if (!open) handleInvalidation();
+      if (!open) onClose(); // Simply close the modal, do not invalidate the code
     }}>
       <DialogContent className="bg-black/90 border-green-500/50 backdrop-blur-xl max-w-lg p-8 text-center">
         <DialogHeader>
@@ -107,17 +95,17 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
         <div className="p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-sm text-red-300 flex items-center">
           <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
           <p className="text-left">
-            FIGYELEM! Ha kilépsz az alkalmazásból, vagy lejár az idő, a kód érvénytelenné válik, és nem váltható be újra!
+            FIGYELEM! A kód 3 percig érvényes a generálástól számítva. Ha lejár, a személyzet nem tudja beváltani.
           </p>
         </div>
 
         <Button 
-          onClick={handleInvalidation}
+          onClick={onClose} // Just close the modal
           variant="destructive"
           className="w-full mt-4"
         >
           <XCircle className="h-4 w-4 mr-2" />
-          Mégsem / Érvénytelenítés
+          Bezárás
         </Button>
       </DialogContent>
     </Dialog>
