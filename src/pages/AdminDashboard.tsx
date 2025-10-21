@@ -3,8 +3,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield } from 'lucide-react';
+import { LogOut, Shield, Tag } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
+import CouponsPage from '@/components/admin/CouponsPage'; // Import CouponsPage
 
 const AdminDashboard = () => {
   const { isAuthenticated, isAdmin, isLoading, signOut, profile } = useAuth();
@@ -50,13 +51,10 @@ const AdminDashboard = () => {
 
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-6 shadow-2xl backdrop-blur-sm">
           <p className="text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
-          <p className="text-lg text-gray-400">Szerepköröd: <span className="font-semibold text-cyan-300">{profile?.role}</span></p>
+          <p className="text-lg text-gray-400">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           
-          <div className="mt-8 p-4 bg-purple-900/50 rounded-lg border border-purple-500/50">
-            <h3 className="text-2xl font-bold text-purple-300 mb-4">
-              Admin Eszközök
-            </h3>
-            <p className="text-gray-300">Itt kezelheted a kuponokat és a partnereket.</p>
+          <div className="mt-8">
+            <CouponsPage />
           </div>
         </div>
       </div>
