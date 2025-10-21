@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Coupon } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
+import { generateRedemptionCode } from '@/utils/code-generator';
 
 export const usePublicCoupons = () => {
   const { user, isAuthenticated } = useAuth();
@@ -35,19 +36,20 @@ export const usePublicCoupons = () => {
     fetchCoupons();
   }, []);
 
-  const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string }> => {
+  const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return { success: false };
     }
 
-    // 1. Check max uses per user limit
+    // 1. Check max uses per user limit (only count finalized usages if needed, but for now, count all records)
     if (coupon.max_uses_per_user > 0) {
       const { count, error: countError } = await supabase
         .from('coupon_usages')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('coupon_id', coupon.id);
+        .eq('coupon_id', coupon.id)
+        .eq('is_used', true); // Only count finalized usages against the limit
 
       if (countError) {
         showError('Hiba a felhasználói korlát ellenőrzésekor.');
@@ -61,12 +63,41 @@ export const usePublicCoupons = () => {
       }
     }
     
-    // 2. Record usage (This is the critical step for the time-limited display)
+    // 2. Generate unique redemption code
+    let redemptionCode: string;
+    let codeIsUnique = false;
+    let attempts = 0;
+    
+    // Ensure the generated code is unique (simple retry loop)
+    do {
+      redemptionCode = generateRedemptionCode();
+      const { count } = await supabase
+        .from('coupon_usages')
+        .select('id', { count: 'exact', head: true })
+        .eq('redemption_code', redemptionCode);
+      
+      if (count === 0) {
+        codeIsUnique = true;
+      }
+      attempts++;
+    } while (!codeIsUnique && attempts < 5);
+
+    if (!codeIsUnique) {
+      showError('Nem sikerült egyedi beváltási kódot generálni. Próbáld újra.');
+      return { success: false };
+    }
+
+    // 3. Record usage intent (is_used = false initially)
     try {
       const { data, error } = await supabase
         .from('coupon_usages')
-        .insert({ user_id: user.id, coupon_id: coupon.id })
-        .select('id')
+        .insert({ 
+          user_id: user.id, 
+          coupon_id: coupon.id,
+          redemption_code: redemptionCode,
+          is_used: false, // Mark as pending validation
+        })
+        .select('id, redemption_code')
         .single();
 
       if (error) {
@@ -75,8 +106,8 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
 
-      // Success: return the unique usage ID for the time-limited display
-      return { success: true, usageId: data.id };
+      // Success: return the unique usage ID and the short code
+      return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
 
     } catch (error) {
       console.error('Redeem error:', error);

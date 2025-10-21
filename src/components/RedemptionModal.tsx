@@ -7,7 +7,8 @@ import { showError } from '@/utils/toast';
 
 interface RedemptionModalProps {
   coupon: Coupon;
-  usageId: string;
+  redemptionCode: string; // Now using the short code
+  usageId: string; // Still needed for potential cleanup/tracking
   isOpen: boolean;
   onClose: () => void;
 }
@@ -15,13 +16,14 @@ interface RedemptionModalProps {
 // 3 minutes in seconds
 const REDEMPTION_DURATION_SECONDS = 3 * 60;
 
-const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOpen, onClose }) => {
+const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCode, usageId, isOpen, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(REDEMPTION_DURATION_SECONDS);
   const [isExpired, setIsExpired] = useState(false);
 
-  const handleClose = useCallback(() => {
-    // This function is called when the user manually closes the modal OR when time runs out.
-    // Crucially, we prevent further usage of this specific usageId by marking it as expired.
+  // Function to handle invalidation (time ran out or user closed/left)
+  const handleInvalidation = useCallback(() => {
+    // We don't delete the usage record, we just mark it as expired client-side
+    // The admin validation page will check if the code is still valid (based on redeemed_at time)
     setIsExpired(true);
     onClose();
     showError('A beváltási kód érvényessége lejárt vagy megszakadt.');
@@ -40,7 +42,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOp
       setTimeLeft(prevTime => {
         if (prevTime <= 1) {
           clearInterval(timer);
-          handleClose(); // Auto-close and mark as expired
+          handleInvalidation(); // Auto-invalidate
           return 0;
         }
         return prevTime - 1;
@@ -52,7 +54,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOp
       if (document.hidden) {
         // If the user switches tabs or minimizes the app, invalidate the code
         clearInterval(timer);
-        handleClose();
+        handleInvalidation();
       }
     };
 
@@ -62,18 +64,18 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOp
       clearInterval(timer);
       window.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isOpen, handleClose]);
+  }, [isOpen, handleInvalidation]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   
-  // Unique visual element (hard to screenshot/fake)
-  const uniqueCodeDisplay = `${coupon.coupon_code}-${usageId.slice(0, 4)}-${usageId.slice(-4)}`;
+  // The short code is the unique visual element
+  const uniqueCodeDisplay = redemptionCode;
 
   return (
     <Dialog open={isOpen && !isExpired} onOpenChange={(open) => {
-      if (!open) handleClose();
+      if (!open) handleInvalidation();
     }}>
       <DialogContent className="bg-black/90 border-green-500/50 backdrop-blur-xl max-w-lg p-8 text-center">
         <DialogHeader>
@@ -82,7 +84,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOp
             Beváltási Kód ÉLŐ
           </DialogTitle>
           <DialogDescription className="text-gray-300 mt-2">
-            Mutasd fel ezt a képernyőt a személyzetnek a beváltáshoz.
+            Mutasd fel ezt a képernyőt a személyzetnek. A kód 3 percig érvényes.
           </DialogDescription>
         </DialogHeader>
 
@@ -90,11 +92,11 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOp
           <p className="text-xl font-semibold text-white mb-2">{coupon.title}</p>
           
           {/* Animated, unique code display */}
-          <div className="text-4xl md:text-5xl font-mono font-extrabold text-green-300 tracking-wider p-4 rounded-lg bg-green-900/50 border border-green-500/30 animate-pulse-slow">
+          <div className="text-6xl md:text-7xl font-mono font-extrabold text-green-300 tracking-widest p-4 rounded-lg bg-green-900/50 border border-green-500/30 animate-pulse-slow">
             {uniqueCodeDisplay}
           </div>
           
-          <p className="text-sm text-gray-400 mt-2">Beváltási azonosító: {usageId}</p>
+          <p className="text-sm text-gray-400 mt-2">Beváltási azonosító: {usageId.slice(0, 8)}...</p>
         </div>
 
         <div className="flex items-center justify-center text-2xl font-bold text-red-400 mb-4">
@@ -110,7 +112,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, usageId, isOp
         </div>
 
         <Button 
-          onClick={handleClose}
+          onClick={handleInvalidation}
           variant="destructive"
           className="w-full mt-4"
         >

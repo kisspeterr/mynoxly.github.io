@@ -17,6 +17,7 @@ const PublicCouponsSection = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
+  const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
 
   const handleRedeemClick = async (coupon: Coupon) => {
     if (!isAuthenticated) {
@@ -24,12 +25,13 @@ const PublicCouponsSection = () => {
       return;
     }
 
-    // 1. Attempt to record usage and check limits
+    // 1. Attempt to record usage and generate code
     const result = await redeemCoupon(coupon);
 
-    if (result.success && result.usageId) {
+    if (result.success && result.usageId && result.redemptionCode) {
       setSelectedCoupon(coupon);
       setCurrentUsageId(result.usageId);
+      setCurrentRedemptionCode(result.redemptionCode);
       setIsModalOpen(true);
     }
     // Error handling is done inside redeemCoupon hook
@@ -39,6 +41,7 @@ const PublicCouponsSection = () => {
     setIsModalOpen(false);
     setSelectedCoupon(null);
     setCurrentUsageId(undefined);
+    setCurrentRedemptionCode(undefined);
     // Note: The RedemptionModal handles the final invalidation logic (time/exit based)
   };
 
@@ -129,10 +132,11 @@ const PublicCouponsSection = () => {
         )}
       </div>
       
-      {selectedCoupon && currentUsageId && (
+      {selectedCoupon && currentUsageId && currentRedemptionCode && (
         <RedemptionModal 
           coupon={selectedCoupon}
           usageId={currentUsageId}
+          redemptionCode={currentRedemptionCode}
           isOpen={isModalOpen}
           onClose={handleModalClose}
         />
