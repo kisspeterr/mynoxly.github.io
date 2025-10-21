@@ -11,18 +11,15 @@ function Login() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // We still need isLoading here because the hook might update its state 
+    // during sign in/out events, even after AuthLoader finishes.
     if (!isLoading && isAuthenticated) {
       navigate('/');
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <p className="text-cyan-400">Betöltés...</p>
-      </div>
-    );
-  }
+  // Removed initial loading screen, AuthLoader handles it.
+  // We keep the check inside useEffect for post-login redirects.
 
   return (
     <AuthLayout>

@@ -16,13 +16,18 @@ const Profile = () => {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  if (isLoading || !isAuthenticated) {
-    // Show loading or let useEffect redirect
+  if (isLoading) {
+    // Show minimal loading if state changes mid-page (e.g., sign out initiated)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
         <p className="text-cyan-400">Betöltés...</p>
       </div>
     );
+  }
+  
+  if (!isAuthenticated) {
+    // If not authenticated, useEffect should handle redirect, but we return null/empty for safety
+    return null;
   }
 
   return (

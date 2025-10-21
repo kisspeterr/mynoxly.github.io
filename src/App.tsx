@@ -8,7 +8,8 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
-import RedemptionPage from "./pages/RedemptionPage"; // Import RedemptionPage
+import RedemptionPage from "./pages/RedemptionPage";
+import AuthLoader from "./components/AuthLoader"; // Import AuthLoader
 
 const queryClient = new QueryClient();
 
@@ -18,15 +19,17 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/code" element={<RedemptionPage />} /> {/* New Admin Redemption route */}
-          <Route path="/profile" element={<Profile />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthLoader>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/code" element={<RedemptionPage />} />
+            <Route path="/profile" element={<Profile />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthLoader>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
