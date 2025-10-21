@@ -1,9 +1,11 @@
 import React from 'react';
-import { Calendar, MapPin, Clock, Tag, Loader2 } from 'lucide-react';
+import { Calendar, MapPin, Clock, Tag, Loader2, Link as LinkIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { usePublicEvents } from '@/hooks/use-public-events';
 import { format } from 'date-fns';
+import PublicEventMap from '@/components/PublicEventMap'; // Import the new map component
 
 const PublicEventsSection = () => {
   const { events, isLoading } = usePublicEvents();
@@ -54,6 +56,15 @@ const PublicEventsSection = () => {
                 <CardContent className="space-y-3 flex-grow text-left">
                   <p className="text-gray-300">{event.description || 'Nincs leírás.'}</p>
                   
+                  {/* Map Display */}
+                  {(event.latitude && event.longitude && event.location) && (
+                    <PublicEventMap 
+                      lat={event.latitude} 
+                      lng={event.longitude} 
+                      locationName={event.location} 
+                    />
+                  )}
+                  
                   <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
                     <Clock className="h-4 w-4 mr-2 text-cyan-400" />
                     Kezdés: <span className="font-semibold ml-1 text-white">{format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}</span>
@@ -71,6 +82,15 @@ const PublicEventsSection = () => {
                       <Tag className="h-4 w-4 mr-2" />
                       Kupon: <span className="font-semibold ml-1">{event.coupon.title}</span>
                     </div>
+                  )}
+                  
+                  {event.event_link && (
+                    <Button asChild className="w-full mt-4 bg-purple-600 hover:bg-purple-700">
+                      <a href={event.event_link} target="_blank" rel="noopener noreferrer">
+                        <LinkIcon className="h-4 w-4 mr-2" />
+                        Esemény Linkje
+                      </a>
+                    </Button>
                   )}
                 </CardContent>
               </Card>

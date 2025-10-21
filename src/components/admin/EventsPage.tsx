@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '@/hooks/use-events';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil, Link as LinkIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import EventForm from './EventForm';
@@ -26,6 +26,9 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
+      event_link: data.event_link, // New field
+      latitude: data.latitude,     // New field
+      longitude: data.longitude,   // New field
     };
     
     const result = await onUpdate(event.id, updateData);
@@ -120,6 +123,25 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
             <MapPin className="h-4 w-4 mr-2 text-cyan-400" />
             Helyszín: <span className="font-semibold ml-1 text-white">{event.location}</span>
           </div>
+        )}
+        
+        {(event.latitude && event.longitude) && (
+          <div className="flex items-center text-sm text-gray-500">
+            <MapPin className="h-4 w-4 mr-2 text-purple-400" />
+            Koordináták: <span className="ml-1">{event.latitude.toFixed(4)}, {event.longitude.toFixed(4)}</span>
+          </div>
+        )}
+        
+        {event.event_link && (
+          <a 
+            href={event.event_link} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center text-sm text-cyan-400 hover:text-cyan-300 transition-colors duration-300"
+          >
+            <LinkIcon className="h-4 w-4 mr-2" />
+            Esemény linkje
+          </a>
         )}
 
         <div className="pt-2 border-t border-gray-700/50">

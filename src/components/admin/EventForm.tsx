@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Clock, Save, MapPin } from 'lucide-react';
+import { CalendarIcon, Clock, Save, MapPin, Link as LinkIcon } from 'lucide-react';
 import { Event, EventInsert } from '@/types/events';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCoupons } from '@/hooks/use-coupons';
 import { showError } from '@/utils/toast';
+import LocationPickerMap from './LocationPickerMap'; // Import the new map component
 
 const eventSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
@@ -22,6 +23,11 @@ const eventSchema = z.object({
   location: z.string().nullable().optional().transform(e => e === "" ? null : e),
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   coupon_id: z.string().nullable().optional().transform(e => e === "" ? null : e),
+  event_link: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
+  
+  // Map coordinates
+  latitude: z.coerce.number().nullable().optional(),
+  longitude: z.coerce.number().nullable().optional(),
   
   // Date and Time handling
   startDate: z.date({ required_error: "A kezdő dátum kötelező." }),
@@ -38,7 +44,7 @@ interface EventFormProps {
 }
 
 const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
-  const { coupons, isLoading: isCouponsLoading } = useCoupons(); // Removed fetchCoupons
+  const { coupons, isLoading: isCouponsLoading } = useCoupons();
   
   // Prepare default values for editing
   const defaultStartTime = initialData?.start_time ? new Date(initialData.start_time) : new Date();
@@ -49,6 +55,9 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     location: initialData?.location || null,
     image_url: initialData?.image_url || null,
     coupon_id: initialData?.coupon_id || null,
+    event_link: initialData?.event_link || null,
+    latitude: initialData?.latitude || null,
+    longitude: initialData?.longitude || null,
     startDate: initialData?.start_time ? defaultStartTime : undefined,
     time: format(defaultStartTime, 'HH:mm'),
   };
@@ -60,8 +69,13 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
 
   const startDate = watch('startDate');
   const isEditing = !!initialData;
+  const currentLat = watch('latitude');
+  const currentLng = watch('longitude');
 
-  // Removed useEffect(() => { fetchCoupons(); }, []);
+  const handleLocationChange = (lat: number, lng: number) => {
+    setValue('latitude', lat, { shouldValidate: true });
+    setValue('longitude', lng, { shouldValidate: true });
+  };
 
   const handleFormSubmit = async (data: EventFormData) => {
     const [hours, minutes] = data.time.split(':').map(Number);
@@ -86,6 +100,9 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
+      event_link: data.event_link, // New field
+      latitude: data.latitude,     // New field
+      longitude: data.longitude,   // New field
       start_time: startDateTime.toISOString(),
     };
 
@@ -118,13 +135,45 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="location" className="text-gray-300">Helyszín (opcionális)</Label>
+        <Label htmlFor="location" className="text-gray-300">Helyszín megnevezése (Pl: Pécsi Sörház) (opcionális)</Label>
         <Input 
           id="location"
           {...register('location')}
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
         />
         {errors.location && <p className="text-red-400 text-sm">{errors.location.message}</p>}
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="event_link" className="text-gray-300 flex items-center">
+          <LinkIcon className="h-4 w-4 mr-1" /> Esemény linkje (Jegyvásárlás/Facebook URL) (opcionális)
+        </Label>
+        <Input 
+          id="event_link"
+          {...register('event_link')}
+          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+          placeholder="https://jegyvasarlas.hu/esemeny"
+        />
+        {errors.event_link && <p className="text-red-400 text-sm">{errors.event_link.message}</p>}
+      </div>
+
+      {/* Map Picker Section */}
+      <div className="space-y-2">
+        <Label className="text-gray-300 flex items-center">
+          <MapPin className="h-4 w-4 mr-1" /> Helyszín kiválasztása térképen (opcionális)
+        </Label>
+        <LocationPickerMap 
+          initialLat={currentLat}
+          initialLng={currentLng}
+          onLocationChange={handleLocationChange}
+        />
+        <div className="text-xs text-gray-500 mt-1">
+          Kattints a térképre a pontos koordináták beállításához. 
+          Koordináták: {currentLat?.toFixed(4) || 'N/A'}, {currentLng?.toFixed(4) || 'N/A'}
+        </div>
+        {/* Hidden inputs for validation/submission */}
+        <input type="hidden" {...register('latitude')} />
+        <input type="hidden" {...register('longitude')} />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
