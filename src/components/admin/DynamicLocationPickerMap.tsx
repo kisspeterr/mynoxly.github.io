@@ -7,21 +7,26 @@ interface DynamicLocationPickerMapProps {
   onLocationChange: (lat: number, lng: number) => void;
 }
 
+// Default center for Pécs, Hungary (used if no initial position is provided)
+const DEFAULT_CENTER: [number, number] = [46.0727, 18.2322]; 
+
 // Use React.lazy to dynamically import the Leaflet content component
 const LazyLocationPickerMapContent = React.lazy(() => import('./LocationPickerMapContent'));
 
 const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ initialLat, initialLng, onLocationChange }) => {
   const [isClient, setIsClient] = useState(false);
-  // Initialize position to null, and update it in useEffect
+  // Initialize position to null, it will be set to DEFAULT_CENTER or initial values in useEffect
   const [position, setPosition] = useState<[number, number] | null>(null);
 
   useEffect(() => {
-    // Ensure this runs only on the client side after mounting
+    // 1. Ensure this runs only on the client side after mounting
     setIsClient(true);
     
-    // Initialize position based on props only after mounting
+    // 2. Initialize position based on props or default center
     if (initialLat && initialLng) {
       setPosition([initialLat, initialLng]);
+    } else {
+      setPosition(DEFAULT_CENTER);
     }
   }, [initialLat, initialLng]);
 
@@ -30,10 +35,11 @@ const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ ini
     onLocationChange(lat, lng);
   };
 
-  if (!isClient) {
-    // Placeholder while loading on the client side
+  if (!isClient || !position) {
+    // Placeholder while loading on the client side or position is not yet set
     return (
       <div className="h-80 w-full flex items-center justify-center bg-gray-800 rounded-xl border border-purple-500/30 text-gray-400">
+        <Loader2 className="h-6 w-6 animate-spin text-purple-400 mr-2" />
         Térkép betöltése...
       </div>
     );
@@ -48,7 +54,7 @@ const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ ini
       </div>
     }>
       <LazyLocationPickerMapContent 
-        position={position} 
+        position={position} // Position is guaranteed to be set here
         onLocationChange={handleMapClick} 
       />
     </Suspense>
