@@ -7,7 +7,7 @@ interface CouponUsageRecord {
   id: string;
   user_id: string;
   coupon_id: string;
-  redeemed_at: string;
+  redeemed_at: string | null; // Allow null for safety
   is_used: boolean;
   redemption_code: string;
   
@@ -60,12 +60,12 @@ export const useCouponUsages = () => {
       // Filter data client-side:
       // 1. Ensure coupon data exists (join successful)
       // 2. Ensure coupon belongs to the current organization
-      // 3. Ensure redeemed_at exists (critical for UsageCountdown)
+      // 3. CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
       const filteredData = (data as CouponUsageRecord[]).filter(
         (usage) => 
           usage.coupon && 
           usage.coupon.organization_name === organizationName &&
-          usage.redeemed_at // Check if redeemed_at is present
+          typeof usage.redeemed_at === 'string' // Must be a string for Date() constructor
       );
       
       setUsages(filteredData);

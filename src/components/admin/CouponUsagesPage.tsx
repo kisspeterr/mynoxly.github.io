@@ -49,9 +49,9 @@ const CouponUsagesPage = () => {
                   {/* Robust check for coupon title */}
                   {usage.coupon?.title || 'Ismeretlen Kupon'}
                 </CardTitle>
-                {/* Use UsageCountdown for status display */}
+                {/* UsageCountdown expects a string for redeemedAt, which is now guaranteed by the hook's filtering */}
                 <UsageCountdown 
-                  redeemedAt={usage.redeemed_at} 
+                  redeemedAt={usage.redeemed_at as string} 
                   isUsed={usage.is_used} 
                 />
               </CardHeader>
@@ -62,7 +62,7 @@ const CouponUsagesPage = () => {
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Clock className="h-4 w-4 mr-2 text-purple-400" />
-                  Beváltás ideje: <span className="ml-1 font-medium">{formatDate(usage.redeemed_at)}</span>
+                  Beváltás ideje: <span className="ml-1 font-medium">{formatDate(usage.redeemed_at as string)}</span>
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Tag className="h-4 w-4 mr-2 text-purple-400" />
