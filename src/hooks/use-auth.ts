@@ -47,36 +47,49 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setAuthState(prev => ({ ...prev, isLoading: true }));
       
+      let profile: Profile | null = null;
+      let user: User | null = null;
+
       if (session) {
-        const profile = await fetchProfile(session.user.id);
-        setAuthState({
-          session,
-          user: session.user,
-          profile,
-          isLoading: false,
-        });
-      } else {
-        setAuthState({
-          session: null,
-          user: null,
-          profile: null,
-          isLoading: false,
-        });
+        user = session.user;
+        try {
+          // Fetch profile, handling potential errors
+          profile = await fetchProfile(session.user.id);
+        } catch (e) {
+          console.error("Error fetching profile during auth state change:", e);
+        }
       }
+
+      // Ensure isLoading is set to false regardless of success/failure
+      setAuthState({
+        session,
+        user,
+        profile,
+        isLoading: false,
+      });
     });
 
     // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session) {
-        const profile = await fetchProfile(session.user.id);
+      let profile: Profile | null = null;
+      let user: User | null = null;
+
+      try {
+        if (session) {
+          user = session.user;
+          // Fetch profile, handling potential errors
+          profile = await fetchProfile(session.user.id);
+        }
+      } catch (e) {
+        console.error("Error fetching profile during initial session check:", e);
+      } finally {
+        // Ensure isLoading is set to false regardless of success/failure
         setAuthState({
           session,
-          user: session.user,
+          user,
           profile,
           isLoading: false,
         });
-      } else {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
       }
     });
 
