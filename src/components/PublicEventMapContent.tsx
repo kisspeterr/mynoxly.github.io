@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import * as L from 'leaflet'; // Changed import style
+import L from 'leaflet'; // Standard import
 import { MapPin } from 'lucide-react';
 
 interface PublicEventMapContentProps {
@@ -16,8 +16,10 @@ const PublicEventMapContent: React.FC<PublicEventMapContentProps> = ({ lat, lng,
   useMemo(() => {
     // Fix for default marker icon issue
     if (typeof window !== 'undefined' && L) {
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
+      const Leaflet = (L as any).default || L;
+      
+      delete (Leaflet.Icon.Default.prototype as any)._getIconUrl;
+      Leaflet.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
         iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',

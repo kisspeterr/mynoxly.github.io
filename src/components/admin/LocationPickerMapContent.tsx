@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import * as L from 'leaflet'; // Changed import style
+import L from 'leaflet'; // Standard import
 import { MapPin } from 'lucide-react';
 
 interface LocationPickerMapContentProps {
@@ -27,14 +27,22 @@ const LocationPickerMapContent: React.FC<LocationPickerMapContentProps> = ({ pos
   useMemo(() => {
     // Fix for default marker icon issue with Webpack/Vite
     if (typeof window !== 'undefined' && L) {
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
+      // L might be { default: L_object } in some Vite configurations.
+      // We need to ensure we are using the actual Leaflet object.
+      const Leaflet = (L as any).default || L;
+      
+      delete (Leaflet.Icon.Default.prototype as any)._getIconUrl;
+      Leaflet.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
         iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
       });
     }
   }, []);
+
+  // We must ensure that the L used in Marker/Popup is the correct one.
+  // Since react-leaflet handles the L object internally for its components, 
+  // we only need to worry about the icon fix.
 
   return (
     <div className="h-80 w-full rounded-xl overflow-hidden border border-purple-500/30 shadow-lg">
@@ -53,6 +61,7 @@ const LocationPickerMapContent: React.FC<LocationPickerMapContentProps> = ({ pos
 
         {position && (
           <Marker position={position}>
+            {/* Use the L object from the import for Popup */}
             <L.Popup>
               <div className="flex items-center font-semibold text-sm">
                 <MapPin className="h-4 w-4 mr-1 text-purple-600" />
