@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Coupon } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 import { generateRedemptionCode } from '@/utils/code-generator';
@@ -42,7 +41,7 @@ export const usePublicCoupons = () => {
         const { data: usageData, error: usageError } = await supabase
           .from('coupon_usages')
           .select('id, coupon_id, is_used')
-          .eq('user_id', user.id); // Fetch all usages for the user
+          .eq('user_id', user.id); // RLS ensures only the user's data is returned
 
         if (usageError) {
           console.error('Fetch user usages error:', usageError);
@@ -58,9 +57,52 @@ export const usePublicCoupons = () => {
     }
   };
 
+  // Function to manually refresh usages (called after successful redemption or modal close)
+  const refreshUsages = async () => {
+    if (isAuthenticated && user) {
+      const { data: usageData, error: usageError } = await supabase
+        .from('coupon_usages')
+        .select('id, coupon_id, is_used')
+        .eq('user_id', user.id);
+
+      if (!usageError) {
+        setAllUsages(usageData as CouponUsage[]);
+      }
+    }
+  };
+
   useEffect(() => {
     fetchCouponsAndUsages();
-  }, [isAuthenticated, user?.id]); // Re-fetch when auth state changes
+    
+    // Setup Realtime subscription for user's own coupon usages
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (isAuthenticated && user) {
+      // We subscribe to all changes on coupon_usages table, but RLS ensures we only receive updates for the current user's rows.
+      channel = supabase
+        .channel(`user_usages_${user.id}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'coupon_usages',
+            filter: `user_id=eq.${user.id}` // Explicit filter for safety, though RLS should handle it
+          },
+          (payload) => {
+            // When a change happens (INSERT/UPDATE/DELETE), refresh the entire usage list
+            refreshUsages();
+          }
+        )
+        .subscribe();
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [isAuthenticated, user?.id]); // Re-fetch and re-subscribe when auth state changes
 
   // Helper function to check if a coupon is fully used by the current user
   // This now checks against finalized usages (is_used: true)
@@ -75,20 +117,6 @@ export const usePublicCoupons = () => {
   const isCouponPending = (couponId: string): boolean => {
     // Check if there is any usage record that is NOT yet used (is_used: false)
     return allUsages.some(u => u.coupon_id === couponId && u.is_used === false);
-  };
-
-  // Function to manually refresh usages (called after successful redemption or modal close)
-  const refreshUsages = async () => {
-    if (isAuthenticated && user) {
-      const { data: usageData, error: usageError } = await supabase
-        .from('coupon_usages')
-        .select('id, coupon_id, is_used')
-        .eq('user_id', user.id);
-
-      if (!usageError) {
-        setAllUsages(usageData as CouponUsage[]);
-      }
-    }
   };
 
   const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
@@ -165,8 +193,10 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
       
-      // Manually update local state to include the new pending usage immediately
-      setAllUsages(prev => [...prev, { id: data.id, coupon_id: coupon.id, is_used: false }]);
+      // NOTE: We rely on the Realtime subscription (added above) to update allUsages, 
+      // but we manually update it here for immediate feedback if Realtime is slow.
+      // However, since we are about to open a modal, we can skip the manual update here 
+      // and rely on the Realtime subscription to handle subsequent updates (like the admin finalizing it).
 
       // Success: return the unique usage ID and the short code
       return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
@@ -184,6 +214,6 @@ export const usePublicCoupons = () => {
     redeemCoupon,
     isCouponUsedUp,
     isCouponPending, // Export new check
-    refreshUsages, 
+    refreshUsages, // Keep exported for manual refresh if needed
   };
 };
