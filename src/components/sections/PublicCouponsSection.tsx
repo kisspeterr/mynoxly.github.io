@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
