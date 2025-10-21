@@ -11,20 +11,30 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated && !isAdmin) {
-      showError('Nincs jogosultságod ehhez az oldalhoz.');
-      navigate('/');
-    } else if (!isLoading && !isAuthenticated) {
-      navigate('/login');
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        // Not authenticated, redirect to login
+        navigate('/login');
+      } else if (!isAdmin) {
+        // Authenticated but not admin, redirect to home
+        showError('Nincs jogosultságod ehhez az oldalhoz.');
+        navigate('/');
+      }
     }
   }, [isAuthenticated, isAdmin, isLoading, navigate]);
 
-  if (isLoading || (isAuthenticated && !isAdmin)) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
         <p className="text-cyan-400">Jogosultság ellenőrzése...</p>
       </div>
     );
+  }
+
+  // If we reach here, isLoading is false, and the useEffect hook confirmed isAdmin is true (otherwise it would have navigated away).
+  if (!isAdmin) {
+    // This should ideally not be reached if useEffect works correctly, but serves as a fallback.
+    return null; 
   }
 
   return (
