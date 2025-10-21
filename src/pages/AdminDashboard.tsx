@@ -3,12 +3,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
 import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const AdminDashboard = () => {
   const { isAuthenticated, isAdmin, isLoading, signOut, profile } = useAuth();
@@ -34,14 +35,18 @@ const AdminDashboard = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-8">
-      <div className="container mx-auto">
-        <div className="flex justify-between items-center mb-12">
-          <h1 className="text-4xl font-bold text-purple-300 flex items-center gap-3">
-            <Shield className="h-8 w-8 text-cyan-400" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
+      <div className="container mx-auto max-w-7xl">
+        
+        {/* Header and Actions - Responsive Layout */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-4xl font-bold text-purple-300 flex items-center gap-3 mb-4 md:mb-0">
+            <Shield className="h-7 w-7 text-cyan-400" />
             Admin Dashboard
           </h1>
-          <div className="flex space-x-3">
+          
+          {/* Desktop Actions */}
+          <div className="hidden md:flex space-x-3">
             <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
               <Link to="/profile">
                 <User className="h-4 w-4 mr-2" />
@@ -59,22 +64,52 @@ const AdminDashboard = () => {
               Kijelentkezés
             </Button>
           </div>
+          
+          {/* Mobile Dropdown Menu */}
+          <div className="md:hidden self-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="border-purple-500 text-purple-300">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-black/90 border-purple-500/30 backdrop-blur-sm text-white">
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="flex items-center">
+                    <User className="h-4 w-4 mr-2 text-cyan-400" />
+                    Profil
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/code" className="flex items-center">
+                    <QrCode className="h-4 w-4 mr-2 text-green-400" />
+                    Beváltás
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={signOut} className="text-red-400 flex items-center">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Kijelentkezés
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
 
-        <div className="bg-black/30 border border-purple-500/30 rounded-xl p-6 shadow-2xl backdrop-blur-sm">
-          <p className="text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
-          <p className="text-lg text-gray-400 mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
+        <div className="bg-black/30 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
+          <p className="text-lg md:text-xl text-gray-300 mb-2">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
+          <p className="text-md text-gray-400 mb-6 md:mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 border border-gray-700/50">
-              <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400">
-                <Tag className="h-4 w-4 mr-2" /> Kuponok
+            {/* Tabs List - Full width on mobile */}
+            <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
+              <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
+                <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
               </TabsTrigger>
-              <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400">
-                <Calendar className="h-4 w-4 mr-2" /> Események
+              <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base">
+                <Calendar className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Események</span>
               </TabsTrigger>
-              <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400">
-                <ListChecks className="h-4 w-4 mr-2" /> Beváltások
+              <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
+                <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
               </TabsTrigger>
             </TabsList>
             <div className="mt-6">
