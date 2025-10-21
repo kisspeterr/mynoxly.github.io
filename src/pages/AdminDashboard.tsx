@@ -4,24 +4,19 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Shield } from 'lucide-react';
-import { showError } from '@/utils/toast';
+import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 
 const AdminDashboard = () => {
   const { isAuthenticated, isAdmin, isLoading, signOut, profile } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        // Not authenticated, redirect to login
-        navigate('/login');
-      } else if (!isAdmin) {
-        // Authenticated but not admin, redirect to home
-        showError('Nincs jogosultságod ehhez az oldalhoz.');
-        navigate('/');
-      }
+    if (!isLoading && !isAuthenticated) {
+      // If not authenticated, redirect to login
+      navigate('/login');
     }
-  }, [isAuthenticated, isAdmin, isLoading, navigate]);
+    // Note: We no longer redirect non-admins here. We render the UnauthorizedAccess component instead.
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -31,11 +26,13 @@ const AdminDashboard = () => {
     );
   }
 
-  // If we reach here, isLoading is false, and the useEffect hook confirmed isAdmin is true (otherwise it would have navigated away).
-  if (!isAdmin) {
-    // This should ideally not be reached if useEffect works correctly, but serves as a fallback.
-    return null; 
+  // If authenticated but not admin, show unauthorized access page
+  if (isAuthenticated && !isAdmin) {
+    return <UnauthorizedAccess />;
   }
+  
+  // If not authenticated, useEffect handles redirect to /login. If we reach here, 
+  // it means isAuthenticated is true AND isAdmin is true.
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-8">
