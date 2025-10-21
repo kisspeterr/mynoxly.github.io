@@ -89,9 +89,10 @@ const PublicCouponsSection = () => {
                         asChild
                         className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
                       >
-                        <Link to="/login">
-                          <LogIn className="h-4 w-4 mr-2" />
-                          Beváltáshoz jelentkezz be
+                        <Link to="/login" className="flex items-center justify-center">
+                          <LogIn className="h-4 w-4 mr-2 sm:mr-2" />
+                          <span className="hidden sm:inline">Bejelentkezés a beváltáshoz</span>
+                          <span className="sm:hidden">Bejelentkezés</span>
                         </Link>
                       </Button>
                     )}
