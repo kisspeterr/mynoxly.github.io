@@ -11,7 +11,7 @@ interface RedemptionModalProps {
   redemptionCode: string; // Now using the short code
   usageId: string; // Still needed for potential cleanup/tracking
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (wasRedeemed?: boolean) => void; // Updated signature
 }
 
 // 3 minutes in seconds
@@ -26,7 +26,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
     setIsExpired(true);
     // We notify the user that the client-side timer ran out, but the code might still be valid for a few seconds server-side.
     showError('A beváltási kód érvényessége lejárt a telefonodon. Kérjük, kérdezd meg a személyzetet.');
-    onClose();
+    onClose(false); // Closed due to expiration
   }, [onClose]);
 
   // --- Realtime Subscription Effect ---
@@ -49,7 +49,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
           if (updatedUsage.is_used === true) {
             // Admin finalized the redemption!
             showSuccess(`Sikeres beváltás! Kupon: ${coupon.title}`);
-            onClose(); // Close the modal
+            onClose(true); // Close the modal and signal successful redemption
           }
         }
       )
@@ -97,7 +97,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
 
   return (
     <Dialog open={isOpen && !isExpired} onOpenChange={(open) => {
-      if (!open) onClose(); // Simply close the modal, do not invalidate the code
+      if (!open) onClose(false); // Simply close the modal, not redeemed via Realtime
     }}>
       <DialogContent className="bg-black/90 border-green-500/50 backdrop-blur-xl max-w-lg p-8 text-center">
         <DialogHeader>
@@ -134,7 +134,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
         </div>
 
         <Button 
-          onClick={onClose} // Just close the modal
+          onClick={() => onClose(false)} // Just close the modal, not redeemed via Realtime
           variant="destructive"
           className="w-full mt-4"
         >

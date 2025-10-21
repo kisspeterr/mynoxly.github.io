@@ -9,9 +9,10 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import RedemptionModal from '@/components/RedemptionModal';
 import { showError } from '@/utils/toast';
+import { Coupon } from '@/types/coupons'; // Import Coupon type
 
 const PublicCouponsSection = () => {
-  const { coupons, isLoading, redeemCoupon } = usePublicCoupons();
+  const { coupons, isLoading, redeemCoupon, isCouponUsedUp, refreshUsages } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,6 +23,12 @@ const PublicCouponsSection = () => {
   const handleRedeemClick = async (coupon: Coupon) => {
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
+      return;
+    }
+
+    // Check local state before attempting redemption
+    if (isCouponUsedUp(coupon.id, coupon.max_uses_per_user)) {
+      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
       return;
     }
 
@@ -37,12 +44,17 @@ const PublicCouponsSection = () => {
     // Error handling is done inside redeemCoupon hook
   };
 
-  const handleModalClose = () => {
+  const handleModalClose = (wasRedeemed: boolean = false) => {
     setIsModalOpen(false);
     setSelectedCoupon(null);
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
-    // Note: The RedemptionModal handles the final invalidation logic (time/exit based)
+    
+    // If the modal closed because the admin successfully redeemed it (Realtime event), 
+    // we must refresh the user's usage count immediately.
+    if (wasRedeemed) {
+      refreshUsages();
+    }
   };
 
   return (
@@ -70,64 +82,78 @@ const PublicCouponsSection = () => {
           <p className="text-gray-400 text-center mt-10">Jelenleg nincsenek aktív kuponok.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {coupons.map((coupon) => (
-              <Card 
-                key={coupon.id} 
-                className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-cyan-500/20 transition-shadow duration-300 flex flex-col"
-              >
-                <CardHeader className="pb-4">
-                  {coupon.image_url && (
-                    <div className="h-40 w-full overflow-hidden rounded-lg mb-4">
-                      <img 
-                        src={coupon.image_url} 
-                        alt={coupon.title} 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <CardTitle className="text-2xl text-cyan-300">{coupon.title}</CardTitle>
-                  <CardDescription className="text-gray-400">{coupon.organization_name}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 flex-grow text-left">
-                  <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
-                  
-                  <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
-                    <Tag className="h-4 w-4 mr-2 text-purple-400" />
-                    Kód: <span className="font-mono ml-1 text-cyan-300">{coupon.coupon_code}</span>
-                  </div>
-                  
-                  {coupon.expiry_date && (
-                    <div className="flex items-center text-sm text-gray-300">
-                      <Calendar className="h-4 w-4 mr-2 text-purple-400" />
-                      Lejárat: {format(new Date(coupon.expiry_date), 'yyyy. MM. dd.')}
-                    </div>
-                  )}
-
-                  <div className="pt-4">
-                    {isAuthenticated ? (
-                      <Button 
-                        onClick={() => handleRedeemClick(coupon)}
-                        className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Beváltás
-                      </Button>
-                    ) : (
-                      <Button 
-                        asChild
-                        className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                      >
-                        <Link to="/login" className="flex items-center justify-center">
-                          <LogIn className="h-4 w-4 mr-2 sm:mr-2" />
-                          <span className="hidden sm:inline">Bejelentkezés a beváltáshoz</span>
-                          <span className="sm:hidden">Bejelentkezés</span>
-                        </Link>
-                      </Button>
+            {coupons.map((coupon) => {
+              const isUsedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
+              
+              return (
+                <Card 
+                  key={coupon.id} 
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${isUsedUp ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                >
+                  <CardHeader className="pb-4">
+                    {coupon.image_url && (
+                      <div className="h-40 w-full overflow-hidden rounded-lg mb-4">
+                        <img 
+                          src={coupon.image_url} 
+                          alt={coupon.title} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <CardTitle className="text-2xl text-cyan-300">{coupon.title}</CardTitle>
+                    <CardDescription className="text-gray-400">{coupon.organization_name}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3 flex-grow text-left">
+                    <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
+                    
+                    <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                      <Tag className="h-4 w-4 mr-2 text-purple-400" />
+                      Kód: <span className="font-mono ml-1 text-cyan-300">{coupon.coupon_code}</span>
+                    </div>
+                    
+                    {coupon.expiry_date && (
+                      <div className="flex items-center text-sm text-gray-300">
+                        <Calendar className="h-4 w-4 mr-2 text-purple-400" />
+                        Lejárat: {format(new Date(coupon.expiry_date), 'yyyy. MM. dd.')}
+                      </div>
+                    )}
+
+                    <div className="pt-4">
+                      {isAuthenticated ? (
+                        <Button 
+                          onClick={() => handleRedeemClick(coupon)}
+                          className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
+                          disabled={isUsedUp}
+                        >
+                          {isUsedUp ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Beváltás
+                            </>
+                          )}
+                        </Button>
+                      ) : (
+                        <Button 
+                          asChild
+                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                        >
+                          <Link to="/login" className="flex items-center justify-center">
+                            <LogIn className="h-4 w-4 mr-2 sm:mr-2" />
+                            <span className="hidden sm:inline">Bejelentkezés a beváltáshoz</span>
+                            <span className="sm:hidden">Bejelentkezés</span>
+                          </Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
       </div>
