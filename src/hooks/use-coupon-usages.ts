@@ -7,9 +7,9 @@ interface CouponUsageRecord {
   id: string;
   user_id: string;
   coupon_id: string;
-  redeemed_at: string;
+  redeemed_at: string; // Added redeemed_at
   is_used: boolean;
-  redemption_code: string;
+  redemption_code: string; // Added redemption_code
   
   // Joined data
   coupon: {
@@ -38,12 +38,6 @@ export const useCouponUsages = () => {
     setIsLoading(true);
     try {
       // Fetch all usages for coupons belonging to this organization
-      // NOTE: RLS policies on 'coupon_usages' only allow users to see their own data.
-      // Admins need to see all usages for their organization's coupons.
-      // Since we cannot use the service role key, we must rely on joining the 'coupons' table, 
-      // which has RLS policies allowing admins to see their organization's coupons.
-      
-      // We fetch usages and join the coupon data. The RLS on 'coupons' will filter this correctly.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
