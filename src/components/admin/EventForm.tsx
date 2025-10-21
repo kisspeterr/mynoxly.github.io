@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCoupons } from '@/hooks/use-coupons';
 import { showError } from '@/utils/toast';
-import LocationPickerMap from './LocationPickerMap'; // Import the new map component
+import DynamicLocationPickerMap from './DynamicLocationPickerMap'; // Import the dynamic map component
 
 const eventSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
@@ -162,7 +162,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         <Label className="text-gray-300 flex items-center">
           <MapPin className="h-4 w-4 mr-1" /> Helyszín kiválasztása térképen (opcionális)
         </Label>
-        <LocationPickerMap 
+        <DynamicLocationPickerMap 
           initialLat={currentLat}
           initialLng={currentLng}
           onLocationChange={handleLocationChange}
