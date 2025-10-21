@@ -19,5 +19,7 @@ export default defineConfig(() => ({
   // CRITICAL: Exclude Leaflet packages from optimization/pre-bundling
   optimizeDeps: {
     exclude: ['leaflet', 'react-leaflet'],
+    // Include Leaflet to ensure it's pre-bundled correctly as CommonJS
+    include: ['leaflet'],
   },
 }));
