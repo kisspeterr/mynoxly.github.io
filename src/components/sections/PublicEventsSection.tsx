@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { usePublicEvents } from '@/hooks/use-public-events';
 import { format } from 'date-fns';
-import PublicEventMap from '@/components/PublicEventMap'; // Import the new map component
+import DynamicPublicEventMap from '@/components/DynamicPublicEventMap'; // Import the dynamic map component
 
 const PublicEventsSection = () => {
   const { events, isLoading } = usePublicEvents();
@@ -58,7 +58,7 @@ const PublicEventsSection = () => {
                   
                   {/* Map Display */}
                   {(event.latitude && event.longitude && event.location) && (
-                    <PublicEventMap 
+                    <DynamicPublicEventMap 
                       lat={event.latitude} 
                       lng={event.longitude} 
                       locationName={event.location} 

@@ -1,16 +1,16 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-interface DynamicLocationPickerMapProps {
-  initialLat?: number | null;
-  initialLng?: number | null;
-  onLocationChange: (lat: number, lng: number) => void;
+interface DynamicPublicEventMapProps {
+  lat: number;
+  lng: number;
+  locationName: string;
 }
 
 // Use React.lazy to dynamically import the Leaflet component
-const LazyLocationPickerMap = React.lazy(() => import('./LocationPickerMap'));
+const LazyPublicEventMap = React.lazy(() => import('./PublicEventMap'));
 
-const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = (props) => {
+const DynamicPublicEventMap: React.FC<DynamicPublicEventMapProps> = (props) => {
   const [isClient, setIsClient] = useState(false);
   
   useEffect(() => {
@@ -21,7 +21,7 @@ const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = (props
   if (!isClient) {
     // Placeholder while loading on the client side
     return (
-      <div className="h-80 w-full flex items-center justify-center bg-gray-800 rounded-xl border border-purple-500/30 text-gray-400">
+      <div className="h-40 w-full flex items-center justify-center bg-gray-800 rounded-xl border border-purple-500/30 text-gray-400 mb-4">
         Térkép betöltése...
       </div>
     );
@@ -30,14 +30,14 @@ const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = (props
   // Render the actual map component only on the client using Suspense
   return (
     <Suspense fallback={
-      <div className="h-80 w-full flex items-center justify-center bg-gray-800 rounded-xl border border-purple-500/30 text-gray-400">
+      <div className="h-40 w-full flex items-center justify-center bg-gray-800 rounded-xl border border-purple-500/30 text-gray-400 mb-4">
         <Loader2 className="h-6 w-6 animate-spin text-purple-400 mr-2" />
         Térkép betöltése...
       </div>
     }>
-      <LazyLocationPickerMap {...props} />
+      <LazyPublicEventMap {...props} />
     </Suspense>
   );
 };
 
-export default DynamicLocationPickerMap;
+export default DynamicPublicEventMap;
