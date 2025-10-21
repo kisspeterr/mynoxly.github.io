@@ -9,17 +9,6 @@ import UsageCountdown from './UsageCountdown'; // Import the new component
 const CouponUsagesPage = () => {
   const { usages, isLoading, fetchUsages, organizationName } = useCouponUsages();
 
-  // Removed getStatusBadge as it is replaced by UsageCountdown
-
-  if (isLoading && usages.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
-        <p className="ml-3 text-gray-300">Beváltások betöltése...</p>
-      </div>
-    );
-  }
-  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
@@ -57,7 +46,7 @@ const CouponUsagesPage = () => {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-xl text-white">
-                  {/* Added null check for usage.coupon */}
+                  {/* Robust check for coupon title */}
                   {usage.coupon?.title || 'Ismeretlen Kupon'}
                 </CardTitle>
                 {/* Use UsageCountdown for status display */}
