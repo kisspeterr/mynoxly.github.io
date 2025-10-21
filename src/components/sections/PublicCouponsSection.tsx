@@ -153,8 +153,9 @@ const PublicCouponsSection = () => {
                                 className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
                               >
                                 <Link to="/profile" className="flex items-center justify-center">
-                                  <User className="h-4 w-4 mr-2" />
-                                  Megtekintés fiókban
+                                  <User className="h-4 w-4 sm:mr-2" />
+                                  <span className="hidden sm:inline">Megtekintés fiókban</span>
+                                  <span className="sm:hidden">Fiók</span>
                                 </Link>
                               </Button>
                             </div>
