@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 import { generateRedemptionCode } from '@/utils/code-generator';
+import { Coupon } from '@/types/coupons';
 
 // Define a type for coupon usage records
 interface CouponUsage {
@@ -128,6 +129,32 @@ export const usePublicCoupons = () => {
     // Check if there is any usage record that is NOT yet used (is_used: false)
     return allUsages.some(u => u.coupon_id === couponId && u.is_used === false);
   };
+  
+  // NEW: Function to delete a pending usage record
+  const deletePendingUsage = async (usageId: string) => {
+    if (!isAuthenticated || !user) return { success: false };
+    
+    try {
+      // Delete the record, but only if it is NOT used (is_used: false)
+      const { error } = await supabase
+        .from('coupon_usages')
+        .delete()
+        .eq('id', usageId)
+        .eq('is_used', false); // Crucial safety check
+
+      if (error) {
+        console.error('Error deleting pending usage:', error);
+        return { success: false };
+      }
+      
+      // Realtime will handle the state update via refreshUsages
+      return { success: true };
+    } catch (error) {
+      console.error('Unexpected error during pending usage deletion:', error);
+      return { success: false };
+    }
+  };
+
 
   const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
@@ -220,5 +247,6 @@ export const usePublicCoupons = () => {
     isCouponUsedUp,
     isCouponPending, // Export new check
     refreshUsages, // Keep exported for manual refresh if needed
+    deletePendingUsage, // Export new delete function
   };
 };

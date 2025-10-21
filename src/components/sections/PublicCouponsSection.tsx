@@ -12,10 +12,10 @@ import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons'; // Import Coupon type
 
 const PublicCouponsSection = () => {
-  const { coupons, isLoading, redeemCoupon, isCouponUsedUp, isCouponPending, refreshUsages } = usePublicCoupons();
+  const { coupons, isLoading, redeemCoupon, isCouponUsedUp, isCouponPending, refreshUsages, deletePendingUsage } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
   
-  const [isRedeeming, setIsRedeeming] = useState(false); // NEW: Local loading state for redemption
+  const [isRedeeming, setIsRedeeming] = useState(false); // Local loading state for redemption
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
@@ -57,15 +57,22 @@ const PublicCouponsSection = () => {
     }
   };
 
-  const handleModalClose = (wasRedeemed: boolean = false) => {
+  const handleModalClose = async (wasRedeemed: boolean = false) => {
+    const usageIdToClear = currentUsageId;
+    
     setIsModalOpen(false);
     setSelectedCoupon(null);
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
     
-    // If the modal was closed because the Realtime event signaled success, 
-    // we manually refresh the usages to ensure the button state updates immediately.
     if (wasRedeemed) {
+      // If redeemed by admin (via Realtime), refresh usages to update button state
+      refreshUsages(); 
+    } else if (usageIdToClear) {
+      // If closed by user AND not redeemed, delete the pending usage record
+      await deletePendingUsage(usageIdToClear);
+      // The deletion triggers Realtime, which calls refreshUsages internally, 
+      // but we call it explicitly here for immediate UI feedback if Realtime is slow.
       refreshUsages(); 
     }
   };
