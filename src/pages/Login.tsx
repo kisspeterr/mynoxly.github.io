@@ -18,9 +18,6 @@ function Login() {
     }
   }, [isAuthenticated, isLoading, navigate]);
 
-  // Removed initial loading screen, AuthLoader handles it.
-  // We keep the check inside useEffect for post-login redirects.
-
   return (
     <AuthLayout>
       <Auth
@@ -53,8 +50,29 @@ function Login() {
           },
         }}
         theme="dark"
-        // Removed view="sign_in" to allow registration/sign up view
         redirectTo={window.location.origin + '/'}
+        
+        // --- Honosítás és extra mezők ---
+        localization={{
+          lang: 'hu',
+        }}
+        // Collect first_name and last_name during signup
+        // These fields are automatically passed to the user's raw_user_meta_data
+        // which is handled by the handle_new_user trigger.
+        data-fields={[
+          {
+            name: 'first_name',
+            label: 'Keresztnév',
+            type: 'text',
+            required: true,
+          },
+          {
+            name: 'last_name',
+            label: 'Vezetéknév',
+            type: 'text',
+            required: true,
+          },
+        ]}
       />
     </AuthLayout>
   );
