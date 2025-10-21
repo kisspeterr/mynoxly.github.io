@@ -42,7 +42,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-lg">
+      <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-purple-300">Esemény szerkesztése</DialogTitle>
           <DialogDescription className="text-gray-400">
@@ -171,7 +171,7 @@ const EventsPage = () => {
               Új Esemény
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-lg">
+          <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-purple-300">Új Esemény Létrehozása</DialogTitle>
               <DialogDescription className="text-gray-400">

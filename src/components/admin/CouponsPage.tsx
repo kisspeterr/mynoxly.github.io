@@ -43,7 +43,7 @@ const CouponEditDialog: React.FC<CouponEditDialogProps> = ({ coupon, onUpdate, i
           <Pencil className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-lg">
+      <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-cyan-300">Kupon szerkesztése</DialogTitle>
           <DialogDescription className="text-gray-400">
@@ -155,7 +155,7 @@ const CouponsPage = () => {
               Új Kupon
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-lg">
+          <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-cyan-300">Új Kupon Létrehozása</DialogTitle>
               <DialogDescription className="text-gray-400">
