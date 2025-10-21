@@ -5,7 +5,7 @@ import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Home } from 'lucide-react';
 import ProfileCard from '@/components/ProfileCard';
-import UserCouponsList from '@/components/user/UserCouponsList'; // Import new component
+import UserCouponsList from '@/components/user/UserCouponsList';
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -18,7 +18,6 @@ const Profile = () => {
   }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
-    // Show minimal loading if state changes mid-page (e.g., sign out initiated)
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
         <p className="text-cyan-400">Betöltés...</p>
@@ -27,14 +26,17 @@ const Profile = () => {
   }
   
   if (!isAuthenticated) {
-    // If not authenticated, useEffect should handle redirect, but we return null/empty for safety
     return null;
   }
 
+  // Ahelyett, hogy az AuthLayout korlátozott szélességét használnánk, 
+  // a Profile oldal saját, szélesebb konténert kap.
   return (
-    <AuthLayout>
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-6 text-cyan-300">Felhasználói Profil</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
+      <div className="container mx-auto max-w-7xl">
+        <div className="text-center mb-6">
+          <h1 className="text-3xl font-bold text-cyan-300">Felhasználói Profil</h1>
+        </div>
         
         {/* Responsive Grid Layout: Stacks on mobile, 1/3 - 2/3 split on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -65,7 +67,7 @@ const Profile = () => {
           </div>
         </div>
       </div>
-    </AuthLayout>
+    </div>
   );
 };
 
