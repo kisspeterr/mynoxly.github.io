@@ -37,60 +37,49 @@ export const useAuth = () => {
 
     if (error) {
       console.error('Error fetching profile:', error);
-      showError('Nem sikerült betölteni a felhasználói profilt.');
+      // We intentionally skip showing an error here if the user is signing out or if it's a fresh signup
+      // showError('Nem sikerült betölteni a felhasználói profilt.');
       return null;
     }
     return data as Profile;
   };
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-      
+    const handleSession = async (session: Session | null) => {
       let profile: Profile | null = null;
       let user: User | null = null;
 
       if (session) {
         user = session.user;
         try {
-          // Fetch profile, handling potential errors
           profile = await fetchProfile(session.user.id);
         } catch (e) {
-          console.error("Error fetching profile during auth state change:", e);
+          console.error("Error fetching profile:", e);
         }
       }
 
-      // Ensure isLoading is set to false regardless of success/failure
       setAuthState({
         session,
         user,
         profile,
         isLoading: false,
       });
+    };
+
+    // 1. Initial session check
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      await handleSession(session);
     });
 
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      let profile: Profile | null = null;
-      let user: User | null = null;
-
-      try {
-        if (session) {
-          user = session.user;
-          // Fetch profile, handling potential errors
-          profile = await fetchProfile(session.user.id);
-        }
-      } catch (e) {
-        console.error("Error fetching profile during initial session check:", e);
-      } finally {
-        // Ensure isLoading is set to false regardless of success/failure
-        setAuthState({
-          session,
-          user,
-          profile,
-          isLoading: false,
-        });
+    // 2. Real-time auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // Set loading true temporarily for state changes (e.g., sign in/out)
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setAuthState(prev => ({ ...prev, isLoading: true }));
       }
+      
+      // Wait for session handling to complete and set isLoading to false
+      await handleSession(session);
     });
 
     return () => subscription.unsubscribe();
