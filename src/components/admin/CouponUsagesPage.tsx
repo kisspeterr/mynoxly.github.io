@@ -4,24 +4,12 @@ import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw } from 'luci
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import UsageCountdown from './UsageCountdown'; // Import the new component
 
 const CouponUsagesPage = () => {
   const { usages, isLoading, fetchUsages, organizationName } = useCouponUsages();
 
-  const getStatusBadge = (isUsed: boolean) => {
-    if (isUsed) {
-      return (
-        <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600/50 text-green-300">
-          <CheckCircle className="h-3 w-3 mr-1" /> Beváltva
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-600/50 text-yellow-300">
-        <Clock className="h-3 w-3 mr-1" /> Függőben (3 perc)
-      </span>
-    );
-  };
+  // Removed getStatusBadge as it is replaced by UsageCountdown
 
   if (isLoading && usages.length === 0) {
     return (
@@ -63,7 +51,11 @@ const CouponUsagesPage = () => {
                 <CardTitle className="text-xl text-white">
                   {usage.coupon?.title || 'Ismeretlen Kupon'}
                 </CardTitle>
-                {getStatusBadge(usage.is_used)}
+                {/* Use UsageCountdown for status display */}
+                <UsageCountdown 
+                  redeemedAt={usage.redeemed_at} 
+                  isUsed={usage.is_used} 
+                />
               </CardHeader>
               <CardContent className="space-y-2 text-left text-sm">
                 <div className="flex items-center text-gray-300">
