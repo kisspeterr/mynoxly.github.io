@@ -45,7 +45,12 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    
     const handleSession = async (session: Session | null) => {
+      if (!isMounted) return;
+
       let profile: Profile | null = null;
       let user: User | null = null;
 
@@ -64,11 +69,30 @@ export const useAuth = () => {
         profile,
         isLoading: false,
       });
+      
+      // Clear timeout if session was successfully handled
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
+
+    // Set a timeout to force loading state to false after 8 seconds
+    timeoutId = setTimeout(() => {
+      if (isMounted && authState.isLoading) {
+        console.warn("Auth session check timed out. Forcing isLoading=false.");
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    }, 8000); // 8 seconds timeout
 
     // 1. Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       await handleSession(session);
+    }).catch(error => {
+      console.error("Initial Supabase session fetch failed:", error);
+      // If fetch fails entirely, ensure loading state is cleared
+      if (isMounted) {
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
     });
 
     // 2. Real-time auth state changes
@@ -82,7 +106,13 @@ export const useAuth = () => {
       await handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
