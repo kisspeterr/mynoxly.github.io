@@ -7,16 +7,27 @@ interface DynamicLocationPickerMapProps {
   onLocationChange: (lat: number, lng: number) => void;
 }
 
-// Use React.lazy to dynamically import the Leaflet component
-const LazyLocationPickerMap = React.lazy(() => import('./LocationPickerMap'));
+// Use React.lazy to dynamically import the Leaflet content component
+const LazyLocationPickerMapContent = React.lazy(() => import('./LocationPickerMapContent'));
 
-const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = (props) => {
+const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ initialLat, initialLng, onLocationChange }) => {
   const [isClient, setIsClient] = useState(false);
-  
+  const [position, setPosition] = useState<[number, number] | null>(
+    initialLat && initialLng ? [initialLat, initialLng] : null
+  );
+
   useEffect(() => {
     // Ensure this runs only on the client side after mounting
     setIsClient(true);
-  }, []);
+    if (initialLat && initialLng) {
+      setPosition([initialLat, initialLng]);
+    }
+  }, [initialLat, initialLng]);
+
+  const handleMapClick = (lat: number, lng: number) => {
+    setPosition([lat, lng]);
+    onLocationChange(lat, lng);
+  };
 
   if (!isClient) {
     // Placeholder while loading on the client side
@@ -35,7 +46,10 @@ const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = (props
         Térkép betöltése...
       </div>
     }>
-      <LazyLocationPickerMap {...props} />
+      <LazyLocationPickerMapContent 
+        position={position} 
+        onLocationChange={handleMapClick} 
+      />
     </Suspense>
   );
 };

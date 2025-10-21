@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
@@ -11,9 +11,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-interface LocationPickerMapProps {
-  initialLat?: number | null;
-  initialLng?: number | null;
+interface LocationPickerMapContentProps {
+  position: [number, number] | null;
   onLocationChange: (lat: number, lng: number) => void;
 }
 
@@ -29,22 +28,7 @@ const MapClickHandler: React.FC<{ onLocationChange: (lat: number, lng: number) =
   return null;
 };
 
-const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initialLng, onLocationChange }) => {
-  const [position, setPosition] = useState<[number, number] | null>(
-    initialLat && initialLng ? [initialLat, initialLng] : null
-  );
-
-  useEffect(() => {
-    if (initialLat && initialLng) {
-      setPosition([initialLat, initialLng]);
-    }
-  }, [initialLat, initialLng]);
-
-  const handleMapClick = (lat: number, lng: number) => {
-    setPosition([lat, lng]);
-    onLocationChange(lat, lng);
-  };
-
+const LocationPickerMapContent: React.FC<LocationPickerMapContentProps> = ({ position, onLocationChange }) => {
   const center = position || DEFAULT_CENTER;
 
   return (
@@ -60,7 +44,7 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         
-        <MapClickHandler onLocationChange={handleMapClick} />
+        <MapClickHandler onLocationChange={onLocationChange} />
 
         {position && (
           <Marker position={position}>
@@ -77,4 +61,4 @@ const LocationPickerMap: React.FC<LocationPickerMapProps> = ({ initialLat, initi
   );
 };
 
-export default LocationPickerMap;
+export default LocationPickerMapContent;

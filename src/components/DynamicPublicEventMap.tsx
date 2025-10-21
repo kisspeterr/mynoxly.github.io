@@ -8,7 +8,7 @@ interface DynamicPublicEventMapProps {
 }
 
 // Use React.lazy to dynamically import the Leaflet component
-const LazyPublicEventMap = React.lazy(() => import('./PublicEventMap'));
+const LazyPublicEventMapContent = React.lazy(() => import('./PublicEventMapContent'));
 
 const DynamicPublicEventMap: React.FC<DynamicPublicEventMapProps> = (props) => {
   const [isClient, setIsClient] = useState(false);
@@ -35,7 +35,7 @@ const DynamicPublicEventMap: React.FC<DynamicPublicEventMapProps> = (props) => {
         Térkép betöltése...
       </div>
     }>
-      <LazyPublicEventMap {...props} />
+      <LazyPublicEventMapContent {...props} />
     </Suspense>
   );
 };

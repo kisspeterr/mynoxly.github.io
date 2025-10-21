@@ -11,13 +11,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-interface PublicEventMapProps {
+interface PublicEventMapContentProps {
   lat: number;
   lng: number;
   locationName: string;
 }
 
-const PublicEventMap: React.FC<PublicEventMapProps> = ({ lat, lng, locationName }) => {
+const PublicEventMapContent: React.FC<PublicEventMapContentProps> = ({ lat, lng, locationName }) => {
   const position: [number, number] = [lat, lng];
 
   return (
@@ -49,4 +49,4 @@ const PublicEventMap: React.FC<PublicEventMapProps> = ({ lat, lng, locationName 
   );
 };
 
-export default PublicEventMap;
+export default PublicEventMapContent;
