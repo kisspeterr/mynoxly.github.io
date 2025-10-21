@@ -44,7 +44,7 @@ const CouponUsagesPage = () => {
           {usages.map(usage => (
             <Card 
               key={usage.id} 
-              className={`bg-black/50 backdrop-blur-sm text-white transition-shadow duration-300 ${usage.is_used ? 'border-green-500/30' : 'border-yellow-500/30'}`}
+              className={`bg-slate-800/70 backdrop-blur-sm text-white transition-shadow duration-300 ${usage.is_used ? 'border-green-500/30' : 'border-yellow-500/30'}`}
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-xl text-white">

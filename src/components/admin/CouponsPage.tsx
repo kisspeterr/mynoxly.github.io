@@ -66,7 +66,7 @@ const CouponCard: React.FC<{ coupon: Coupon, onDelete: (id: string) => void, onU
   const expiryDate = coupon.expiry_date ? format(new Date(coupon.expiry_date), 'yyyy. MM. dd. HH:mm') : 'Nincs beállítva';
 
   return (
-    <Card className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-cyan-500/20 transition-shadow duration-300">
+    <Card className="bg-slate-800/70 border-cyan-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-cyan-500/20 transition-shadow duration-300">
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <CardTitle className="text-xl text-cyan-300">{coupon.title}</CardTitle>
         <div className="flex space-x-2">

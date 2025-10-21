@@ -95,7 +95,8 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        <div className="bg-black/30 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
+        {/* Main Content Container: Changed bg-black/30 to bg-slate-900/70 for better contrast */}
+        <div className="bg-slate-900/70 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
           <p className="text-lg md:text-xl text-gray-300 mb-2">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
           <p className="text-md text-gray-400 mb-6 md:mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           

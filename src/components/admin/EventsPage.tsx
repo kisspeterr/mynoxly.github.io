@@ -68,7 +68,7 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
 
   return (
-    <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col">
+    <Card className="bg-slate-800/70 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col">
       {event.image_url && (
         <div className="h-40 w-full overflow-hidden rounded-t-xl">
           <img 
