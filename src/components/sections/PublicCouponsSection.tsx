@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,14 +7,39 @@ import { usePublicCoupons } from '@/hooks/use-public-coupons';
 import { useAuth } from '@/hooks/use-auth';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
+import RedemptionModal from '@/components/RedemptionModal';
+import { showError } from '@/utils/toast';
 
 const PublicCouponsSection = () => {
-  const { coupons, isLoading } = usePublicCoupons();
+  const { coupons, isLoading, redeemCoupon } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
 
-  const handleRedeem = (couponCode: string) => {
-    // Placeholder for actual redemption logic (which would involve a server call and user validation)
-    alert(`Kupon beváltása: ${couponCode}. Valós alkalmazásban ez egy API hívás lenne.`);
+  const handleRedeemClick = async (coupon: Coupon) => {
+    if (!isAuthenticated) {
+      showError('Kérjük, jelentkezz be a kupon beváltásához.');
+      return;
+    }
+
+    // 1. Attempt to record usage and check limits
+    const result = await redeemCoupon(coupon);
+
+    if (result.success && result.usageId) {
+      setSelectedCoupon(coupon);
+      setCurrentUsageId(result.usageId);
+      setIsModalOpen(true);
+    }
+    // Error handling is done inside redeemCoupon hook
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedCoupon(null);
+    setCurrentUsageId(undefined);
+    // Note: The RedemptionModal handles the final invalidation logic (time/exit based)
   };
 
   return (
@@ -78,7 +103,7 @@ const PublicCouponsSection = () => {
                   <div className="pt-4">
                     {isAuthenticated ? (
                       <Button 
-                        onClick={() => handleRedeem(coupon.coupon_code)}
+                        onClick={() => handleRedeemClick(coupon)}
                         className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
                       >
                         <CheckCircle className="h-4 w-4 mr-2" />
@@ -103,6 +128,15 @@ const PublicCouponsSection = () => {
           </div>
         )}
       </div>
+      
+      {selectedCoupon && currentUsageId && (
+        <RedemptionModal 
+          coupon={selectedCoupon}
+          usageId={currentUsageId}
+          isOpen={isModalOpen}
+          onClose={handleModalClose}
+        />
+      )}
     </section>
   );
 };
