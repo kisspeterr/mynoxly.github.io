@@ -11,11 +11,11 @@ interface CouponUsageRecord {
   is_used: boolean;
   redemption_code: string; // Added redemption_code
   
-  // Joined data
+  // Joined data - made optional to handle potential null joins
   coupon: {
     title: string;
     organization_name: string;
-  };
+  } | null;
   profile: {
     first_name: string | null;
     last_name: string | null;
@@ -57,13 +57,10 @@ export const useCouponUsages = () => {
       }
 
       // Filter data client-side to ensure only records linked to the admin's organization are shown, 
-      // although RLS on 'coupons' should handle most of this.
+      // and filter out records where the coupon data is missing (shouldn't happen often, but safe)
       const filteredData = (data as CouponUsageRecord[]).filter(
-        (usage) => usage.coupon?.organization_name === organizationName
+        (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
-      
-      // Fetch user profiles for display (this is complex client-side due to RLS on auth.users/profiles)
-      // For simplicity, we will display User ID or rely on the profile data if accessible.
       
       setUsages(filteredData);
     } finally {
@@ -88,7 +85,6 @@ export const useCouponUsages = () => {
         },
         (payload) => {
           // Refetch all data to ensure consistency and correct filtering/sorting
-          // This is safer than trying to merge individual payloads client-side with complex joins
           if (organizationName) {
              fetchUsages();
           }
