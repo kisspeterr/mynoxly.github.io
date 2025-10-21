@@ -1,5 +1,6 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import LocationPickerMapContent from './LocationPickerMapContent'; // Import szinkron módon, de csak a kliens oldalon használjuk
 
 interface DynamicLocationPickerMapProps {
   initialLat?: number | null;
@@ -10,12 +11,8 @@ interface DynamicLocationPickerMapProps {
 // Default center for Pécs, Hungary (used if no initial position is provided)
 const DEFAULT_CENTER: [number, number] = [46.0727, 18.2322]; 
 
-// Use React.lazy to dynamically import the Leaflet content component
-const LazyLocationPickerMapContent = React.lazy(() => import('./LocationPickerMapContent'));
-
 const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ initialLat, initialLng, onLocationChange }) => {
   const [isClient, setIsClient] = useState(false);
-  // Initialize position to null, it will be set to DEFAULT_CENTER or initial values in useEffect
   const [position, setPosition] = useState<[number, number] | null>(null);
 
   useEffect(() => {
@@ -45,19 +42,13 @@ const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ ini
     );
   }
   
-  // Render the actual map component only on the client using Suspense
+  // Render the actual map component only on the client
+  // Mivel az isClient true, a Leaflet importok már biztonságosan betöltődtek.
   return (
-    <Suspense fallback={
-      <div className="h-80 w-full flex items-center justify-center bg-gray-800 rounded-xl border border-purple-500/30 text-gray-400">
-        <Loader2 className="h-6 w-6 animate-spin text-purple-400 mr-2" />
-        Térkép betöltése...
-      </div>
-    }>
-      <LazyLocationPickerMapContent 
-        position={position} // Position is guaranteed to be set here
-        onLocationChange={handleMapClick} 
-      />
-    </Suspense>
+    <LocationPickerMapContent 
+      position={position} 
+      onLocationChange={handleMapClick} 
+    />
   );
 };
 
