@@ -55,13 +55,11 @@ const PublicCouponsSection = () => {
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
     
-    // We rely on the Realtime subscription in usePublicCoupons to update the button state.
-    // If the modal closed due to expiration (wasRedeemed=false), the pending status will eventually expire 
-    // or be manually cleared by the admin, and Realtime will update the list.
-    // If it was redeemed (wasRedeemed=true), Realtime already handled the closure and the state update.
-    
-    // We keep refreshUsages() commented out to test Realtime robustness:
-    // refreshUsages(); 
+    // If the modal was closed because the Realtime event signaled success, 
+    // we manually refresh the usages to ensure the button state updates immediately.
+    if (wasRedeemed) {
+      refreshUsages(); 
+    }
   };
 
   return (
