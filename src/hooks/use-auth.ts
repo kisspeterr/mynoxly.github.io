@@ -8,7 +8,7 @@ interface Profile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'user' | 'admin' | 'superadmin';
+  role: 'user' | 'admin'; // Simplified roles
 }
 
 interface AuthState {
@@ -107,8 +107,7 @@ export const useAuth = () => {
   return {
     ...authState,
     signOut,
-    isAdmin: authState.profile?.role === 'admin' || authState.profile?.role === 'superadmin',
-    isSuperAdmin: authState.profile?.role === 'superadmin',
+    isAdmin: authState.profile?.role === 'admin', // Simplified check
     isAuthenticated: !!authState.user,
   };
 };

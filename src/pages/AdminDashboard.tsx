@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Users } from 'lucide-react';
+import { LogOut, Shield } from 'lucide-react';
 import { showError } from '@/utils/toast';
 
 const AdminDashboard = () => {
@@ -45,16 +45,12 @@ const AdminDashboard = () => {
           <p className="text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
           <p className="text-lg text-gray-400">Szerepköröd: <span className="font-semibold text-cyan-300">{profile?.role}</span></p>
           
-          {profile?.role === 'superadmin' && (
-            <div className="mt-8 p-4 bg-purple-900/50 rounded-lg border border-purple-500/50">
-              <h3 className="text-2xl font-bold text-purple-300 mb-4 flex items-center gap-2">
-                <Users className="h-6 w-6" />
-                Superadmin Eszközök
-              </h3>
-              <p className="text-gray-300">Itt tudsz majd admin fiókokat létrehozni.</p>
-              {/* Admin creation component will go here later */}
-            </div>
-          )}
+          <div className="mt-8 p-4 bg-purple-900/50 rounded-lg border border-purple-500/50">
+            <h3 className="text-2xl font-bold text-purple-300 mb-4">
+              Admin Eszközök
+            </h3>
+            <p className="text-gray-300">Itt kezelheted a kuponokat és a partnereket.</p>
+          </div>
         </div>
       </div>
     </div>
