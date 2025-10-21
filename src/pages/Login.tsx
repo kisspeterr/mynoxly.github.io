@@ -34,22 +34,29 @@ function Login() {
           variables: {
             default: {
               colors: {
-                brand: 'hsl(200 60% 50%)', // Cyan-like color
-                brandAccent: 'hsl(270 60% 50%)', // Purple-like color
-                inputBackground: 'hsl(222.2 84% 4.9%)', // Dark background
-                inputBorder: 'hsl(217.2 32.6% 17.5%)',
-                inputBorderHover: 'hsl(200 60% 50%)',
-                inputPlaceholder: 'hsl(215 20.2% 65.1%)',
-                defaultButtonBackground: 'hsl(217.2 32.6% 17.5%)',
+                // Primary brand color (used for links, primary buttons)
+                brand: 'hsl(185 90% 50%)', // Cyan-500
+                brandAccent: 'hsl(270 60% 60%)', // Purple-500
+                
+                // Backgrounds
+                defaultButtonBackground: 'hsl(217.2 32.6% 17.5%)', // Dark secondary
                 defaultButtonBackgroundHover: 'hsl(217.2 32.6% 25%)',
-                defaultButtonBorder: 'hsl(217.2 32.6% 17.5%)',
-                defaultButtonText: 'hsl(210 40% 98%)',
+                inputBackground: 'hsl(222.2 84% 4.9%)', // Very dark background
+                
+                // Text and borders
+                defaultButtonText: 'hsl(210 40% 98%)', // White/light text
+                inputBorder: 'hsl(217.2 32.6% 17.5%)',
+                inputBorderHover: 'hsl(185 90% 50%)', // Cyan hover
+                inputPlaceholder: 'hsl(215 20.2% 65.1%)',
+                
+                // Focus ring
+                defaultButtonBorder: 'hsl(185 90% 50%)',
               },
             },
           },
         }}
         theme="dark"
-        view="sign_in"
+        // Removed view="sign_in" to allow registration/sign up view
         redirectTo={window.location.origin + '/'}
       />
     </AuthLayout>
