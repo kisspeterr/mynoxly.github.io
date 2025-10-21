@@ -28,37 +28,42 @@ const initialAuthState: AuthState = {
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
 
-  const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-    if (error) {
-      console.error('Error fetching profile:', error);
+      if (error && error.code !== 'PGRST116') { // PGRST116: No rows found
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+      return data as Profile;
+    } catch (e) {
+      console.error('Unexpected error during profile fetch:', e);
       return null;
     }
-    return data as Profile;
   };
 
   // This function handles setting the final state based on session/user/profile data
-  const updateAuthState = (session: Session | null, profile: Profile | null) => {
+  const updateAuthState = (session: Session | null, profile: Profile | null, loading: boolean = false) => {
     setAuthState({
       session,
       user: session?.user || null,
       profile,
-      isLoading: false,
+      isLoading: loading,
     });
   };
 
   useEffect(() => {
     let isMounted = true;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
     
     const initialLoad = async () => {
       let session: Session | null = null;
       let profile: Profile | null = null;
+      let user: User | null = null;
 
       try {
         // 1. Get Session
@@ -66,43 +71,29 @@ export const useAuth = () => {
         
         if (sessionError) {
           console.error("Initial Supabase session fetch failed:", sessionError);
-          // If session fetch fails, we proceed with null session/profile
         }
         
         session = fetchedSession;
+        user = session?.user || null;
 
         // 2. Fetch Profile if session exists
-        if (session) {
-          profile = await fetchProfile(session.user.id);
+        if (user) {
+          profile = await fetchProfile(user.id);
         }
         
         if (isMounted) {
-          updateAuthState(session, profile);
+          // Set final state: isAuthenticated, profile loaded, isLoading=false
+          updateAuthState(session, profile, false);
         }
 
       } catch (error) {
         console.error("Unexpected error during initial auth load:", error);
         if (isMounted) {
           // If any unexpected error occurs, clear loading state
-          updateAuthState(null, null);
-        }
-      } finally {
-        // 3. Ensure timeout is cleared
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-          timeoutId = null;
+          updateAuthState(null, null, false);
         }
       }
     };
-
-    // Set a timeout to force loading state to false after 8 seconds
-    timeoutId = setTimeout(() => {
-      if (isMounted && authState.isLoading) {
-        console.warn("Auth session check timed out. Forcing isLoading=false.");
-        // Force state update without waiting for network calls
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    }, 8000); // 8 seconds timeout
 
     initialLoad();
 
@@ -110,25 +101,20 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
-      // Set loading true temporarily for state changes (e.g., sign in/out)
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-      }
+      // Start loading state for state changes (e.g., SIGNED_IN/OUT)
+      setAuthState(prev => ({ ...prev, isLoading: true }));
       
       let profile: Profile | null = null;
       if (session) {
         profile = await fetchProfile(session.user.id);
       }
       
-      // Update state after profile fetch
-      updateAuthState(session, profile);
+      // Update state after profile fetch, setting isLoading=false
+      updateAuthState(session, profile, false);
     });
 
     return () => {
       isMounted = false;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
       subscription.unsubscribe();
     };
   }, []);
