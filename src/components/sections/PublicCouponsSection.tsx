@@ -15,6 +15,7 @@ const PublicCouponsSection = () => {
   const { coupons, isLoading, redeemCoupon, isCouponUsedUp, isCouponPending, refreshUsages } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
   
+  const [isRedeeming, setIsRedeeming] = useState(false); // NEW: Local loading state for redemption
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
@@ -25,6 +26,8 @@ const PublicCouponsSection = () => {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return;
     }
+    
+    if (isRedeeming) return; // Prevent double click
 
     // Check local state before attempting redemption
     if (isCouponUsedUp(coupon.id, coupon.max_uses_per_user)) {
@@ -37,16 +40,21 @@ const PublicCouponsSection = () => {
       return;
     }
 
-    // 1. Attempt to record usage and generate code
-    const result = await redeemCoupon(coupon);
+    setIsRedeeming(true);
+    try {
+      // 1. Attempt to record usage and generate code
+      const result = await redeemCoupon(coupon);
 
-    if (result.success && result.usageId && result.redemptionCode) {
-      setSelectedCoupon(coupon);
-      setCurrentUsageId(result.usageId);
-      setCurrentRedemptionCode(result.redemptionCode);
-      setIsModalOpen(true);
+      if (result.success && result.usageId && result.redemptionCode) {
+        setSelectedCoupon(coupon);
+        setCurrentUsageId(result.usageId);
+        setCurrentRedemptionCode(result.redemptionCode);
+        setIsModalOpen(true);
+      }
+      // Error handling is done inside redeemCoupon hook
+    } finally {
+      setIsRedeeming(false);
     }
-    // Error handling is done inside redeemCoupon hook
   };
 
   const handleModalClose = (wasRedeemed: boolean = false) => {
@@ -90,7 +98,7 @@ const PublicCouponsSection = () => {
             {coupons.map((coupon) => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
               const pending = isAuthenticated && isCouponPending(coupon.id);
-              const isDisabled = usedUp || pending;
+              const isDisabled = usedUp || pending || isRedeeming; // Disable if redeeming globally
               
               return (
                 <Card 
@@ -147,9 +155,14 @@ const PublicCouponsSection = () => {
                             <Button 
                               onClick={() => handleRedeemClick(coupon)}
                               className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
-                              disabled={usedUp}
+                              disabled={isDisabled}
                             >
-                              {usedUp ? (
+                              {isRedeeming ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Generálás...
+                                </>
+                              ) : usedUp ? (
                                 <>
                                   <CheckCircle className="h-4 w-4 mr-2" />
                                   Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
