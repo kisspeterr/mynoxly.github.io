@@ -37,74 +37,91 @@ export const useAuth = () => {
 
     if (error) {
       console.error('Error fetching profile:', error);
-      // We intentionally skip showing an error here if the user is signing out or if it's a fresh signup
-      // showError('Nem sikerült betölteni a felhasználói profilt.');
       return null;
     }
     return data as Profile;
+  };
+
+  // This function handles setting the final state based on session/user/profile data
+  const updateAuthState = (session: Session | null, profile: Profile | null) => {
+    setAuthState({
+      session,
+      user: session?.user || null,
+      profile,
+      isLoading: false,
+    });
   };
 
   useEffect(() => {
     let isMounted = true;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
     
-    const handleSession = async (session: Session | null) => {
-      if (!isMounted) return;
-
+    const initialLoad = async () => {
+      let session: Session | null = null;
       let profile: Profile | null = null;
-      let user: User | null = null;
 
-      if (session) {
-        user = session.user;
-        try {
+      try {
+        // 1. Get Session
+        const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Initial Supabase session fetch failed:", sessionError);
+          // If session fetch fails, we proceed with null session/profile
+        }
+        
+        session = fetchedSession;
+
+        // 2. Fetch Profile if session exists
+        if (session) {
           profile = await fetchProfile(session.user.id);
-        } catch (e) {
-          console.error("Error fetching profile:", e);
+        }
+        
+        if (isMounted) {
+          updateAuthState(session, profile);
+        }
+
+      } catch (error) {
+        console.error("Unexpected error during initial auth load:", error);
+        if (isMounted) {
+          // If any unexpected error occurs, clear loading state
+          updateAuthState(null, null);
+        }
+      } finally {
+        // 3. Ensure timeout is cleared
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
         }
       }
-
-      setAuthState({
-        session,
-        user,
-        profile,
-        isLoading: false,
-      });
     };
 
     // Set a timeout to force loading state to false after 8 seconds
     timeoutId = setTimeout(() => {
       if (isMounted && authState.isLoading) {
         console.warn("Auth session check timed out. Forcing isLoading=false.");
+        // Force state update without waiting for network calls
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
     }, 8000); // 8 seconds timeout
 
-    // 1. Initial session check
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await handleSession(session);
-    }).catch(error => {
-      console.error("Initial Supabase session fetch failed:", error);
-      // If fetch fails entirely, ensure loading state is cleared
-      if (isMounted) {
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    }).finally(() => {
-      // Ensure timeout is cleared once the initial check is done, regardless of success/failure
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-    });
+    initialLoad();
 
     // 2. Real-time auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      
       // Set loading true temporarily for state changes (e.g., sign in/out)
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
       
-      // Wait for session handling to complete and set isLoading to false
-      await handleSession(session);
+      let profile: Profile | null = null;
+      if (session) {
+        profile = await fetchProfile(session.user.id);
+      }
+      
+      // Update state after profile fetch
+      updateAuthState(session, profile);
     });
 
     return () => {
