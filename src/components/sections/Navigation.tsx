@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/use-auth";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
+  const { isAuthenticated, isAdmin, signOut, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +33,11 @@ const Navigation = () => {
     setIsOpen(false);
   };
 
+  const handleSignOut = () => {
+    signOut();
+    setIsOpen(false);
+  };
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -42,9 +50,9 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
+            <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
               NOXLY
-            </div>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}
@@ -74,17 +82,42 @@ const Navigation = () => {
               >
                 Vélemények
               </a>
+              {isAdmin && (
+                <Link
+                  to="/admin/dashboard"
+                  className="text-purple-300 hover:text-purple-400 transition-colors duration-300 flex items-center gap-1"
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin
+                </Link>
+              )}
             </div>
           )}
 
-          {/* CTA Button */}
+          {/* CTA Button / Auth Button */}
           <div className="flex items-center space-x-4">
-            <Button 
-              onClick={scrollToWaitlist}
-              className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white transition-all duration-300 hover:scale-105"
-            >
-              Csatlakozom
-            </Button>
+            {isLoading ? (
+              <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
+            ) : isAuthenticated ? (
+              <Button 
+                onClick={handleSignOut}
+                variant="outline"
+                className="border-red-400 text-red-400 hover:bg-red-400/10 transition-all duration-300 hover:scale-105"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Kijelentkezés
+              </Button>
+            ) : (
+              <Button 
+                asChild
+                className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white transition-all duration-300 hover:scale-105"
+              >
+                <Link to="/login">
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Bejelentkezés
+                </Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -130,12 +163,24 @@ const Navigation = () => {
               >
                 Vélemények
               </a>
-              <button
-                onClick={scrollToWaitlist}
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
-              >
-                Csatlakozom
-              </button>
+              {isAdmin && (
+                <Link
+                  to="/admin/dashboard"
+                  className="text-purple-300 hover:text-purple-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Shield className="h-4 w-4" />
+                  Admin Dashboard
+                </Link>
+              )}
+              {!isAuthenticated && (
+                <button
+                  onClick={scrollToWaitlist}
+                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
+                >
+                  Csatlakozom
+                </button>
+              )}
             </div>
           </div>
         )}
