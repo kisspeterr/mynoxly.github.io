@@ -34,6 +34,8 @@ export const useCouponUsages = () => {
     setIsLoading(true);
     try {
       // Fetch all usages for coupons belonging to this organization
+      // We explicitly filter for non-null redeemed_at in the query if possible, 
+      // but since we need all records (used/unused), we rely on RLS and client-side filtering.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -60,12 +62,13 @@ export const useCouponUsages = () => {
       // Filter data client-side:
       // 1. Ensure coupon data exists (join successful)
       // 2. Ensure coupon belongs to the current organization
-      // 3. CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
+      // 3. CRITICAL: Ensure redeemed_at is present and is a valid string for Date() constructor
       const filteredData = (data as CouponUsageRecord[]).filter(
         (usage) => 
           usage.coupon && 
           usage.coupon.organization_name === organizationName &&
-          typeof usage.redeemed_at === 'string' // Must be a string for Date() constructor
+          typeof usage.redeemed_at === 'string' &&
+          !isNaN(new Date(usage.redeemed_at).getTime()) // Check if the string is a valid date
       );
       
       setUsages(filteredData);
