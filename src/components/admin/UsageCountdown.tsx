@@ -21,6 +21,14 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
     }
 
     const startTime = new Date(redeemedAt).getTime();
+    
+    // CRITICAL CHECK: If date is invalid (NaN), stop execution and show error state
+    if (isNaN(startTime)) {
+      setIsExpired(true);
+      setTimeLeftMs(0);
+      return;
+    }
+
     const expiryTime = startTime + REDEMPTION_DURATION_MS;
 
     const calculateTimeLeft = () => {
