@@ -14,4 +14,8 @@ export default defineConfig(() => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  // CRITICAL: Exclude Leaflet packages from optimization/pre-bundling
+  optimizeDeps: {
+    exclude: ['leaflet', 'react-leaflet'],
+  },
 }));

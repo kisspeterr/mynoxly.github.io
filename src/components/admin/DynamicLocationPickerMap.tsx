@@ -12,13 +12,14 @@ const LazyLocationPickerMapContent = React.lazy(() => import('./LocationPickerMa
 
 const DynamicLocationPickerMap: React.FC<DynamicLocationPickerMapProps> = ({ initialLat, initialLng, onLocationChange }) => {
   const [isClient, setIsClient] = useState(false);
-  const [position, setPosition] = useState<[number, number] | null>(
-    initialLat && initialLng ? [initialLat, initialLng] : null
-  );
+  // Initialize position to null, and update it in useEffect
+  const [position, setPosition] = useState<[number, number] | null>(null);
 
   useEffect(() => {
     // Ensure this runs only on the client side after mounting
     setIsClient(true);
+    
+    // Initialize position based on props only after mounting
     if (initialLat && initialLng) {
       setPosition([initialLat, initialLng]);
     }
