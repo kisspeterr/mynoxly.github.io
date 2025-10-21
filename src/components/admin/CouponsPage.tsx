@@ -125,12 +125,7 @@ const CouponsPage = () => {
   const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, deleteCoupon, organizationName } = useCoupons();
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  useEffect(() => {
-    // Fetch coupons whenever the organizationName changes (i.e., when profile loads)
-    if (organizationName) {
-      fetchCoupons();
-    }
-  }, [organizationName]); // Dependency added
+  // Removed useEffect: useCoupons now handles automatic fetching based on organizationName
 
   if (isLoading && coupons.length === 0) {
     return (

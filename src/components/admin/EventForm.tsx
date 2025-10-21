@@ -38,7 +38,7 @@ interface EventFormProps {
 }
 
 const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
-  const { coupons, fetchCoupons, isLoading: isCouponsLoading } = useCoupons();
+  const { coupons, isLoading: isCouponsLoading } = useCoupons(); // Removed fetchCoupons
   
   // Prepare default values for editing
   const defaultStartTime = initialData?.start_time ? new Date(initialData.start_time) : new Date();
@@ -61,9 +61,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
   const startDate = watch('startDate');
   const isEditing = !!initialData;
 
-  useEffect(() => {
-    fetchCoupons();
-  }, []);
+  // Removed useEffect(() => { fetchCoupons(); }, []);
 
   const handleFormSubmit = async (data: EventFormData) => {
     const [hours, minutes] = data.time.split(':').map(Number);

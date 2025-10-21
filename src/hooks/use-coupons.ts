@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
@@ -11,6 +11,7 @@ export const useCoupons = () => {
 
   const organizationName = profile?.organization_name;
 
+  // Function to fetch coupons (used internally and exported for manual refresh)
   const fetchCoupons = async () => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setCoupons([]);
@@ -37,6 +38,14 @@ export const useCoupons = () => {
     }
   };
 
+  // Automatically fetch coupons when organizationName changes (i.e., when profile loads)
+  useEffect(() => {
+    if (organizationName) {
+      fetchCoupons();
+    }
+  }, [organizationName]);
+
+
   const createCoupon = async (couponData: CouponInsert) => {
     if (!organizationName) {
       showError('Hiányzik a szervezet neve a profilból.');
@@ -53,7 +62,6 @@ export const useCoupons = () => {
 
       if (error) {
         showError(`Hiba a kupon létrehozásakor: ${error.message}`);
-        console.error('Create coupon error:', error);
         return { success: false };
       }
 
@@ -77,7 +85,6 @@ export const useCoupons = () => {
 
       if (error) {
         showError(`Hiba a kupon frissítésekor: ${error.message}`);
-        console.error('Update coupon error:', error);
         return { success: false };
       }
 
@@ -99,7 +106,6 @@ export const useCoupons = () => {
 
       if (error) {
         showError('Hiba történt a kupon törlésekor.');
-        console.error('Delete coupon error:', error);
         return { success: false };
       }
 
@@ -114,7 +120,7 @@ export const useCoupons = () => {
   return {
     coupons,
     isLoading,
-    fetchCoupons,
+    fetchCoupons, // Keep exported for manual refresh if needed
     createCoupon,
     updateCoupon,
     deleteCoupon,
