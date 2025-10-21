@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import { useCouponUsages } from '@/hooks/use-coupon-usages';
+import { useCouponUsages, ValidCouponUsageRecord } from '@/hooks/use-coupon-usages';
 import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } => '@/components/ui/card';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import UsageCountdown from './UsageCountdown'; // Import the new component
@@ -11,6 +11,8 @@ const CouponUsagesPage = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    // Since the hook guarantees a valid date string, this should be safe, 
+    // but we keep the check for robustness.
     if (isNaN(date.getTime())) {
       return 'Érvénytelen dátum';
     }
@@ -46,12 +48,11 @@ const CouponUsagesPage = () => {
             >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-xl text-white">
-                  {/* Robust check for coupon title */}
-                  {usage.coupon?.title || 'Ismeretlen Kupon'}
+                  {/* The hook guarantees usage.coupon is not null */}
+                  {usage.coupon!.title || 'Ismeretlen Kupon'}
                 </CardTitle>
-                {/* UsageCountdown expects a string for redeemedAt, which is now guaranteed by the hook's filtering */}
                 <UsageCountdown 
-                  redeemedAt={usage.redeemed_at as string} 
+                  redeemedAt={usage.redeemed_at} // Now guaranteed to be a string
                   isUsed={usage.is_used} 
                 />
               </CardHeader>
@@ -62,7 +63,7 @@ const CouponUsagesPage = () => {
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Clock className="h-4 w-4 mr-2 text-purple-400" />
-                  Beváltás ideje: <span className="ml-1 font-medium">{formatDate(usage.redeemed_at as string)}</span>
+                  Beváltás ideje: <span className="ml-1 font-medium">{formatDate(usage.redeemed_at)}</span>
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Tag className="h-4 w-4 mr-2 text-purple-400" />
