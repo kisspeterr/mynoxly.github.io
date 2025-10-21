@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,10 +22,10 @@ const Navigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToWaitlist = () => {
-    const waitlistSection = document.getElementById("waitlist");
-    if (waitlistSection) {
-      waitlistSection.scrollIntoView({ 
+  const scrollToSection = (id: string) => {
+    const section = document.getElementById(id);
+    if (section) {
+      section.scrollIntoView({ 
         behavior: "smooth",
         block: "start"
       });
@@ -109,22 +109,22 @@ const Navigation = () => {
           {!isMobile && (
             <div className="flex items-center space-x-8">
               <a
-                href="#features"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
+                href="#coupons-section"
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
-                Funkciók
+                <Gift className="h-4 w-4" /> Kuponok
               </a>
               <a
-                href="#demo-section"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
+                href="#events-section"
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
-                Demo
+                <Calendar className="h-4 w-4" /> Események
               </a>
               <a
-                href="#coming-soon"
+                href="#benefits"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
               >
-                Hamarosan
+                Előnyök
               </a>
               <a
                 href="#testimonials"
@@ -132,7 +132,6 @@ const Navigation = () => {
               >
                 Vélemények
               </a>
-              {/* Removed Admin link from main desktop nav, as it's now handled by AuthButtons */}
             </div>
           )}
 
@@ -157,30 +156,30 @@ const Navigation = () => {
           <div className="mt-4 pb-4 border-t border-cyan-500/20 pt-4">
             <div className="flex flex-col space-y-4">
               <a
-                href="#features"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => setIsOpen(false)}
+                href="#coupons-section"
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                onClick={() => scrollToSection('coupons-section')}
               >
-                Funkciók
+                <Gift className="h-4 w-4 mr-2" /> Kuponok
               </a>
               <a
-                href="#demo-section"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => setIsOpen(false)}
+                href="#events-section"
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                onClick={() => scrollToSection('events-section')}
               >
-                Demo
+                <Calendar className="h-4 w-4 mr-2" /> Események
               </a>
               <a
-                href="#coming-soon"
+                href="#benefits"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => setIsOpen(false)}
+                onClick={() => scrollToSection('benefits')}
               >
-                Hamarosan
+                Előnyök
               </a>
               <a
                 href="#testimonials"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => setIsOpen(false)}
+                onClick={() => scrollToSection('testimonials')}
               >
                 Vélemények
               </a>
@@ -206,7 +205,7 @@ const Navigation = () => {
               )}
               {!isAuthenticated && (
                 <button
-                  onClick={scrollToWaitlist}
+                  onClick={() => scrollToSection('waitlist')}
                   className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
                 >
                   Csatlakozom
