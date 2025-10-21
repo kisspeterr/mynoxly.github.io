@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
-import CouponUsagesPage from '@/components/admin/CouponUsagesPage'; // Import new page
+import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const AdminDashboard = () => {
@@ -41,10 +41,24 @@ const AdminDashboard = () => {
             <Shield className="h-8 w-8 text-cyan-400" />
             Admin Dashboard
           </h1>
-          <Button onClick={signOut} variant="destructive">
-            <LogOut className="h-4 w-4 mr-2" />
-            Kijelentkezés
-          </Button>
+          <div className="flex space-x-3">
+            <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
+              <Link to="/profile">
+                <User className="h-4 w-4 mr-2" />
+                Profil
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="border-green-400 text-green-400 hover:bg-green-400/10">
+              <Link to="/code">
+                <QrCode className="h-4 w-4 mr-2" />
+                Beváltás
+              </Link>
+            </Button>
+            <Button onClick={signOut} variant="destructive">
+              <LogOut className="h-4 w-4 mr-2" />
+              Kijelentkezés
+            </Button>
+          </div>
         </div>
 
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-6 shadow-2xl backdrop-blur-sm">

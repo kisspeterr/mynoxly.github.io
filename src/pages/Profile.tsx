@@ -5,6 +5,7 @@ import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Home } from 'lucide-react';
 import ProfileCard from '@/components/ProfileCard';
+import UserCouponsList from '@/components/user/UserCouponsList'; // Import new component
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -35,21 +36,29 @@ const Profile = () => {
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-6 text-cyan-300">Felhasználói Profil</h1>
         
-        {profile && <ProfileCard profile={profile} email={user?.email} />}
-
-        <div className="mt-8 flex justify-center space-x-4">
-          <Button 
-            onClick={() => navigate('/')}
-            variant="outline"
-            className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Főoldal
-          </Button>
-          <Button onClick={signOut} variant="destructive">
-            <LogOut className="h-4 w-4 mr-2" />
-            Kijelentkezés
-          </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-1 space-y-6">
+            {profile && <ProfileCard profile={profile} email={user?.email} />}
+            
+            <div className="flex justify-center space-x-4">
+              <Button 
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+              >
+                <Home className="h-4 w-4 mr-2" />
+                Főoldal
+              </Button>
+              <Button onClick={signOut} variant="destructive">
+                <LogOut className="h-4 w-4 mr-2" />
+                Kijelentkezés
+              </Button>
+            </div>
+          </div>
+          
+          <div className="lg:col-span-2">
+            <UserCouponsList />
+          </div>
         </div>
       </div>
     </AuthLayout>
