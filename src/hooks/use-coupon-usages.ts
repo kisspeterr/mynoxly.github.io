@@ -7,16 +7,15 @@ interface CouponUsageRecord {
   id: string;
   user_id: string;
   coupon_id: string;
-  redeemed_at: string; // Added redeemed_at
+  redeemed_at: string;
   is_used: boolean;
-  redemption_code: string; // Added redemption_code
+  redemption_code: string;
   
   // Joined data - made optional to handle potential null joins
   coupon: {
     title: string;
     organization_name: string;
   } | null;
-  // Removed profile field as it was not fetched in this hook
 }
 
 export const useCouponUsages = () => {
@@ -52,11 +51,21 @@ export const useCouponUsages = () => {
         console.error('Fetch usages error:', error);
         return;
       }
+      
+      if (!data) {
+        setUsages([]);
+        return;
+      }
 
-      // Filter data client-side to ensure only records linked to the admin's organization are shown, 
-      // and filter out records where the coupon data is missing (shouldn't happen often, but safe)
+      // Filter data client-side:
+      // 1. Ensure coupon data exists (join successful)
+      // 2. Ensure coupon belongs to the current organization
+      // 3. Ensure redeemed_at exists (critical for UsageCountdown)
       const filteredData = (data as CouponUsageRecord[]).filter(
-        (usage) => usage.coupon && usage.coupon.organization_name === organizationName
+        (usage) => 
+          usage.coupon && 
+          usage.coupon.organization_name === organizationName &&
+          usage.redeemed_at // Check if redeemed_at is present
       );
       
       setUsages(filteredData);
