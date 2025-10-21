@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -113,8 +113,6 @@ const PublicCouponsSection = () => {
                   <CardContent className="space-y-3 flex-grow text-left">
                     <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
                     
-                    {/* Removed coupon code display here */}
-                    
                     {coupon.expiry_date && (
                       <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
                         <Calendar className="h-4 w-4 mr-2 text-purple-400" />
@@ -122,30 +120,49 @@ const PublicCouponsSection = () => {
                       </div>
                     )}
 
-                    <div className="pt-4">
+                    <div className="pt-4 space-y-2">
                       {isAuthenticated ? (
-                        <Button 
-                          onClick={() => handleRedeemClick(coupon)}
-                          className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
-                          disabled={isDisabled}
-                        >
-                          {usedUp ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
-                            </>
-                          ) : pending ? (
-                            <>
-                              <Clock className="h-4 w-4 mr-2 animate-spin" />
-                              Kód generálva (Beváltás folyamatban)
-                            </>
+                        <>
+                          {pending ? (
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <Button 
+                                className="w-full bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
+                                disabled
+                              >
+                                <Clock className="h-4 w-4 mr-2" />
+                                Kód generálva
+                              </Button>
+                              <Button 
+                                asChild
+                                variant="outline"
+                                className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                              >
+                                <Link to="/profile" className="flex items-center justify-center">
+                                  <User className="h-4 w-4 mr-2" />
+                                  Megtekintés fiókban
+                                </Link>
+                              </Button>
+                            </div>
                           ) : (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Beváltás
-                            </>
+                            <Button 
+                              onClick={() => handleRedeemClick(coupon)}
+                              className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
+                              disabled={usedUp}
+                            >
+                              {usedUp ? (
+                                <>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle className="h-4 w-4 mr-2" />
+                                  Beváltás
+                                </>
+                              )}
+                            </Button>
                           )}
-                        </Button>
+                        </>
                       ) : (
                         <Button 
                           asChild
