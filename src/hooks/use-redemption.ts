@@ -124,18 +124,25 @@ export const useRedemption = () => {
 
     setIsLoading(true);
     try {
-      // Mark as used
-      const { error } = await supabase
+      // Mark as used, BUT ONLY IF IT IS CURRENTLY UNUSED (is_used: false)
+      const { error, count } = await supabase
         .from('coupon_usages')
         .update({ is_used: true })
-        .eq('id', usageDetails.id);
+        .eq('id', usageDetails.id)
+        .eq('is_used', false) // CRITICAL: Only update if it hasn't been used yet
+        .select()
+        .single();
 
       if (error) {
         showError('Hiba történt a beváltás véglegesítésekor.');
         console.error('Finalize error:', error);
         return false;
       }
-
+      
+      // If the update was successful (meaning it was previously is_used=false)
+      // Note: Supabase returns the updated row in data, but we check for error.
+      
+      // If the update was successful, the Realtime event will fire.
       showSuccess(`Sikeres beváltás! Kupon: ${usageDetails.coupon.title}`);
       setUsageDetails(null); // Clear details after successful redemption
       return true;
