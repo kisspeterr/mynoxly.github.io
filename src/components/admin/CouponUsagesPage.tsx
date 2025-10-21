@@ -19,6 +19,14 @@ const CouponUsagesPage = () => {
       </div>
     );
   }
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Érvénytelen dátum';
+    }
+    return format(date, 'yyyy. MM. dd. HH:mm:ss');
+  };
 
   return (
     <div>
@@ -65,7 +73,7 @@ const CouponUsagesPage = () => {
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Clock className="h-4 w-4 mr-2 text-purple-400" />
-                  Beváltás ideje: <span className="ml-1 font-medium">{format(new Date(usage.redeemed_at), 'yyyy. MM. dd. HH:mm:ss')}</span>
+                  Beváltás ideje: <span className="ml-1 font-medium">{formatDate(usage.redeemed_at)}</span>
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Tag className="h-4 w-4 mr-2 text-purple-400" />
