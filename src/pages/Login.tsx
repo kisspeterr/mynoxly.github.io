@@ -1,79 +1,51 @@
-import { Auth } from '@supabase/auth-ui-react';
-import { ThemeSupa } from '@supabase/auth-ui-shared';
-import { supabase } from '@/integrations/supabase/client';
 import AuthLayout from '@/components/AuthLayout';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LoginForm from '@/components/auth/LoginForm';
+import SignupForm from '@/components/auth/SignupForm';
+import { LogIn, UserPlus } from 'lucide-react';
 
 function Login() {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('login');
 
   useEffect(() => {
-    // We still need isLoading here because the hook might update its state 
-    // during sign in/out events, even after AuthLoader finishes.
     if (!isLoading && isAuthenticated) {
+      // Redirect authenticated users to the home page
       navigate('/');
     }
   }, [isAuthenticated, isLoading, navigate]);
 
   return (
     <AuthLayout>
-      <Auth
-        supabaseClient={supabase}
-        providers={[]}
-        appearance={{
-          theme: ThemeSupa,
-          variables: {
-            default: {
-              colors: {
-                // Primary brand color (used for links, primary buttons)
-                brand: 'hsl(185 90% 50%)', // Cyan-500
-                brandAccent: 'hsl(270 60% 60%)', // Purple-500
-                
-                // Backgrounds
-                defaultButtonBackground: 'hsl(217.2 32.6% 17.5%)', // Dark secondary
-                defaultButtonBackgroundHover: 'hsl(217.2 32.6% 25%)',
-                inputBackground: 'hsl(222.2 84% 4.9%)', // Very dark background
-                
-                // Text and borders
-                defaultButtonText: 'hsl(210 40% 98%)', // White/light text
-                inputBorder: 'hsl(217.2 32.6% 17.5%)',
-                inputBorderHover: 'hsl(185 90% 50%)', // Cyan hover
-                inputPlaceholder: 'hsl(215 20.2% 65.1%)',
-                
-                // Focus ring
-                defaultButtonBorder: 'hsl(185 90% 50%)',
-              },
-            },
-          },
-        }}
-        theme="dark"
-        redirectTo={window.location.origin + '/'}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-800/50 border border-gray-700/50">
+          <TabsTrigger 
+            value="login" 
+            className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400"
+          >
+            <LogIn className="h-4 w-4 mr-2" /> Bejelentkezés
+          </TabsTrigger>
+          <TabsTrigger 
+            value="signup" 
+            className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400"
+          >
+            <UserPlus className="h-4 w-4 mr-2" /> Regisztráció
+          </TabsTrigger>
+        </TabsList>
         
-        // --- Honosítás és extra mezők ---
-        localization={{
-          lang: 'hu',
-        }}
-        // Collect first_name and last_name during signup
-        // These fields are automatically passed to the user's raw_user_meta_data
-        // which is handled by the handle_new_user trigger.
-        data-fields={[
-          {
-            name: 'first_name',
-            label: 'Keresztnév',
-            type: 'text',
-            required: true,
-          },
-          {
-            name: 'last_name',
-            label: 'Vezetéknév',
-            type: 'text',
-            required: true,
-          },
-        ]}
-      />
+        <div className="mt-6">
+          <TabsContent value="login">
+            <LoginForm />
+          </TabsContent>
+          <TabsContent value="signup">
+            <SignupForm />
+          </TabsContent>
+        </div>
+      </Tabs>
     </AuthLayout>
   );
 }
