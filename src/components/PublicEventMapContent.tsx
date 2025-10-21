@@ -1,15 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
-
-// Fix for default marker icon issue
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
 
 interface PublicEventMapContentProps {
   lat: number;
@@ -19,6 +11,19 @@ interface PublicEventMapContentProps {
 
 const PublicEventMapContent: React.FC<PublicEventMapContentProps> = ({ lat, lng, locationName }) => {
   const position: [number, number] = [lat, lng];
+
+  // Use useMemo to ensure Leaflet icon fix runs only once and only client-side
+  useMemo(() => {
+    // Fix for default marker icon issue
+    if (typeof window !== 'undefined') {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+      });
+    }
+  }, []);
 
   return (
     <div className="h-40 w-full rounded-xl overflow-hidden border border-purple-500/30 shadow-lg mb-4">

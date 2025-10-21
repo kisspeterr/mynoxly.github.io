@@ -1,15 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin } from 'lucide-react';
-
-// Fix for default marker icon issue with Webpack/Vite
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
 
 interface LocationPickerMapContentProps {
   position: [number, number] | null;
@@ -30,6 +22,19 @@ const MapClickHandler: React.FC<{ onLocationChange: (lat: number, lng: number) =
 
 const LocationPickerMapContent: React.FC<LocationPickerMapContentProps> = ({ position, onLocationChange }) => {
   const center = position || DEFAULT_CENTER;
+
+  // Use useMemo to ensure Leaflet icon fix runs only once and only client-side
+  useMemo(() => {
+    // Fix for default marker icon issue with Webpack/Vite
+    if (typeof window !== 'undefined') {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+      });
+    }
+  }, []);
 
   return (
     <div className="h-80 w-full rounded-xl overflow-hidden border border-purple-500/30 shadow-lg">
