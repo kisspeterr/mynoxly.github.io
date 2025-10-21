@@ -39,6 +39,10 @@ const RedemptionPage = () => {
   if (isAuthenticated && !isAdmin) {
     return <UnauthorizedAccess />;
   }
+  
+  const userName = usageDetails?.profile?.first_name || usageDetails?.profile?.last_name 
+    ? `${usageDetails.profile.first_name || ''} ${usageDetails.profile.last_name || ''}`.trim()
+    : 'Névtelen felhasználó';
 
   return (
     <AuthLayout>
@@ -94,7 +98,7 @@ const RedemptionPage = () => {
               </div>
               <div className="flex items-center text-gray-300">
                 <User className="h-4 w-4 mr-2 text-purple-400" />
-                Felhasználó: <span className="ml-1 font-medium">{usageDetails.user.email}</span>
+                Felhasználó: <span className="ml-1 font-medium">{userName} ({usageDetails.user_email})</span>
               </div>
               <div className="flex items-center text-gray-300">
                 <Clock className="h-4 w-4 mr-2 text-purple-400" />

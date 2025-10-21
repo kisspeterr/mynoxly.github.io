@@ -13,9 +13,12 @@ interface UsageDetails {
     title: string;
     organization_name: string;
   };
-  user: {
-    email: string;
-  };
+  // We fetch profile data instead of trying to fetch auth.users directly
+  profile: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+  user_email: string; // We will manually fetch this if needed, but for now, rely on the user object if available.
 }
 
 export const useRedemption = () => {
@@ -34,7 +37,7 @@ export const useRedemption = () => {
     }
 
     try {
-      // 1. Fetch usage record by redemption code
+      // 1. Fetch usage record by redemption code, joining coupon and profile data
       const { data: usage, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -44,7 +47,7 @@ export const useRedemption = () => {
           redeemed_at,
           is_used,
           coupon:coupon_id (title, organization_name),
-          user:user_id (email)
+          profile:user_id (first_name, last_name)
         `)
         .eq('redemption_code', code)
         .single();
@@ -69,9 +72,34 @@ export const useRedemption = () => {
         showError(`A kód lejárt. ${formatDistanceToNow(redeemedAt, { addSuffix: true, includeSeconds: true })} lett generálva.`);
         return;
       }
+      
+      // 3. Manually fetch user email from auth.users (only possible if RLS allows, or if we are admin)
+      // Since this is an Admin page, we assume the admin has the necessary permissions or we rely on the user object being available.
+      // However, since we are using the client-side Supabase client, we cannot access auth.users directly.
+      // We will rely on the user object being available in the session for the admin, but for display purposes, we need the email.
+      
+      // Fallback: If we cannot fetch the email, we display the user ID.
+      let userEmail = 'Nincs elérhető email';
+      
+      // Try to get the user object from Supabase auth (which is available to the admin session)
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      
+      if (authUser && authUser.id === usage.user_id) {
+          // If the admin is redeeming their own coupon (unlikely but possible), use their email
+          userEmail = authUser.email || userEmail;
+      } else {
+          // Since we cannot query auth.users directly from the client, we must rely on the profile data or the user ID.
+          // For a real production app, this check should happen in an Edge Function or a server environment.
+          // For now, we will display the user ID and a placeholder email.
+          userEmail = `User ID: ${usage.user_id.slice(0, 8)}...`;
+      }
 
-      // 3. Code is valid and pending usage
-      setUsageDetails(usage as UsageDetails);
+
+      // 4. Code is valid and pending usage
+      setUsageDetails({
+        ...(usage as Omit<UsageDetails, 'user_email' | 'user'>),
+        user_email: userEmail,
+      });
       showSuccess('Kód érvényesítve! Kérjük, véglegesítsd a beváltást.');
 
     } catch (error) {
