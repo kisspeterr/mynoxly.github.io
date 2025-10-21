@@ -3,6 +3,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { formatDistanceToNow } from 'date-fns';
 
+interface ProfileDetails {
+  first_name: string | null;
+  last_name: string | null;
+  organization_name: string | null; // Added organization_name
+}
+
 interface UsageDetails {
   id: string;
   coupon_id: string;
@@ -13,10 +19,7 @@ interface UsageDetails {
     title: string;
     organization_name: string;
   };
-  profile: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
+  profile: ProfileDetails | null;
   user_email: string;
 }
 
@@ -26,10 +29,10 @@ export const useRedemption = () => {
   const REDEMPTION_TIMEOUT_MINUTES = 3;
 
   const fetchUserProfileAndEmail = async (userId: string) => {
-    // 1. Fetch Profile (Name)
+    // 1. Fetch Profile (Name and Organization)
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('first_name, last_name')
+      .select('first_name, last_name, organization_name')
       .eq('id', userId)
       .single();
 
@@ -40,16 +43,12 @@ export const useRedemption = () => {
     // 2. Fetch User Email (This is the tricky part, as auth.users is protected)
     // We rely on the fact that the admin session might have elevated privileges, 
     // but client-side RLS usually prevents reading other users' emails from auth.users.
-    // Since we cannot use the Service Role Key here, we must rely on the user ID for identification.
+    // Since we are client-side, we cannot reliably fetch the target user's email.
     
-    // For demonstration, we will use a placeholder or the user ID if the email is inaccessible.
     let userEmail = `User ID: ${userId.slice(0, 8)}...`;
     
-    // In a real scenario, if the admin needs the email, this must be done via a secure Edge Function.
-    // Since we are client-side, we cannot reliably fetch the target user's email.
-
     return {
-      profile: profileData || null,
+      profile: profileData as ProfileDetails || null,
       user_email: userEmail,
     };
   };
@@ -125,7 +124,7 @@ export const useRedemption = () => {
     setIsLoading(true);
     try {
       // Mark as used, BUT ONLY IF IT IS CURRENTLY UNUSED (is_used: false)
-      const { error, count } = await supabase
+      const { error } = await supabase
         .from('coupon_usages')
         .update({ is_used: true })
         .eq('id', usageDetails.id)
@@ -138,9 +137,6 @@ export const useRedemption = () => {
         console.error('Finalize error:', error);
         return false;
       }
-      
-      // If the update was successful (meaning it was previously is_used=false)
-      // Note: Supabase returns the updated row in data, but we check for error.
       
       // If the update was successful, the Realtime event will fire.
       showSuccess(`Sikeres beváltás! Kupon: ${usageDetails.coupon.title}`);

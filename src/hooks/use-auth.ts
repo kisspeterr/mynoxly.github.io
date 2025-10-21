@@ -9,6 +9,7 @@ interface Profile {
   last_name: string | null;
   avatar_url: string | null;
   role: 'user' | 'admin'; // Simplified roles
+  organization_name: string | null; // Added missing field
 }
 
 interface AuthState {
@@ -32,7 +33,7 @@ export const useAuth = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, avatar_url, role, organization_name') // Fetching all fields
         .eq('id', userId)
         .single();
 

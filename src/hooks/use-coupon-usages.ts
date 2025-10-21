@@ -16,10 +16,7 @@ interface CouponUsageRecord {
     title: string;
     organization_name: string;
   } | null;
-  profile: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
+  // Removed profile field as it was not fetched in this hook
 }
 
 export const useCouponUsages = () => {
