@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { Coupon } from '@/types/coupons';
-import { showError } from '@/utils/toast';
+import { showError, showSuccess } from '@/utils/toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RedemptionModalProps {
   coupon: Coupon;
@@ -28,6 +29,40 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
     onClose();
   }, [onClose]);
 
+  // --- Realtime Subscription Effect ---
+  useEffect(() => {
+    if (!isOpen || !usageId) return;
+
+    // 1. Setup Realtime Channel
+    const channel = supabase
+      .channel(`coupon_usage_${usageId}`)
+      .on(
+        'postgres_changes',
+        { 
+          event: 'UPDATE', 
+          schema: 'public', 
+          table: 'coupon_usages',
+          filter: `id=eq.${usageId}`
+        },
+        (payload) => {
+          const updatedUsage = payload.new as { is_used: boolean };
+          if (updatedUsage.is_used === true) {
+            // Admin finalized the redemption!
+            showSuccess(`Sikeres beváltás! Kupon: ${coupon.title}`);
+            onClose(); // Close the modal
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isOpen, usageId, coupon.title, onClose]);
+  // ------------------------------------
+
+
+  // --- Countdown Timer Effect ---
   useEffect(() => {
     if (!isOpen) {
       // Reset state when closed
@@ -48,12 +83,11 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
       });
     }, 1000);
 
-    // IMPORTANT: Removed visibilitychange listener. The code remains valid for 3 minutes regardless of navigation.
-
     return () => {
       clearInterval(timer);
     };
   }, [isOpen, handleExpiration]);
+  // ------------------------------------
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
