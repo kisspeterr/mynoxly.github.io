@@ -1,14 +1,67 @@
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '@/hooks/use-events';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Image } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import EventForm from './EventForm';
 import { format } from 'date-fns';
-import { Event } from '@/types/events';
+import { Event, EventInsert } from '@/types/events';
 
-const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void }> = ({ event, onDelete }) => {
+interface EventEditDialogProps {
+  event: Event;
+  onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>;
+  isLoading: boolean;
+}
+
+const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleSubmit = async (data: EventInsert) => {
+    // We only send fields that might have changed, excluding organization_name
+    const updateData: Partial<EventInsert> = {
+      title: data.title,
+      description: data.description,
+      start_time: data.start_time,
+      location: data.location,
+      image_url: data.image_url,
+      coupon_id: data.coupon_id,
+    };
+    
+    const result = await onUpdate(event.id, updateData);
+    if (result.success) {
+      setIsOpen(false);
+    }
+    return result;
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
+          <Pencil className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-purple-300">Esemény szerkesztése</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Frissítsd a "{event.title}" esemény adatait.
+          </DialogDescription>
+        </DialogHeader>
+        <EventForm 
+          onSubmit={handleSubmit} 
+          onClose={() => setIsOpen(false)} 
+          isLoading={isLoading}
+          initialData={event}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
+const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean }> = ({ event, onDelete, onUpdate, isLoading }) => {
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
 
   return (
@@ -24,32 +77,35 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void }> = ({
       )}
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
-            <DialogHeader>
-              <DialogTitle className="text-red-400">Esemény törlése</DialogTitle>
-              <DialogDescription className="text-gray-300">
-                Biztosan törölni szeretnéd a "{event.title}" eseményt? Ez a művelet nem visszavonható.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
-              </DialogClose>
-              <Button 
-                variant="destructive" 
-                onClick={() => onDelete(event.id)}
-              >
-                Törlés megerősítése
+        <div className="flex space-x-2">
+          <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
+                <Trash2 className="h-4 w-4" />
               </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="text-red-400">Esemény törlése</DialogTitle>
+                <DialogDescription className="text-gray-300">
+                  Biztosan törölni szeretnéd a "{event.title}" eseményt? Ez a művelet nem visszavonható.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                </DialogClose>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => onDelete(event.id)}
+                >
+                  Törlés megerősítése
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="space-y-3 flex-grow">
         <CardDescription className="text-gray-400">{event.description || 'Nincs leírás.'}</CardDescription>
@@ -82,7 +138,7 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void }> = ({
 };
 
 const EventsPage = () => {
-  const { events, isLoading, fetchEvents, createEvent, deleteEvent, organizationName } = useEvents();
+  const { events, isLoading, fetchEvents, createEvent, updateEvent, deleteEvent, organizationName } = useEvents();
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
@@ -133,7 +189,13 @@ const EventsPage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {events.map(event => (
-            <EventCard key={event.id} event={event} onDelete={deleteEvent} />
+            <EventCard 
+              key={event.id} 
+              event={event} 
+              onDelete={deleteEvent} 
+              onUpdate={updateEvent}
+              isLoading={isLoading}
+            />
           ))}
         </div>
       )}

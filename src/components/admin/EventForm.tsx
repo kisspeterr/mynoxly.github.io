@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon, Clock, Save, MapPin } from 'lucide-react';
-import { EventInsert } from '@/types/events';
+import { Event, EventInsert } from '@/types/events';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
@@ -34,24 +34,32 @@ interface EventFormProps {
   onSubmit: (data: EventInsert) => Promise<{ success: boolean }>;
   onClose: () => void;
   isLoading: boolean;
+  initialData?: Event; // Optional data for editing
 }
 
-const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading }) => {
+const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
   const { coupons, fetchCoupons, isLoading: isCouponsLoading } = useCoupons();
   
+  // Prepare default values for editing
+  const defaultStartTime = initialData?.start_time ? new Date(initialData.start_time) : new Date();
+  
+  const defaultValues: EventFormData = {
+    title: initialData?.title || '',
+    description: initialData?.description || null,
+    location: initialData?.location || null,
+    image_url: initialData?.image_url || null,
+    coupon_id: initialData?.coupon_id || null,
+    startDate: initialData?.start_time ? defaultStartTime : undefined,
+    time: format(defaultStartTime, 'HH:mm'),
+  };
+
   const { register, handleSubmit, formState: { errors }, setValue, watch, setError } = useForm<EventFormData>({
     resolver: zodResolver(eventSchema),
-    defaultValues: {
-      title: '',
-      description: null,
-      location: null,
-      image_url: null,
-      coupon_id: null,
-      time: format(new Date(), 'HH:mm'),
-    },
+    defaultValues,
   });
 
   const startDate = watch('startDate');
+  const isEditing = !!initialData;
 
   useEffect(() => {
     fetchCoupons();
@@ -206,7 +214,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading }) =
         disabled={isLoading || isCouponsLoading}
       >
         <Save className="h-4 w-4 mr-2" />
-        {isLoading ? 'Mentés...' : 'Esemény létrehozása'}
+        {isLoading ? 'Mentés...' : (isEditing ? 'Esemény frissítése' : 'Esemény létrehozása')}
       </Button>
     </form>
   );

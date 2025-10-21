@@ -70,6 +70,33 @@ export const useEvents = () => {
       setIsLoading(false);
     }
   };
+  
+  const updateEvent = async (id: string, eventData: Partial<EventInsert>) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('events')
+        .update(eventData)
+        .eq('id', id)
+        .select(`
+          *,
+          coupon:coupon_id (id, title, coupon_code)
+        `)
+        .single();
+
+      if (error) {
+        showError(`Hiba az esemény frissítésekor: ${error.message}`);
+        console.error('Update event error:', error);
+        return { success: false };
+      }
+
+      setEvents(prev => prev.map(e => e.id === id ? data as Event : e));
+      showSuccess('Esemény sikeresen frissítve!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const deleteEvent = async (id: string) => {
     setIsLoading(true);
@@ -98,6 +125,7 @@ export const useEvents = () => {
     isLoading,
     fetchEvents,
     createEvent,
+    updateEvent, // Export the new function
     deleteEvent,
     organizationName,
   };

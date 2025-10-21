@@ -64,6 +64,30 @@ export const useCoupons = () => {
       setIsLoading(false);
     }
   };
+  
+  const updateCoupon = async (id: string, couponData: Partial<CouponInsert>) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .update(couponData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        showError(`Hiba a kupon frissítésekor: ${error.message}`);
+        console.error('Update coupon error:', error);
+        return { success: false };
+      }
+
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess('Kupon sikeresen frissítve!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const deleteCoupon = async (id: string) => {
     setIsLoading(true);
@@ -92,6 +116,7 @@ export const useCoupons = () => {
     isLoading,
     fetchCoupons,
     createCoupon,
+    updateCoupon, // Export the new function
     deleteCoupon,
     organizationName,
   };

@@ -7,15 +7,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarIcon, Save } from 'lucide-react';
-import { CouponInsert } from '@/types/coupons';
+import { Coupon, CouponInsert } from '@/types/coupons';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
+// Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
-  description: z.string().nullable(),
+  description: z.string().nullable().optional().transform(e => e === "" ? null : e),
   coupon_code: z.string().min(4, 'A kuponkód túl rövid.'),
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
@@ -29,25 +30,34 @@ interface CouponFormProps {
   onSubmit: (data: CouponInsert) => Promise<{ success: boolean }>;
   onClose: () => void;
   isLoading: boolean;
+  initialData?: Coupon; // Optional data for editing
 }
 
-const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading }) => {
+const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
+  
+  // Prepare default values for editing
+  const defaultValues: CouponFormData = {
+    title: initialData?.title || '',
+    description: initialData?.description || null,
+    coupon_code: initialData?.coupon_code || '',
+    image_url: initialData?.image_url || null,
+    max_uses_per_user: initialData?.max_uses_per_user || 1,
+    total_max_uses: initialData?.total_max_uses || null,
+    // Convert ISO string back to Date object for the date picker
+    expiry_date: initialData?.expiry_date ? new Date(initialData.expiry_date) : null,
+  };
+
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CouponFormData>({
     resolver: zodResolver(couponSchema),
-    defaultValues: {
-      title: '',
-      description: null,
-      coupon_code: '',
-      image_url: null,
-      expiry_date: null,
-      max_uses_per_user: 1,
-      total_max_uses: null,
-    },
+    defaultValues,
   });
 
   const expiryDate = watch('expiry_date');
+  const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: CouponFormData) => {
+    // Ensure coupon_code is not changed if editing (or handle uniqueness constraint carefully)
+    // For simplicity, we allow changing the code, but Supabase will throw an error if it's not unique.
     const result = await onSubmit(data as CouponInsert);
     if (result.success) {
       onClose();
@@ -72,8 +82,10 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading })
           id="coupon_code"
           {...register('coupon_code')}
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+          disabled={isEditing} // Prevent changing the code when editing to avoid complexity with unique constraint checks
         />
         {errors.coupon_code && <p className="text-red-400 text-sm">{errors.coupon_code.message}</p>}
+        {isEditing && <p className="text-gray-500 text-xs">A kuponkód szerkesztése nem engedélyezett.</p>}
       </div>
 
       <div className="space-y-2">
@@ -153,7 +165,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading })
         disabled={isLoading}
       >
         <Save className="h-4 w-4 mr-2" />
-        {isLoading ? 'Mentés...' : 'Kupon létrehozása'}
+        {isLoading ? 'Mentés...' : (isEditing ? 'Kupon frissítése' : 'Kupon létrehozása')}
       </Button>
     </form>
   );
