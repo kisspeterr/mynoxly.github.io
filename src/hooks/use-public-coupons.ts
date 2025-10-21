@@ -18,6 +18,7 @@ export const usePublicCoupons = () => {
   const [usages, setUsages] = useState<CouponUsage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetches all coupons and the current user's finalized usages
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
     try {
@@ -90,14 +91,30 @@ export const usePublicCoupons = () => {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return { success: false };
     }
+    
+    // --- REAL-TIME USAGE CHECK ---
+    // 1. Fetch current usage count directly from the database
+    const { count, error: countError } = await supabase
+      .from('coupon_usages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('coupon_id', coupon.id)
+      .eq('is_used', true);
 
-    // 1. Check max uses per user limit using the local 'usages' state
-    if (isCouponUsedUp(coupon.id, coupon.max_uses_per_user)) {
+    if (countError) {
+      showError('Hiba történt a beváltási korlát ellenőrzésekor.');
+      console.error('Real-time usage check error:', countError);
+      return { success: false };
+    }
+
+    // 2. Check max uses per user limit using the fresh count
+    if (coupon.max_uses_per_user !== 0 && count !== null && count >= coupon.max_uses_per_user) {
       showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
       return { success: false };
     }
+    // -----------------------------
     
-    // 2. Generate unique redemption code
+    // 3. Generate unique redemption code
     let redemptionCode: string;
     let codeIsUnique = false;
     let attempts = 0;
@@ -105,12 +122,12 @@ export const usePublicCoupons = () => {
     // Ensure the generated code is unique (simple retry loop)
     do {
       redemptionCode = generateRedemptionCode();
-      const { count } = await supabase
+      const { count: codeCount } = await supabase
         .from('coupon_usages')
         .select('id', { count: 'exact', head: true })
         .eq('redemption_code', redemptionCode);
       
-      if (count === 0) {
+      if (codeCount === 0) {
         codeIsUnique = true;
       }
       attempts++;
@@ -121,7 +138,7 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
 
-    // 3. Record usage intent (is_used = false initially)
+    // 4. Record usage intent (is_used = false initially)
     try {
       const { data, error } = await supabase
         .from('coupon_usages')
