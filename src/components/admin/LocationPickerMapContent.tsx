@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet'; // Standard import
+import * as L from 'leaflet'; // Changed import style
 import { MapPin } from 'lucide-react';
 
 interface LocationPickerMapContentProps {
