@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MapContainer, TileLayer, Marker } from 'react-leaflet';
-import L from 'leaflet';
+import L from 'leaflet'; // Standard import
 import { MapPin } from 'lucide-react';
 
 interface PublicEventMapContentProps {
@@ -15,7 +15,7 @@ const PublicEventMapContent: React.FC<PublicEventMapContentProps> = ({ lat, lng,
   // Use useMemo to ensure Leaflet icon fix runs only once and only client-side
   useMemo(() => {
     // Fix for default marker icon issue
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && L) {
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
         iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
