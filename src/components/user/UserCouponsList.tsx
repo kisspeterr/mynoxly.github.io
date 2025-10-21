@@ -36,19 +36,19 @@ const UsageCard: React.FC<{ usage: UserUsageRecord }> = ({ usage }) => {
     switch (status) {
       case 'active':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-600/50 text-yellow-300 animate-pulse">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-600/50 text-yellow-300 animate-pulse whitespace-nowrap">
             <Clock className="h-3 w-3 mr-1" /> Aktív: {formatTimeLeft(usage.timeLeftMs)}
           </span>
         );
       case 'used':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600/50 text-green-300">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600/50 text-green-300 whitespace-nowrap">
             <CheckCircle className="h-3 w-3 mr-1" /> Beváltva
           </span>
         );
       case 'expired':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-600/50 text-red-300">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-600/50 text-red-300 whitespace-nowrap">
             <XCircle className="h-3 w-3 mr-1" /> Lejárt
           </span>
         );
@@ -58,7 +58,8 @@ const UsageCard: React.FC<{ usage: UserUsageRecord }> = ({ usage }) => {
   return (
     <Card className={`bg-black/50 backdrop-blur-sm text-white transition-shadow duration-300 ${statusClasses[usage.status]}`}>
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl text-cyan-300">{coupon.title}</CardTitle>
+        {/* Ensure title doesn't push badge off screen */}
+        <CardTitle className="text-xl text-cyan-300 mr-2 break-words max-w-[70%]">{coupon.title}</CardTitle>
         {statusBadge(usage.status)}
       </CardHeader>
       <CardContent className="space-y-3 text-left text-sm">
@@ -66,18 +67,18 @@ const UsageCard: React.FC<{ usage: UserUsageRecord }> = ({ usage }) => {
         
         <div className="pt-2 border-t border-gray-700/50 space-y-2">
           <div className="flex items-center text-gray-300">
-            <MapPin className="h-4 w-4 mr-2 text-purple-400" />
-            Szervezet: <span className="font-semibold ml-1 text-white">{coupon.organization_name}</span>
+            <MapPin className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0" />
+            Szervezet: <span className="font-semibold ml-1 text-white break-all">{coupon.organization_name}</span>
           </div>
           
           <div className="flex items-center text-gray-300">
-            <Tag className="h-4 w-4 mr-2 text-purple-400" />
-            Beváltási kód: <span className="font-mono ml-1 text-white">{usage.redemption_code}</span>
+            <Tag className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0" />
+            Beváltási kód: <span className="font-mono ml-1 text-white break-all">{usage.redemption_code}</span>
           </div>
           
           <div className="flex items-center text-gray-300">
-            <Calendar className="h-4 w-4 mr-2 text-purple-400" />
-            Generálva: <span className="ml-1 font-medium">{format(new Date(usage.redeemed_at), 'yyyy. MM. dd. HH:mm')}</span>
+            <Calendar className="h-4 w-4 mr-2 text-purple-400 flex-shrink-0" />
+            Generálva: <span className="ml-1 font-medium break-all">{format(new Date(usage.redeemed_at), 'yyyy. MM. dd. HH:mm')}</span>
           </div>
         </div>
       </CardContent>

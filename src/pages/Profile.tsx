@@ -36,7 +36,10 @@ const Profile = () => {
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-6 text-cyan-300">Felhasználói Profil</h1>
         
+        {/* Responsive Grid Layout: Stacks on mobile, 1/3 - 2/3 split on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* Left Column: Profile Card and Actions (Full width on mobile, 1/3 on large) */}
           <div className="lg:col-span-1 space-y-6">
             {profile && <ProfileCard profile={profile} email={user?.email} />}
             
@@ -56,6 +59,7 @@ const Profile = () => {
             </div>
           </div>
           
+          {/* Right Column: Coupons List (Full width on mobile, 2/3 on large) */}
           <div className="lg:col-span-2">
             <UserCouponsList />
           </div>
