@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Clock, Save, MapPin, Mail, Info } from 'lucide-react';
+import { CalendarIcon, Clock, Save, MapPin } from 'lucide-react';
 import { Event, EventInsert } from '@/types/events';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -15,7 +15,6 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCoupons } from '@/hooks/use-coupons';
 import { showError } from '@/utils/toast';
-import { Switch } from '@/components/ui/switch';
 
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
@@ -33,11 +32,6 @@ const eventSchema = z.object({
   // End Date and Time handling (Optional)
   endDate: z.date().nullable().optional(),
   endTime: z.string().regex(timeRegex, "Érvénytelen vég idő formátum (HH:MM).").nullable().optional().transform(e => e === "" ? null : e),
-  
-  // NEW Email fields
-  send_email_notification: z.boolean().default(false),
-  email_subject: z.string().nullable().optional().transform(e => e === "" ? null : e),
-  email_body: z.string().nullable().optional().transform(e => e === "" ? null : e),
 }).refine(data => {
     // Custom validation: If endTime is provided, endDate must also be provided
     if (data.endTime && !data.endDate) {
@@ -65,15 +59,6 @@ const eventSchema = z.object({
 }, {
     message: "A befejezési időnek későbbinek kell lennie, mint a kezdési idő.",
     path: ["endTime"],
-}).refine(data => {
-    // Conditional validation: If email notification is enabled, subject and body are required
-    if (data.send_email_notification) {
-        return data.email_subject && data.email_body;
-    }
-    return true;
-}, {
-    message: "Az email értesítéshez a tárgy és a törzs is kötelező.",
-    path: ["email_subject"],
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -102,11 +87,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     startTime: format(defaultStartTime, 'HH:mm'),
     endDate: defaultEndTime,
     endTime: defaultEndTime ? format(defaultEndTime, 'HH:mm') : null,
-    
-    // NEW Email fields
-    send_email_notification: initialData?.send_email_notification ?? false,
-    email_subject: initialData?.email_subject || null,
-    email_body: initialData?.email_body || null,
   };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, setError } = useForm<EventFormData>({
@@ -116,7 +96,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
 
   const startDate = watch('startDate');
   const endDate = watch('endDate');
-  const sendEmailNotification = watch('send_email_notification');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: EventFormData) => {
@@ -142,10 +121,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       showError('Érvénytelen dátum vagy időpont.');
       return;
     }
-    
-    // Ensure email fields are null if notification is disabled
-    const finalEmailSubject = data.send_email_notification ? data.email_subject : null;
-    const finalEmailBody = data.send_email_notification ? data.email_body : null;
 
     const eventInsert: EventInsert = {
       title: data.title,
@@ -155,11 +130,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       coupon_id: data.coupon_id,
       start_time: startDateTime.toISOString(),
       end_time: endDateTime ? endDateTime.toISOString() : null, // NEW
-      
-      // NEW Email fields
-      send_email_notification: data.send_email_notification,
-      email_subject: finalEmailSubject,
-      email_body: finalEmailBody,
     };
 
     const result = await onSubmit(eventInsert);
@@ -329,56 +299,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
           </SelectContent>
         </Select>
         {errors.coupon_id && <p className="text-red-400 text-sm">{errors.coupon_id.message}</p>}
-      </div>
-      
-      {/* Email Notification Section for Events */}
-      <div className="pt-4 border-t border-gray-700/50 space-y-4">
-        <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-            <div className="flex items-center space-x-2">
-                <Mail className="h-5 w-5 text-pink-400" />
-                <Label htmlFor="send_email_notification" className="text-gray-300 font-semibold">
-                    Email értesítés küldése érdeklődéskor?
-                </Label>
-            </div>
-            <Switch
-                id="send_email_notification"
-                checked={sendEmailNotification}
-                onCheckedChange={(checked) => setValue('send_email_notification', checked, { shouldValidate: true })}
-                className="data-[state=checked]:bg-pink-600 data-[state=unchecked]:bg-gray-600"
-                {...register('send_email_notification')}
-            />
-        </div>
-        
-        {sendEmailNotification && (
-            <div className="space-y-4 p-4 border border-pink-500/30 rounded-lg">
-                <div className="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300 flex items-start">
-                    <Info className="h-5 w-5 mr-2 flex-shrink-0 mt-1" />
-                    <p className="text-left">
-                        Használható változók: <code>{'{{event_title}}'}</code> (az esemény címe) és <code>{'{{organization_name}}'}</code> (a szervezet neve).
-                    </p>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email_subject" className="text-gray-300">Email Tárgy *</Label>
-                    <Input 
-                      id="email_subject"
-                      type="text" 
-                      {...register('email_subject')}
-                      className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-                    />
-                    {errors.email_subject && <p className="text-red-400 text-sm">{errors.email_subject.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email_body" className="text-gray-300">Email Törzs (HTML/Text) *</Label>
-                    <Textarea 
-                      id="email_body"
-                      rows={6}
-                      {...register('email_body')}
-                      className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 font-mono"
-                    />
-                    {errors.email_body && <p className="text-red-400 text-sm">{errors.email_body.message}</p>}
-                </div>
-            </div>
-        )}
       </div>
 
       <Button 

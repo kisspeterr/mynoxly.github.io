@@ -191,18 +191,6 @@ export const useInterestedEvents = () => {
         }
         return;
       }
-      
-      // NEW: Call RPC to send email notification
-      try {
-          await supabase.rpc('send_event_interest_email', {
-              event_id_in: eventId,
-              user_id_in: user.id,
-          });
-      } catch (rpcError) {
-          console.error('Error sending event interest email via RPC:', rpcError);
-          // We don't show an error to the user here, as the main action succeeded.
-      }
-      
       showSuccess(`Érdeklődés hozzáadva: ${eventTitle}!`);
     }
     
