@@ -24,7 +24,7 @@ const initialAuthState: AuthState = {
   session: null,
   user: null,
   profile: null,
-  isLoading: true,
+  isLoading: true, // Start loading
 };
 
 export const useAuth = () => {
@@ -68,7 +68,7 @@ export const useAuth = () => {
       let user: User | null = null;
 
       try {
-        // 1. Get Session (This also triggers a refresh if needed)
+        // 1. Get Session (This is the primary source of truth)
         const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -99,13 +99,14 @@ export const useAuth = () => {
 
     initialLoad();
 
-    // 2. Real-time auth state changes
+    // 3. Real-time auth state changes (Handles sign in/out/token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
-      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED)
-      // We only set loading true if we expect a profile fetch or a significant change
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      // Only set loading true for active user actions (sign in/out)
+      let loading = false;
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        loading = true;
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
       
@@ -118,46 +119,11 @@ export const useAuth = () => {
       updateAuthState(session, profile, false);
     });
     
-    // 3. Handle focus event for session refresh (Crucial for mobile/tab switching)
-    const handleFocus = async () => {
-        if (!isMounted) return;
-        
-        // Set loading state immediately to prevent UI flicker/hanging
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-        
-        try {
-            // Explicitly refresh the session
-            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-            
-            let profile: Profile | null = null;
-            if (refreshedSession) {
-                profile = await fetchProfile(refreshedSession.user.id);
-            }
-            
-            if (isMounted) {
-                // Update state with the refreshed session and profile
-                updateAuthState(refreshedSession, profile, false);
-            }
-            
-            if (refreshError) {
-                console.error("Session refresh error on focus:", refreshError);
-            }
-        } catch (error) {
-            console.error("Unexpected error during focus refresh:", error);
-            if (isMounted) {
-                // Ensure loading state is cleared even on error
-                updateAuthState(null, null, false);
-            }
-        }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
+    // Removed window.addEventListener('focus', handleFocus) as Supabase handles session refresh internally.
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
     };
   }, []); 
 
