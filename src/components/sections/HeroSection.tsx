@@ -29,7 +29,7 @@ const HeroSection = () => {
       <div className="container mx-auto text-center">
         <Badge className="mb-6 bg-purple-500/20 text-purple-300 border-purple-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
-          Pécsi Bulizók Kedvence
+          Exkluzív Kuponok Pécsen
         </Badge>
         
         <div className="flex justify-center mb-6">
@@ -46,11 +46,11 @@ const HeroSection = () => {
         </h1>
         
         <p className="text-xl md:text-3xl font-semibold text-white mb-4 max-w-4xl mx-auto">
-          Ahol az éjszaka kezdődik. Exkluzív kuponok, események és hűségpontok Pécsen.
+          Exkluzív kuponok, események és hűségpontok Pécsen.
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-3xl mx-auto">
-          Spórolj a bulikon, gyűjts pontokat a kedvenc helyeiden, és fedezd fel a város legjobb akcióit. Ne maradj le a NOXLY-val!
+          Gyűjts pontokat a kedvenc helyeiden, és fedezd fel a város legjobb akcióit. Ne maradj le a NOXLY-val!
         </p>
         
         {/* Responsive Button Group: Stacks on mobile, horizontal on larger screens */}
