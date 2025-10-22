@@ -120,7 +120,7 @@ const CouponsSection = () => {
         ) : coupons.length === 0 ? (
           <p className="text-gray-400 text-center mt-10">Jelenleg nincsenek aktív kuponok.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex flex-wrap justify-center gap-8">
             {coupons.map((coupon) => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
               const pending = isAuthenticated && isCouponPending(coupon.id);
@@ -161,7 +161,7 @@ const CouponsSection = () => {
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                 >
                   <CardHeader className="pb-4">
                     {coupon.image_url && (

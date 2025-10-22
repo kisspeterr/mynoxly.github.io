@@ -56,7 +56,7 @@ const EventsSection = () => {
         ) : events.length === 0 ? (
           <p className="text-gray-400 text-center mt-10">Jelenleg nincsenek meghirdetett események.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex flex-wrap justify-center gap-8">
             {events.map((event) => {
               const logoUrl = (event as PublicEvent).logo_url;
               const interested = isInterested(event.id);
@@ -65,7 +65,7 @@ const EventsSection = () => {
               return (
                 <Card 
                   key={event.id} 
-                  className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col"
+                  className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm"
                 >
                   {event.image_url && (
                     <div className="h-40 w-full overflow-hidden rounded-t-xl">
