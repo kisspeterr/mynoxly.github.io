@@ -89,7 +89,8 @@ export const useAuth = () => {
       // Hiba esetén is zárjuk le a loading állapotot
       updateAuthState(null, null, false);
     }
-    
+    }
+  };
 
     initialLoad();
 
