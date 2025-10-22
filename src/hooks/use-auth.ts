@@ -48,31 +48,10 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    let ignore = false;
-
-    const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (ignore) return;
-
-      let userProfile: Profile | null = null;
-      if (session?.user) {
-        userProfile = await fetchProfile(session.user.id);
-      }
-
-      setAuthState({
-        session,
-        user: session?.user ?? null,
-        profile: userProfile,
-        isLoading: false,
-      });
-    };
-
-    getInitialSession();
-
+    // onAuthStateChange is called immediately with the current session,
+    // so we don't need a separate getSession() call. This is the single source of truth.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        if (ignore) return;
-
+      async (event, session) => {
         let userProfile: Profile | null = null;
         if (session?.user) {
           userProfile = await fetchProfile(session.user.id);
@@ -82,13 +61,12 @@ export const useAuth = () => {
           session,
           user: session?.user ?? null,
           profile: userProfile,
-          isLoading: false,
+          isLoading: false, // This will be set after the initial check is complete.
         });
       }
     );
 
     return () => {
-      ignore = true;
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
