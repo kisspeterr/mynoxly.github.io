@@ -16,7 +16,7 @@ interface PublicEvent extends Event {
   logo_url: string | null;
 }
 
-const PublicEventsSection = () => {
+const EventsSection = () => {
   const { events, isLoading } = usePublicEvents();
   const { isAuthenticated } = useAuth();
   const { isInterested, toggleInterest } = useInterestedEvents();
@@ -157,4 +157,4 @@ const PublicEventsSection = () => {
   );
 };
 
-export default PublicEventsSection;
+export default EventsSection;
