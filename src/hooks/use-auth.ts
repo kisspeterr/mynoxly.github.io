@@ -60,44 +60,43 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    let isMounted = true;
-    
-    const initialLoad = async () => {
-      let session: Session | null = null;
-      let profile: Profile | null = null;
-      let user: User | null = null;
+  let isMounted = true;
 
-      try {
-        // 1. Get Session (This also triggers a refresh if needed)
-        const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Initial Supabase session fetch failed:", sessionError);
-        }
-        
-        session = fetchedSession;
-        user = session?.user || null;
+  const initialLoad = async () => {
+    try {
+      // 1️⃣ Try to get session (from storage or Supabase)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-        // 2. Fetch Profile if session exists
-        if (user) {
-          profile = await fetchProfile(user.id);
-        }
-        
-        if (isMounted) {
-          // Set final state: isAuthenticated, profile loaded, isLoading=false
-          updateAuthState(session, profile, false);
-        }
-
-      } catch (error) {
-        console.error("Unexpected error during initial auth load:", error);
-        if (isMounted) {
-          // If any unexpected error occurs, clear loading state
-          updateAuthState(null, null, false);
-        }
+      if (sessionError) {
+        console.error("Initial Supabase session fetch failed:", sessionError);
       }
-    };
 
-    initialLoad();
+      // 2️⃣ If user exists, try loading the profile
+      let profile: Profile | null = null;
+      if (session?.user) {
+        profile = await fetchProfile(session.user.id);
+      }
+
+      // 3️⃣ Set final state no matter what → IMPORTANT
+      if (isMounted) {
+        updateAuthState(session, profile, false); // isLoading always becomes false
+      }
+
+    } catch (error) {
+      console.error("Unexpected error during initial auth load:", error);
+      if (isMounted) {
+        updateAuthState(null, null, false); // Safely stop loading
+      }
+    }
+  };
+
+  initialLoad();
+
+  return () => {
+    isMounted = false;
+  };
+}, []);
+
 
     // 2. Real-time auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
