@@ -1,11 +1,14 @@
-import { Moon, MessageCircle, Share, Heart } from "lucide-react";
+import { Moon, MessageCircle, Share, Heart, Gift, Calendar, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const FooterSection = () => {
   return (
     <footer className="py-12 px-6 bg-black/50 border-t border-cyan-500/20">
       <div className="container mx-auto">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid md:grid-cols-5 gap-8">
+          
+          {/* Column 1: Logo and Description */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <Moon className="h-8 w-8 text-cyan-400 animate-pulse" />
@@ -14,10 +17,33 @@ const FooterSection = () => {
               </span>
             </div>
             <p className="text-gray-400">
-              Városod éjszakai élete egy modern alkalmazásban. Hamarosan Pécsen!
+              Városod éjszakai élete egy modern alkalmazásban.
             </p>
           </div>
           
+          {/* Column 2: Navigation Links */}
+          <div>
+            <h3 className="text-cyan-300 font-semibold mb-4">Navigáció</h3>
+            <ul className="space-y-2">
+              <li>
+                <a href="/#coupons-section" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300 flex items-center">
+                  <Gift className="h-4 w-4 mr-2" /> Kuponok
+                </a>
+              </li>
+              <li>
+                <a href="/#events-section" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300 flex items-center">
+                  <Calendar className="h-4 w-4 mr-2" /> Események
+                </a>
+              </li>
+              <li>
+                <a href="/#organizers-section" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300 flex items-center">
+                  <Building className="h-4 w-4 mr-2" /> Partnerek
+                </a>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Column 3: Contact */}
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Kapcsolat</h3>
             <ul className="space-y-2">
@@ -26,15 +52,17 @@ const FooterSection = () => {
             </ul>
           </div>
           
+          {/* Column 4: Partners & Legal */}
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Partnereknek</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Partneri jelentkezés</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Média és sajtó</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Admin bejelentkezés</a></li>
+              <li><Link to="/" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Partneri jelentkezés</Link></li>
+              <li><Link to="/" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Média és sajtó</Link></li>
+              <li><Link to="/login" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Admin bejelentkezés</Link></li>
             </ul>
           </div>
           
+          {/* Column 5: Social Media */}
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Kövess minket</h3>
             <div className="flex space-x-4">
