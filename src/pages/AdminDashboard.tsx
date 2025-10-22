@@ -3,11 +3,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
 import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
+import ProfileSettingsPage from '@/components/admin/ProfileSettingsPage'; // Import new page
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -50,7 +51,7 @@ const AdminDashboard = () => {
             <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
               <Link to="/profile">
                 <User className="h-4 w-4 mr-2" />
-                Profil
+                Személyes Profil
               </Link>
             </Button>
             <Button asChild variant="outline" className="border-green-400 text-green-400 hover:bg-green-400/10">
@@ -77,7 +78,7 @@ const AdminDashboard = () => {
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center">
                     <User className="h-4 w-4 mr-2 text-cyan-400" />
-                    Profil
+                    Személyes Profil
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
@@ -101,7 +102,7 @@ const AdminDashboard = () => {
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             {/* Tabs List - Full width on mobile */}
-            <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-4 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
               <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
                 <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
               </TabsTrigger>
@@ -110,6 +111,9 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
                 <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
+                <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
               </TabsTrigger>
             </TabsList>
             <div className="mt-6">
@@ -121,6 +125,9 @@ const AdminDashboard = () => {
               </TabsContent>
               <TabsContent value="usages">
                 <CouponUsagesPage />
+              </TabsContent>
+              <TabsContent value="settings">
+                <ProfileSettingsPage />
               </TabsContent>
             </div>
           </Tabs>

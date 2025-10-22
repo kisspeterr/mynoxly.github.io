@@ -10,6 +10,7 @@ interface Profile {
   avatar_url: string | null;
   role: 'user' | 'admin'; // Simplified roles
   organization_name: string | null; // Added missing field
+  logo_url: string | null; // Added new field
 }
 
 interface AuthState {
@@ -33,7 +34,7 @@ export const useAuth = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role, organization_name') // Fetching all fields
+        .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url') // Fetching all fields including logo_url
         .eq('id', userId)
         .single();
 
@@ -133,5 +134,6 @@ export const useAuth = () => {
     signOut,
     isAdmin: authState.profile?.role === 'admin', // Simplified check
     isAuthenticated: !!authState.user,
+    fetchProfile, // Export fetchProfile for manual refresh after update
   };
 };

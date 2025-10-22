@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,13 @@ import RedemptionModal from '@/components/RedemptionModal';
 import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons'; // Import Coupon type
 
+// Extend Coupon type to include organization profile data
+interface PublicCoupon extends Coupon {
+  organization_profile: {
+    logo_url: string | null;
+  } | null;
+}
+
 const PublicCouponsSection = () => {
   const { coupons, isLoading, redeemCoupon, isCouponUsedUp, isCouponPending, refreshUsages, deletePendingUsage } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
@@ -21,7 +28,7 @@ const PublicCouponsSection = () => {
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
 
-  const handleRedeemClick = async (coupon: Coupon) => {
+  const handleRedeemClick = async (coupon: PublicCoupon) => {
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return;
@@ -106,6 +113,7 @@ const PublicCouponsSection = () => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
               const pending = isAuthenticated && isCouponPending(coupon.id);
               const isDisabled = usedUp || pending || isRedeeming; // Disable if redeeming globally
+              const logoUrl = (coupon as PublicCoupon).organization_profile?.logo_url;
               
               return (
                 <Card 
@@ -123,7 +131,25 @@ const PublicCouponsSection = () => {
                       </div>
                     )}
                     <CardTitle className="text-2xl text-cyan-300">{coupon.title}</CardTitle>
-                    <CardDescription className="text-gray-400">{coupon.organization_name}</CardDescription>
+                    
+                    {/* Organization Name with Logo and Link */}
+                    <Link 
+                      to={`/organization/${coupon.organization_name}`}
+                      className="flex items-center text-gray-400 hover:text-cyan-300 transition-colors duration-300 group"
+                    >
+                      {logoUrl ? (
+                        <img 
+                          src={logoUrl} 
+                          alt={coupon.organization_name} 
+                          className="h-6 w-6 rounded-full object-cover mr-2 border border-gray-600 group-hover:border-cyan-400"
+                        />
+                      ) : (
+                        <Building className="h-5 w-5 mr-2 text-gray-500 group-hover:text-cyan-400" />
+                      )}
+                      <CardDescription className="text-gray-400 group-hover:text-cyan-300 transition-colors duration-300">
+                        {coupon.organization_name}
+                      </CardDescription>
+                    </Link>
                   </CardHeader>
                   <CardContent className="space-y-3 flex-grow text-left">
                     <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>

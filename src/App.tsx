@@ -9,6 +9,7 @@ import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
+import OrganizationProfile from "./pages/OrganizationProfile"; // Import new page
 import AuthLoader from "./components/AuthLoader"; // Import AuthLoader
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/code" element={<RedemptionPage />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> {/* New dynamic route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -12,9 +12,16 @@ interface CouponUsage {
   is_used: boolean;
 }
 
+// Extend Coupon type to include organization profile data
+interface PublicCoupon extends Coupon {
+  organization_profile: {
+    logo_url: string | null;
+  } | null;
+}
+
 export const usePublicCoupons = () => {
   const { user, isAuthenticated } = useAuth();
-  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [coupons, setCoupons] = useState<PublicCoupon[]>([]);
   // Store ALL usages (pending and used) to manage button state
   const [allUsages, setAllUsages] = useState<CouponUsage[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
@@ -23,20 +30,13 @@ export const usePublicCoupons = () => {
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch all coupons (RLS policy allows public read)
+      // 1. Fetch all coupons and join organization profile data
       const { data: couponData, error: couponError } = await supabase
         .from('coupons')
         .select(`
-          id,
-          organization_name,
-          title,
-          description,
-          image_url,
-          expiry_date,
-          max_uses_per_user,
-          total_max_uses,
-          created_at
-        `) // Removed coupon_code
+          *,
+          organization_profile:organization_name (logo_url)
+        `) // Fetching all fields and joining logo_url
         .order('created_at', { ascending: false });
 
       if (couponError) {
@@ -45,7 +45,7 @@ export const usePublicCoupons = () => {
         setCoupons([]);
         return;
       }
-      setCoupons(couponData as Coupon[]);
+      setCoupons(couponData as PublicCoupon[]);
 
       // 2. Fetch current user's ALL usages if authenticated (pending and finalized)
       if (isAuthenticated && user) {
