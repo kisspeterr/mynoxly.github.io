@@ -78,7 +78,7 @@ const UserInterestedEventsList: React.FC = () => {
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold text-red-300 flex items-center gap-2">
-        <Calendar className="h-6 w-6" />
+        <Heart className="h-6 w-6 fill-red-400 text-red-400" />
         Érdeklődő Eseményeim ({interestedEvents.length})
       </h2>
 
