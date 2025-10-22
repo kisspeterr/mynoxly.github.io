@@ -10,36 +10,11 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
 import OrganizationProfile from "./pages/OrganizationProfile";
-import { AuthProvider, useAuth } from "./hooks/use-auth"; // Import AuthProvider and useAuth
-import { Loader2 } from "lucide-react";
+import { AuthProvider } from "./hooks/use-auth";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminRoute from "./components/auth/AdminRoute";
 
 const queryClient = new QueryClient();
-
-// Inner component to access auth context
-const AppRoutes = () => {
-  const { isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mr-3" />
-        <p className="text-cyan-400">Hitelesítés...</p>
-      </div>
-    );
-  }
-
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
-      <Route path="/code" element={<RedemptionPage />} />
-      <Route path="/profile" element={<Profile />} />
-      <Route path="/organization/:organizationName" element={<OrganizationProfile />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -48,7 +23,43 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <AppRoutes />
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/organization/:organizationName" element={<OrganizationProfile />} />
+            
+            {/* Protected Routes (Authenticated Users) */}
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Admin Routes (Admin Users Only) */}
+            <Route 
+              path="/admin/dashboard" 
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              } 
+            />
+            <Route 
+              path="/code" 
+              element={
+                <AdminRoute>
+                  <RedemptionPage />
+                </AdminRoute>
+              } 
+            />
+
+            {/* Not Found Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

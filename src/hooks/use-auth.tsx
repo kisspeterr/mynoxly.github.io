@@ -66,6 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // This will be called after the initial session is handled, or after any auth change.
+      // This is the only place we should set loading to false.
       setIsLoading(false);
     });
 
