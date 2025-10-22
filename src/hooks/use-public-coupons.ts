@@ -178,7 +178,7 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
       
-      await refreshUsages(); 
+      // We don't call refreshUsages here, we let the caller handle it or rely on Realtime
       return { success: true };
     } catch (error) {
       console.error('Unexpected error during pending usage deletion:', error);
@@ -193,20 +193,20 @@ export const usePublicCoupons = () => {
     return count >= maxUses;
   };
   
-  const isCouponPending = (couponId: string): { isPending: boolean, usageId?: string } => {
+  // Returns the pending usage object if one exists and is NOT expired
+  const getActivePendingUsage = (couponId: string): CouponUsage | undefined => {
     const pendingUsage = allUsages.find(u => u.coupon_id === couponId && u.is_used === false);
     
     if (!pendingUsage) {
-        return { isPending: false };
+        return undefined;
     }
     
+    // If it's expired, treat it as non-pending for the purpose of generating a new code
     if (isPendingExpired(pendingUsage)) {
-        // Automatically delete expired pending usage
-        deletePendingUsage(pendingUsage.id);
-        return { isPending: false };
+        return undefined;
     }
     
-    return { isPending: true, usageId: pendingUsage.id };
+    return pendingUsage;
   };
   
   const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
@@ -215,13 +215,27 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
     
-    const pendingCheck = isCouponPending(coupon.id);
-    if (pendingCheck.isPending) {
+    // 1. Check for active pending usage
+    const activePendingCheck = getActivePendingUsage(coupon.id);
+    if (activePendingCheck) {
         showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
         return { success: false };
     }
+    
+    // 2. Check for expired pending usages and delete them synchronously before proceeding
+    const expiredPendingUsages = allUsages.filter(u => u.coupon_id === coupon.id && u.is_used === false && isPendingExpired(u));
+    
+    if (expiredPendingUsages.length > 0) {
+        // Delete all expired pending usages for this coupon
+        const deletePromises = expiredPendingUsages.map(u => deletePendingUsage(u.id));
+        await Promise.all(deletePromises);
+        
+        // After deletion, refresh the local state to ensure the usage count is correct
+        // This is crucial for the next step (usage limit check)
+        await refreshUsages();
+    }
 
-    // Check finalized usage count (re-check against DB for safety)
+    // 3. Check finalized usage count (re-check against DB for safety)
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
@@ -280,6 +294,9 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
       
+      // Refresh usages immediately after successful insertion to update local state
+      await refreshUsages();
+      
       return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
 
     } catch (error) {
@@ -294,8 +311,8 @@ export const usePublicCoupons = () => {
     isLoading,
     redeemCoupon,
     isCouponUsedUp,
-    isCouponPending: (couponId: string) => isCouponPending(couponId).isPending, // Simplify return for component
-    getPendingUsageId: (couponId: string) => isCouponPending(couponId).usageId, // New helper for component
+    isCouponPending: (couponId: string) => !!getActivePendingUsage(couponId), // Check if active pending exists
+    getPendingUsageId: (couponId: string) => getActivePendingUsage(couponId)?.id, // Get ID of active pending usage
     refreshUsages,
     deletePendingUsage,
   };

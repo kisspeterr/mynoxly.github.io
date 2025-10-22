@@ -18,7 +18,15 @@ interface PublicCoupon extends Coupon {
 }
 
 const PublicCouponsSection = () => {
-  const { coupons, isLoading, redeemCoupon, isCouponUsedUp, isCouponPending, refreshUsages, deletePendingUsage } = usePublicCoupons();
+  const { 
+    coupons, 
+    isLoading, 
+    redeemCoupon, 
+    isCouponUsedUp, 
+    isCouponPending, 
+    refreshUsages, 
+    deletePendingUsage 
+  } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
   
   const [isRedeeming, setIsRedeeming] = useState(false); // Local loading state for redemption
@@ -76,8 +84,10 @@ const PublicCouponsSection = () => {
       refreshUsages(); 
     } else if (usageIdToClear) {
       // If closed by user AND not redeemed, delete the pending usage record
+      // The hook now handles deletion of expired codes before redemption, 
+      // but we still need to delete the currently active one if the user closes the modal manually.
       await deletePendingUsage(usageIdToClear);
-      // refreshUsages is called inside deletePendingUsage
+      refreshUsages(); // Refresh after manual deletion
     }
   };
 

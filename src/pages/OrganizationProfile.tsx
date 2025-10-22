@@ -180,6 +180,7 @@ const OrganizationProfile = () => {
     } else if (usageIdToClear) {
       // If closed by user AND not redeemed, delete the pending usage record
       await deletePendingUsage(usageIdToClear);
+      refreshUsages(); // Refresh after manual deletion
     }
   };
   // --- End Redemption Logic ---
