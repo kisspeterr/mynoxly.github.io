@@ -24,7 +24,6 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
     
     // CRITICAL CHECK: If date is invalid (NaN), stop execution and show error state
     if (isNaN(startTime)) {
-      // If the date is invalid, treat it as expired/invalid
       setIsExpired(true);
       setTimeLeftMs(0);
       return;
@@ -32,12 +31,16 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
 
     const expiryTime = startTime + REDEMPTION_DURATION_MS;
 
-    const calculateTimeLeft = () => {
+    let timer: number | undefined;
+
+    const calculateAndUpdateTime = () => {
       const now = Date.now();
       const remaining = expiryTime - now;
       
       if (remaining <= 0) {
-        clearInterval(timer);
+        if (timer !== undefined) {
+            clearInterval(timer);
+        }
         setIsExpired(true);
         return 0;
       }
@@ -45,7 +48,7 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
     };
 
     // Initial calculation
-    const initialTimeLeft = calculateTimeLeft();
+    const initialTimeLeft = calculateAndUpdateTime();
     setTimeLeftMs(initialTimeLeft);
     
     // If already expired on load, don't start timer
@@ -53,16 +56,21 @@ const UsageCountdown: React.FC<UsageCountdownProps> = ({ redeemedAt, isUsed }) =
         return;
     }
 
-    const timer = setInterval(() => {
-      const remaining = calculateTimeLeft();
+    // Start timer
+    timer = setInterval(() => {
+      const remaining = calculateAndUpdateTime();
       setTimeLeftMs(remaining);
       
       if (remaining <= 0) {
-          clearInterval(timer);
+          // The interval is cleared inside calculateAndUpdateTime when remaining <= 0
       }
-    }, 1000);
+    }, 1000) as unknown as number; // Cast to number for compatibility
 
-    return () => clearInterval(timer);
+    return () => {
+      if (timer !== undefined) {
+        clearInterval(timer);
+      }
+    };
   }, [redeemedAt, isUsed]);
 
   if (isUsed) {
