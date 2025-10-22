@@ -143,7 +143,7 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
               </DialogTrigger>
               <DialogContent className="bg-black/80 border-gray-500/30 backdrop-blur-sm max-w-sm">
                 <DialogHeader>
-                  <DialogTitle className="text-gray-400">Kupon archiválása</DialogályTitle>
+                  <DialogTitle className="text-gray-400">Kupon archiválása</DialogTitle>
                   <DialogDescription className="text-gray-300">
                     Biztosan archiválni szeretnéd a "{coupon.title}" kupont? Ez inaktiválja és elrejti a nyilvános nézetből.
                   </DialogDescription>
