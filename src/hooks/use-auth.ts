@@ -27,7 +27,7 @@ const initialAuthState: AuthState = {
   session: null,
   user: null,
   profile: null,
-  isLoading: true,
+  isLoading: true, // CRITICAL: Must be true initially
 };
 
 export const useAuth = () => {
@@ -69,22 +69,31 @@ export const useAuth = () => {
 
     // 1️⃣ Inicializálás - Session + Profile lekérés
     const initialLoad = async () => {
+      let session: Session | null = null;
+      let profile: Profile | null = null;
+      
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) console.error('Initial session error:', error);
+        // 1. Próbáljuk meg lekérni a sessiont a kliensből (localStorage)
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        session = sessionData.session;
+        
+        if (error) {
+            console.error('Initial session error:', error);
+        }
 
-        let profile: Profile | null = null;
+        // 2. Ha van session, töltsük be a profilt
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
 
-        if (isMounted) {
-          updateAuthState(session, profile, false);
-        }
       } catch (err) {
         console.error('Initial auth load failed:', err);
+      } finally {
+        // 3. CRITICAL: Mindig állítsuk be az isLoading-ot false-ra a végén.
+        // Mivel ez a hívás aszinkron, a setAuthState-t csak akkor hívjuk meg, ha a komponens még mountolva van.
+        // DE a session és profile adatok már rendelkezésre állnak.
         if (isMounted) {
-          updateAuthState(null, null, false);
+          updateAuthState(session, profile, false);
         }
       }
     };
@@ -96,49 +105,28 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+        // Ha bejelentkezés vagy kijelentkezés történik, ideiglenesen mutassuk a loadert
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            setAuthState((prev) => ({ ...prev, isLoading: true }));
+        }
 
         let profile: Profile | null = null;
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
 
+        // Mindig befejezzük a betöltést
         updateAuthState(session, profile, false);
       }
     );
 
-    // 3️⃣ Ha visszatérsz az oldalra / mobilról → session frissítés
-    const handleFocus = async () => {
-      if (!isMounted) return;
-
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-
-      try {
-        const { data: { session }, error } = await supabase.auth.refreshSession();
-        if (error) console.error('Session refresh error:', error);
-
-        let profile = null;
-        if (session?.user) {
-          profile = await fetchProfile(session.user.id);
-        }
-
-        if (isMounted) updateAuthState(session, profile, false);
-      } catch (err) {
-        console.error('Focus refresh error:', err);
-        if (isMounted) updateAuthState(null, null, false);
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    // 4️⃣ Takarítás memóriahibák ellen
+    // 3️⃣ Takarítás memóriahibák ellen
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
     };
-  }, []);
-
+  }, []); // Dependency array is empty, runs only once on mount
+  
   // 🔹 Kijelentkezés
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
