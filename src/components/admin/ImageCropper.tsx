@@ -1,4 +1,3 @@
-makeCropFromPercent).">
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import ReactCrop, { Crop, centerCrop, makeCropFromPercent, percentCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
