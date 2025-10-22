@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 // NOTE: This email must be verified in Resend.
-const SENDER_EMAIL = 'noreply@noxly.hu'; 
+const SENDER_EMAIL = 'noxlynightlife@gmail.com'; 
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
