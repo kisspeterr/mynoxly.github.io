@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,26 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
     // Perform a full page reload to ensure the entire application state and Supabase session are re-initialized.
     window.location.reload();
   };
+  
+  // Automatic refresh after 10 seconds if stuck
+  useEffect(() => {
+    let timer: number | undefined;
+    
+    if (isLoading) {
+      // Set a timeout for 10 seconds (10000 ms)
+      timer = setTimeout(() => {
+        console.warn("Auth loading timed out after 10 seconds. Attempting automatic page reload.");
+        handleManualRefresh();
+      }, 10000) as unknown as number;
+    }
+
+    return () => {
+      if (timer !== undefined) {
+        clearTimeout(timer);
+      }
+    };
+  }, [isLoading]);
+
 
   if (isLoading) {
     // Show a global loading screen while the initial session is being checked
@@ -28,7 +48,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
           className="border-purple-500 text-purple-300 hover:bg-purple-500/10"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          Frissítés
+          Frissítés (Automatikus frissítés 10 mp után)
         </Button>
       </div>
     );
