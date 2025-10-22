@@ -44,6 +44,7 @@ export const useAuth = () => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
+        // Ha hiba van, de nem "nincs találat", akkor is null-t adunk vissza, de logoljuk.
         return null;
       }
       return data as Profile;
@@ -69,22 +70,31 @@ export const useAuth = () => {
 
     // 1️⃣ Inicializálás - Session + Profile lekérés
     const initialLoad = async () => {
+      let session: Session | null = null;
+      let profile: Profile | null = null;
+      let errorOccurred = false;
+      
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) console.error('Initial session error:', error);
+        const { data: sessionData, error } = await supabase.auth.getSession();
+        session = sessionData.session;
+        
+        if (error) {
+            console.error('Initial session error:', error);
+            errorOccurred = true;
+        }
 
-        let profile: Profile | null = null;
         if (session?.user) {
+          // A fetchProfile már kezeli a belső hibákat és null-t ad vissza, ha nem talál profilt.
           profile = await fetchProfile(session.user.id);
         }
 
-        if (isMounted) {
-          updateAuthState(session, profile, false);
-        }
       } catch (err) {
         console.error('Initial auth load failed:', err);
+        errorOccurred = true;
+      } finally {
+        // CRITICAL: Always set isLoading to false in the end, regardless of success or failure
         if (isMounted) {
-          updateAuthState(null, null, false);
+          updateAuthState(session, profile, false);
         }
       }
     };
@@ -96,6 +106,7 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
+        // Ideiglenesen true-ra állítjuk, amíg a profil betöltődik
         setAuthState((prev) => ({ ...prev, isLoading: true }));
 
         let profile: Profile | null = null;
@@ -103,6 +114,7 @@ export const useAuth = () => {
           profile = await fetchProfile(session.user.id);
         }
 
+        // Mindig befejezzük a betöltést
         updateAuthState(session, profile, false);
       }
     );
@@ -111,7 +123,10 @@ export const useAuth = () => {
     const handleFocus = async () => {
       if (!isMounted) return;
 
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+      // Csak akkor állítjuk true-ra, ha már volt session, különben a felhasználó látja a villanást
+      if (authState.user) {
+        setAuthState(prev => ({ ...prev, isLoading: true }));
+      }
 
       try {
         const { data: { session }, error } = await supabase.auth.refreshSession();
@@ -137,7 +152,7 @@ export const useAuth = () => {
       subscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, []); // Dependency array is empty, runs only once on mount
 
   // 🔹 Kijelentkezés
   const signOut = async () => {
