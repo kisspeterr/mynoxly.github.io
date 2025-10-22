@@ -62,7 +62,35 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     
-    
+    const initialLoad = async () => {
+  try {
+    // 1️⃣ Session lekérése Supabase-től (storage-ből/jwt-ből)
+    const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      console.error("Initial Supabase session fetch failed:", sessionError);
+    }
+
+    let profile: Profile | null = null;
+
+    // 2️⃣ Ha be van jelentkezve → profil lekérése
+    if (fetchedSession?.user) {
+      profile = await fetchProfile(fetchedSession.user.id);
+    }
+
+    // 3️⃣ A legfontosabb rész: akár van user, akár nincs → állítsuk le a loadingot
+    if (isMounted) {
+      updateAuthState(fetchedSession, profile, false); // isLoading = false
+    }
+
+  } catch (error) {
+    console.error("Unexpected error during initial auth load:", error);
+    if (isMounted) {
+      // Hiba esetén is zárjuk le a loading állapotot
+      updateAuthState(null, null, false);
+    }
+  };
+
 
     initialLoad();
 
