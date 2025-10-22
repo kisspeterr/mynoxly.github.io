@@ -2,7 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-const SENDER_EMAIL = 'noreply@noxly.hu'; // Replace with your verified sender email
+// NOTE: This email must be verified in Resend.
+const SENDER_EMAIL = 'noreply@noxly.hu'; 
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,6 +18,7 @@ serve(async (req) => {
   // Manual authentication handling (since verify_jwt is false)
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
+    console.error('Unauthorized access: Missing Authorization header.');
     return new Response('Unauthorized', { status: 401, headers: corsHeaders });
   }
 
@@ -35,8 +37,11 @@ serve(async (req) => {
     } = await req.json();
 
     if (!user_email || !coupon_title || !organization_name || !subject || !body) {
+      console.error('Missing required fields in request body:', { user_email, coupon_title, organization_name, subject, body });
       return new Response('Missing required fields in request body', { status: 400, headers: corsHeaders });
     }
+    
+    console.log(`Attempting to send email to: ${user_email} for ${coupon_title} (${organization_name})`);
 
     // Replace placeholders in the email body
     const finalBody = body
@@ -59,12 +64,14 @@ serve(async (req) => {
 
     if (!resendResponse.ok) {
       const errorData = await resendResponse.json();
-      console.error('Resend API error:', errorData);
+      console.error('Resend API error:', resendResponse.status, errorData);
       return new Response(JSON.stringify({ error: 'Failed to send email', details: errorData }), { 
         status: resendResponse.status, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
+    
+    console.log('Email sent successfully via Resend.');
 
     return new Response(JSON.stringify({ message: 'Email sent successfully' }), {
       status: 200,
@@ -72,7 +79,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Edge function error:', error);
+    console.error('Edge function error:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
