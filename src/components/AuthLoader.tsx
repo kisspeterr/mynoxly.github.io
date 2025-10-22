@@ -15,8 +15,19 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
     window.location.reload();
   };
   
-  // Removed the aggressive 1-second automatic reload logic.
-  // The useAuth hook should handle session loading and state transition correctly.
+  // Re-adding the 1-second timeout to force a refresh if authentication state is stuck loading.
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        // If still loading after 1 second, force a refresh.
+        // This is a fallback for when the Supabase session gets stuck.
+        console.warn("Auth loading stuck for 1 second, forcing page reload.");
+        handleManualRefresh();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   if (isLoading) {
     // Show a global loading screen while the initial session is being checked

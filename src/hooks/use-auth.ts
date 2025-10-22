@@ -62,7 +62,7 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     
-    const initialLoad = async () => {
+    const initial Load = async () => {
       let session: Session | null = null;
       let profile: Profile | null = null;
       let user: User | null = null;
@@ -103,8 +103,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
-      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED)
-      // We only set loading true if we expect a profile fetch or a significant change
+      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED, INITIAL_SESSION)
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
@@ -118,46 +117,15 @@ export const useAuth = () => {
       updateAuthState(session, profile, false);
     });
     
-    // 3. Handle focus event for session refresh (Crucial for mobile/tab switching)
-    const handleFocus = async () => {
-        if (!isMounted) return;
-        
-        // Set loading state immediately to prevent UI flicker/hanging
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-        
-        try {
-            // Explicitly refresh the session
-            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-            
-            let profile: Profile | null = null;
-            if (refreshedSession) {
-                profile = await fetchProfile(refreshedSession.user.id);
-            }
-            
-            if (isMounted) {
-                // Update state with the refreshed session and profile
-                updateAuthState(refreshedSession, profile, false);
-            }
-            
-            if (refreshError) {
-                console.error("Session refresh error on focus:", refreshError);
-            }
-        } catch (error) {
-            console.error("Unexpected error during focus refresh:", error);
-            if (isMounted) {
-                // Ensure loading state is cleared even on error
-                updateAuthState(null, null, false);
-            }
-        }
-    };
-
-    window.addEventListener('focus', handleFocus);
+    // Removed manual window focus listener as Supabase SDK handles session refresh automatically.
+    // const handleFocus = async () => { ... };
+    // window.addEventListener('focus', handleFocus);
 
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
+      // window.removeEventListener('focus', handleFocus);
     };
   }, []); 
 
