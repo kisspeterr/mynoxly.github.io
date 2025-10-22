@@ -79,6 +79,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       console.error('Sign out error:', error);
     }
   };
+  
+  // NEW: Auto sign out on browser/tab close
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      if (user) {
+        // Note: This is an asynchronous call in a synchronous event handler.
+        // It might not always complete before the tab closes, but it's the best effort.
+        await supabase.auth.signOut();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [user]); // Dependency on user ensures we only try to sign out if a user is logged in
 
   const value = {
     session,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -16,12 +16,24 @@ const AuthLoadingScreen: React.FC = () => (
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isLoading, isAuthenticated } = useAuth();
+  const [isTimeout, setIsTimeout] = useState(false);
   
-  if (isLoading) {
+  // Set a timeout to prevent infinite loading
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setIsTimeout(true);
+      }, 3000); // 3 seconds timeout
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+  
+  if (isLoading && !isTimeout) {
     return <AuthLoadingScreen />;
   }
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated || isTimeout) {
+    // If not authenticated OR timeout occurred, redirect to login
     return <Navigate to="/login" replace />;
   }
   
@@ -30,12 +42,23 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
 export const AdminRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isLoading, isAuthenticated, isAdmin } = useAuth();
+  const [isTimeout, setIsTimeout] = useState(false);
+
+  // Set a timeout for AdminRoute as well
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        setIsTimeout(true);
+      }, 3000); // 3 seconds timeout
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
   
-  if (isLoading) {
+  if (isLoading && !isTimeout) {
     return <AuthLoadingScreen />;
   }
   
-  if (!isAuthenticated) {
+  if (!isAuthenticated || isTimeout) {
     return <Navigate to="/login" replace />;
   }
   
