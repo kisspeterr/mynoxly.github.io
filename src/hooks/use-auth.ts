@@ -72,7 +72,6 @@ export const useAuth = () => {
     const initialLoad = async () => {
       let session: Session | null = null;
       let profile: Profile | null = null;
-      let errorOccurred = false;
       
       try {
         const { data: sessionData, error } = await supabase.auth.getSession();
@@ -80,17 +79,14 @@ export const useAuth = () => {
         
         if (error) {
             console.error('Initial session error:', error);
-            errorOccurred = true;
         }
 
         if (session?.user) {
-          // A fetchProfile már kezeli a belső hibákat és null-t ad vissza, ha nem talál profilt.
           profile = await fetchProfile(session.user.id);
         }
 
       } catch (err) {
         console.error('Initial auth load failed:', err);
-        errorOccurred = true;
       } finally {
         // CRITICAL: Always set isLoading to false in the end, regardless of success or failure
         if (isMounted) {
@@ -128,19 +124,25 @@ export const useAuth = () => {
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
 
+      let session: Session | null = null;
+      let profile: Profile | null = null;
+
       try {
-        const { data: { session }, error } = await supabase.auth.refreshSession();
+        const { data: refreshData, error } = await supabase.auth.refreshSession();
+        session = refreshData.session;
+        
         if (error) console.error('Session refresh error:', error);
 
-        let profile = null;
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
-
-        if (isMounted) updateAuthState(session, profile, false);
       } catch (err) {
         console.error('Focus refresh error:', err);
-        if (isMounted) updateAuthState(null, null, false);
+      } finally {
+        // CRITICAL: Garantáljuk, hogy a betöltés befejeződik
+        if (isMounted) {
+            updateAuthState(session, profile, false);
+        }
       }
     };
 
