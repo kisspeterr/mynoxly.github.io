@@ -14,6 +14,29 @@ export interface InterestedEventRecord {
   };
 }
 
+// Helper to fetch organization logos
+const fetchOrganizationLogos = async (organizationNames: string[]) => {
+    if (organizationNames.length === 0) return {};
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('organization_name, logo_url')
+      .in('organization_name', organizationNames);
+
+    if (error) {
+      console.error('Error fetching organization logos:', error);
+      return {};
+    }
+
+    return data.reduce((acc, profile) => {
+      if (profile.organization_name) {
+        acc[profile.organization_name] = profile.logo_url;
+      }
+      return acc;
+    }, {} as Record<string, string | null>);
+};
+
+
 export const useInterestedEvents = () => {
   const { user, isAuthenticated } = useAuth();
   const [interestedEvents, setInterestedEvents] = useState<InterestedEventRecord[]>([]);
@@ -28,53 +51,66 @@ export const useInterestedEvents = () => {
 
     setIsLoading(true);
     try {
-      // Fetch interested events, joining the full event data and organization profile data
-      const { data, error } = await supabase
+      // 1. Fetch interested event IDs
+      const { data: interestedData, error: interestedError } = await supabase
         .from('interested_events')
-        .select(`
-          id,
-          event_id,
-          event:event_id (
-            *,
-            organization_profile:organization_name (logo_url)
-          )
-        `)
-        .eq('user_id', user.id) // RLS ensures this is safe
+        .select(`id, event_id`)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
+      if (interestedError) {
         showError('Hiba történt az érdeklődő események betöltésekor.');
-        console.error('Fetch interested events error:', error);
+        console.error('Fetch interested events error:', interestedError);
         setInterestedEvents([]);
         return;
       }
       
-      const processedEvents: InterestedEventRecord[] = (data as any[]).map(record => {
-        const event = record.event;
+      const eventIds = interestedData.map(r => r.event_id);
+      if (eventIds.length === 0) {
+          setInterestedEvents([]);
+          return;
+      }
+      
+      // 2. Fetch Event details and Coupon details
+      const { data: eventDetails, error: eventError } = await supabase
+        .from('events')
+        .select(`
+            *,
+            coupon:coupon_id (id, title, coupon_code)
+        `)
+        .in('id', eventIds);
         
-        // Extract logo_url from the nested organization_profile array/object
-        // Supabase returns an array if the join is on a non-primary key (organization_name)
-        const logo_url = Array.isArray(event.organization_profile) && event.organization_profile.length > 0 
-            ? event.organization_profile[0].logo_url 
-            : null;
-            
-        // Remove the temporary organization_profile field before returning the final event structure
-        const { organization_profile, ...restOfEvent } = event;
-            
+      if (eventError) {
+          showError('Hiba történt az esemény részletek betöltésekor.');
+          console.error('Fetch event details error:', eventError);
+          return;
+      }
+      
+      const rawEvents = eventDetails as Event[];
+      const organizationNames = Array.from(new Set(rawEvents.map(e => e.organization_name)));
+      
+      // 3. Fetch organization logos separately
+      const logoMap = await fetchOrganizationLogos(organizationNames);
+      
+      // 4. Combine data
+      const processedEvents: InterestedEventRecord[] = interestedData.map(record => {
+        const event = rawEvents.find(e => e.id === record.event_id);
+        
+        if (!event) return null;
+        
         return {
           id: record.id,
           event_id: record.event_id,
           event: {
-            ...restOfEvent,
-            logo_url: logo_url,
+            ...event,
+            logo_url: logoMap[event.organization_name] || null,
           }
         };
-      }).filter(record => record.event !== null); // Filter out records where event join failed
+      }).filter((record): record is InterestedEventRecord => record !== null);
       
       setInterestedEvents(processedEvents);
 
     } catch (e) {
-        // Catch unexpected errors during processing (like accessing properties on null)
         showError('Váratlan hiba történt az érdeklődő események feldolgozásakor.');
         console.error('Processing error:', e);
         setInterestedEvents([]);
