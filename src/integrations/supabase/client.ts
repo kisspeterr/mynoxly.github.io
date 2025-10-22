@@ -9,8 +9,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Use localStorage instead of sessionStorage for better persistence across refreshes.
-    storage: window.localStorage,
+    // Use sessionStorage instead of localStorage. This means the session 
+    // will be cleared when the browser tab/window is closed.
+    storage: window.sessionStorage,
     persistSession: true,
   }
 });
