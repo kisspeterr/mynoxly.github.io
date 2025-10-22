@@ -16,16 +16,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
   };
   
   // Automatic refresh after 1 second if stuck
-  useEffect(() => {
-    let timer: number | undefined;
-    
-    if (isLoading) {
-      // Set a timeout for 1 second (1000 ms)
-      timer = setTimeout(() => {
-        console.warn("Auth loading timed out after 1 second. Attempting automatic page reload.");
-        handleManualRefresh();
-      }, 1000) as unknown as number;
-    }
+  
 
     return () => {
       if (timer !== undefined) {
