@@ -135,6 +135,18 @@ export const useAuth = () => {
       console.error('Sign out error:', error);
     }
   };
+  
+  // DEBUG LOGGING
+  useEffect(() => {
+    console.log("AUTH STATE:", {
+      isLoading: authState.isLoading,
+      session: authState.session,
+      user: authState.user,
+      profile: authState.profile,
+      role: authState.profile?.role,
+    });
+  }, [authState]);
+  // END DEBUG LOGGING
 
   return {
     ...authState,
