@@ -59,7 +59,7 @@ const HeroSection = () => {
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
-          Fedezd fel Pécs legjobb éjszakai helyeit kedvezményes áron. Exkluzív akciók, 1+1 italok és VIP kedvezmények egy alkalmazásban!
+          Fedezd fel Pécs legjobb eseményeit, kuponjait!
         </p>
         
         {/* Responsive Button Group: Stacks on mobile, horizontal on larger screens */}
