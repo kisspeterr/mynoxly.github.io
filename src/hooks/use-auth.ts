@@ -73,7 +73,7 @@ export const useAuth = () => {
       let profile: Profile | null = null;
       
       try {
-        // Ez a hívás a Supabase kliensből azonnal megpróbálja lekérni a sessiont a localStorage-ból.
+        // 1. Próbáljuk meg lekérni a sessiont a kliensből (localStorage)
         const { data: sessionData, error } = await supabase.auth.getSession();
         session = sessionData.session;
         
@@ -81,6 +81,7 @@ export const useAuth = () => {
             console.error('Initial session error:', error);
         }
 
+        // 2. Ha van session, töltsük be a profilt
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
@@ -88,7 +89,7 @@ export const useAuth = () => {
       } catch (err) {
         console.error('Initial auth load failed:', err);
       } finally {
-        // CRITICAL: Always set isLoading to false in the end, regardless of success or failure
+        // 3. CRITICAL: Mindig állítsuk be az isLoading-ot false-ra a végén
         if (isMounted) {
           updateAuthState(session, profile, false);
         }
@@ -102,7 +103,7 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
-        // Csak a SIGNED_IN/SIGNED_OUT eseményeknél állítjuk be a loadingot, hogy elkerüljük a villogást
+        // Ha bejelentkezés vagy kijelentkezés történik, ideiglenesen mutassuk a loadert
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
             setAuthState((prev) => ({ ...prev, isLoading: true }));
         }
@@ -117,46 +118,10 @@ export const useAuth = () => {
       }
     );
 
-    // 3️⃣ Ha visszatérsz az oldalra / mobilról → session frissítés (CSAK HÁTTÉRBEN)
-    const handleFocus = async () => {
-      if (!isMounted) return;
-
-      // Ha nincs felhasználó, de még tölt (initialLoad), akkor hagyjuk, hogy az initialLoad befejezze.
-      if (!authState.user && authState.isLoading) {
-          return;
-      }
-      
-      // Ha van felhasználó, NE állítsuk be a loadingot, hogy elkerüljük a villogást.
-      
-      let session: Session | null = authState.session;
-      let profile: Profile | null = authState.profile;
-
-      try {
-        const { data: refreshData, error } = await supabase.auth.refreshSession();
-        session = refreshData.session;
-        
-        if (error) console.error('Session refresh error:', error);
-
-        if (session?.user) {
-          profile = await fetchProfile(session.user.id);
-        }
-      } catch (err) {
-        console.error('Focus refresh error:', err);
-      } finally {
-        // Frissítjük az állapotot, de isLoading=false-szal.
-        if (isMounted) {
-            updateAuthState(session, profile, false);
-        }
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    // 4️⃣ Takarítás memóriahibák ellen
+    // 3️⃣ Takarítás memóriahibák ellen
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
     };
   }, []); // Dependency array is empty, runs only once on mount
   
