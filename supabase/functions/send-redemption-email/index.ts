@@ -23,9 +23,12 @@ serve(async (req) => {
   }
 
   if (!RESEND_API_KEY) {
-    console.error('RESEND_API_KEY is not set.');
-    return new Response('Email service not configured', { status: 500, headers: corsHeaders });
+    console.error('RESEND_API_KEY is not set in environment variables.');
+    return new Response('Email service not configured (Missing API Key)', { status: 500, headers: corsHeaders });
   }
+  
+  // Log the key status (only first few chars for security)
+  console.log(`RESEND_API_KEY status: Loaded (starts with ${RESEND_API_KEY.substring(0, 4)}...)`);
 
   try {
     const { 
@@ -64,9 +67,9 @@ serve(async (req) => {
     });
 
     if (!resendResponse.ok) {
-      const errorData = await resendResponse.json();
-      console.error('Resend API error:', resendResponse.status, errorData);
-      return new Response(JSON.stringify({ error: 'Failed to send email', details: errorData }), { 
+      const errorText = await resendResponse.text();
+      console.error('Resend API error:', resendResponse.status, errorText);
+      return new Response(JSON.stringify({ error: 'Failed to send email', details: errorText }), { 
         status: resendResponse.status, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
