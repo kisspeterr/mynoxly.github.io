@@ -96,7 +96,8 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    /* Apply font-sans globally */
+    @apply bg-background text-foreground font-sans;
   }
 }
 
