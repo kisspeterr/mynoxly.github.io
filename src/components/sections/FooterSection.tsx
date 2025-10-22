@@ -1,4 +1,4 @@
-import { Moon, MessageCircle, Share, Heart, Gift, Calendar, Building, Handshake } from "lucide-react";
+import { Sparkles, MessageCircle, Share, Heart, Gift, Calendar, Building, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -11,7 +11,7 @@ const FooterSection = () => {
           {/* Column 1: Logo and Description */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <Moon className="h-8 w-8 text-cyan-400 animate-pulse" />
+              <Sparkles className="h-8 w-8 text-cyan-400 animate-pulse" />
               <span className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
                 NOXLY
               </span>
