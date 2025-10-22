@@ -6,18 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Save, Gift, Coins } from 'lucide-react';
+import { CalendarIcon, Save, Gift, Coins, QrCode, CheckCircle } from 'lucide-react';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch'; // Import Switch
 
 // Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
-  coupon_code: z.string().min(4, 'A kuponkód túl rövid.'),
+  coupon_code: z.string().nullable().optional(), // Now optional, validated conditionally below
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
   max_uses_per_user: z.coerce.number().int().min(1, 'Minimum 1 használat.'),
@@ -26,18 +27,27 @@ const couponSchema = z.object({
   // Loyalty fields
   points_reward: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
   points_cost: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
+  
+  // NEW: Code Requirement
+  is_code_required: z.boolean().default(true),
 }).refine(data => {
-    // Custom validation: If points_cost > 0, then max_uses_per_user must be 1 (or handle complex logic later)
-    // For simplicity, if it costs points, it must be a single-use redemption.
-    // However, the user request implies that points_cost > 0 means it's a points-only coupon.
-    // Let's enforce that if points_cost > 0, points_reward must be 0, and vice versa.
+    // Custom validation: Cannot be both a reward and a cost coupon
     if (data.points_cost > 0 && data.points_reward > 0) {
-        return false; // Cannot be both a reward and a cost coupon
+        return false;
     }
     return true;
 }, {
     message: "A kupon nem lehet egyszerre pont jutalom és pont költség alapú.",
     path: ["points_cost"],
+}).refine(data => {
+    // Conditional validation: If code is required, coupon_code must be present and long enough
+    if (data.is_code_required) {
+        return data.coupon_code && data.coupon_code.length >= 4;
+    }
+    return true;
+}, {
+    message: "A kódos beváltáshoz legalább 4 karakter hosszú kuponkód szükséges.",
+    path: ["coupon_code"],
 });
 
 type CouponFormData = z.infer<typeof couponSchema>;
@@ -55,13 +65,14 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
   const defaultValues: CouponFormData = {
     title: initialData?.title || '',
     description: initialData?.description || null,
-    coupon_code: initialData?.coupon_code || '',
+    coupon_code: initialData?.coupon_code || null, // Use null for empty code
     image_url: initialData?.image_url || null,
     max_uses_per_user: initialData?.max_uses_per_user || 1,
     total_max_uses: initialData?.total_max_uses || null,
     expiry_date: initialData?.expiry_date ? new Date(initialData.expiry_date) : null,
     points_reward: initialData?.points_reward || 0,
     points_cost: initialData?.points_cost || 0,
+    is_code_required: initialData?.is_code_required ?? true, // Default to true
   };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CouponFormData>({
@@ -70,10 +81,19 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
   });
 
   const expiryDate = watch('expiry_date');
+  const isCodeRequired = watch('is_code_required');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: CouponFormData) => {
-    const result = await onSubmit(data as CouponInsert);
+    // Ensure coupon_code is null if not required
+    const finalCouponCode = data.is_code_required ? data.coupon_code : null;
+    
+    const insertData: CouponInsert = {
+        ...data,
+        coupon_code: finalCouponCode,
+    };
+    
+    const result = await onSubmit(insertData);
     if (result.success) {
       onClose();
     }
@@ -91,16 +111,38 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {errors.title && <p className="text-red-400 text-sm">{errors.title.message}</p>}
       </div>
 
+      {/* NEW: Code Requirement Switch */}
+      <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+        <div className="flex items-center space-x-2">
+            {isCodeRequired ? (
+                <QrCode className="h-5 w-5 text-cyan-400" />
+            ) : (
+                <CheckCircle className="h-5 w-5 text-green-400" />
+            )}
+            <Label htmlFor="is_code_required" className="text-gray-300 font-semibold">
+                Kódos beváltás szükséges?
+            </Label>
+        </div>
+        <Switch
+            id="is_code_required"
+            checked={isCodeRequired}
+            onCheckedChange={(checked) => setValue('is_code_required', checked, { shouldValidate: true })}
+            className="data-[state=checked]:bg-cyan-600 data-[state=unchecked]:bg-green-600"
+        />
+      </div>
+
+      {/* Conditional Coupon Code Input */}
       <div className="space-y-2">
-        <Label htmlFor="coupon_code" className="text-gray-300">Kuponkód *</Label>
+        <Label htmlFor="coupon_code" className="text-gray-300">Kuponkód {isCodeRequired ? '*' : '(opcionális)'}</Label>
         <Input 
           id="coupon_code"
           {...register('coupon_code')}
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-          disabled={isEditing}
+          disabled={isEditing && isCodeRequired} // Only disable if editing AND code is required
+          placeholder={isCodeRequired ? "Pl. 1PLUSZ1" : "Nem szükséges kód"}
         />
         {errors.coupon_code && <p className="text-red-400 text-sm">{errors.coupon_code.message}</p>}
-        {isEditing && <p className="text-gray-500 text-xs">A kuponkód szerkesztése nem engedélyezett.</p>}
+        {isEditing && isCodeRequired && <p className="text-gray-500 text-xs">A kódos kupon kódja nem szerkeszthető.</p>}
       </div>
 
       <div className="space-y-2">

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart } from 'lucide-react';
+import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart, QrCode } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
@@ -17,6 +17,7 @@ import FavoriteButton from '@/components/FavoriteButton';
 import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
 import EventCountdown from '@/components/EventCountdown'; // Import EventCountdown
+import { Badge } from '@/components/ui/badge';
 
 interface OrganizationProfileData {
   id: string;
@@ -162,7 +163,7 @@ const OrganizationProfile = () => {
       return;
     }
     
-    if (isCouponPending(coupon.id)) {
+    if (coupon.is_code_required && isCouponPending(coupon.id)) {
       showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
       return;
     }
@@ -183,11 +184,16 @@ const OrganizationProfile = () => {
     try {
       const result = await redeemCoupon(coupon); 
 
-      if (result.success && result.usageId && result.redemptionCode) {
-        setSelectedCoupon(coupon); 
-        setCurrentUsageId(result.usageId);
-        setCurrentRedemptionCode(result.redemptionCode);
-        setIsModalOpen(true);
+      if (result.success) {
+        if (coupon.is_code_required && result.usageId && result.redemptionCode) {
+            // Code Redemption: Open modal
+            setSelectedCoupon(coupon); 
+            setCurrentUsageId(result.usageId);
+            setCurrentRedemptionCode(result.redemptionCode);
+            setIsModalOpen(true);
+        } else if (!coupon.is_code_required) {
+            // Simple Redemption: Success message already shown by hook
+        }
       }
     } finally {
       setIsRedeeming(false);
@@ -311,7 +317,7 @@ const OrganizationProfile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {organizationCoupons.map(coupon => {
                 const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
-                const pending = isAuthenticated && isCouponPending(coupon.id);
+                const pending = isAuthenticated && coupon.is_code_required && isCouponPending(coupon.id); // Only pending if code is required
                 
                 // Loyalty logic
                 const isPointCoupon = coupon.points_cost > 0;
@@ -320,6 +326,10 @@ const OrganizationProfile = () => {
                 let pointStatusText = '';
                 
                 if (isAuthenticated && isPointCoupon) {
+                    const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
+                    const organizationId = organizationRecord?.organization_id;
+                    const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
+                    
                     if (currentPoints < coupon.points_cost) {
                         canRedeem = false;
                         pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
@@ -338,16 +348,31 @@ const OrganizationProfile = () => {
                     buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
                 } else if (!canRedeem) {
                     buttonText = pointStatusText;
+                } else if (!coupon.is_code_required) {
+                    buttonText = 'Azonnali beváltás';
                 }
                 
                 return (
                   <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
                     <CardHeader>
                       <CardTitle className="text-xl text-cyan-300">{coupon.title}</CardTitle>
-                      <CardDescription className="text-gray-400">{coupon.coupon_code}</CardDescription>
+                      <CardDescription className="text-gray-400">{coupon.coupon_code || 'Azonnali beváltás'}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm flex-grow">
                       <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
+                      
+                      {/* Redemption Type Badge */}
+                      <div className="flex items-center text-sm">
+                          {coupon.is_code_required ? (
+                              <Badge variant="outline" className="bg-cyan-900/50 text-cyan-300 border-cyan-500/50">
+                                  <QrCode className="h-3 w-3 mr-1" /> Kódos beváltás
+                              </Badge>
+                          ) : (
+                              <Badge variant="outline" className="bg-green-900/50 text-green-300 border-green-500/50">
+                                  <CheckCircle className="h-3 w-3 mr-1" /> Azonnali beváltás
+                              </Badge>
+                          )}
+                      </div>
                       
                       {/* Loyalty Status/Reward */}
                       {(isPointCoupon || isRewardCoupon) && (

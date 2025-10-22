@@ -51,27 +51,27 @@ const CouponsSection = () => {
       return;
     }
     
-    if (isCouponPending(coupon.id)) {
+    if (coupon.is_code_required && isCouponPending(coupon.id)) {
       showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
       return;
     }
 
-    // Check points cost (The actual check is done in redeemCoupon, but we check here for immediate UI feedback)
-    if (coupon.points_cost > 0) {
-        // We need the organization ID to check points, but we only have the name here.
-        // The hook handles the ID lookup internally, but we rely on the hook's error message if points are insufficient.
-    }
-
     setIsRedeeming(true);
     try {
-      // 1. Attempt to record usage and generate code
+      // 1. Attempt to record usage and generate code/redeem immediately
       const result = await redeemCoupon(coupon);
 
-      if (result.success && result.usageId && result.redemptionCode) {
-        setSelectedCoupon(coupon);
-        setCurrentUsageId(result.usageId);
-        setCurrentRedemptionCode(result.redemptionCode);
-        setIsModalOpen(true);
+      if (result.success) {
+        if (coupon.is_code_required && result.usageId && result.redemptionCode) {
+            // Code Redemption: Open modal
+            setSelectedCoupon(coupon);
+            setCurrentUsageId(result.usageId);
+            setCurrentRedemptionCode(result.redemptionCode);
+            setIsModalOpen(true);
+        } else if (!coupon.is_code_required) {
+            // Simple Redemption: Success message already shown by hook, just refresh UI
+            // No modal needed
+        }
       }
       // Error handling is done inside redeemCoupon hook
     } finally {
@@ -123,7 +123,7 @@ const CouponsSection = () => {
           <div className="flex flex-wrap justify-center gap-8">
             {coupons.map((coupon) => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
-              const pending = isAuthenticated && isCouponPending(coupon.id);
+              const pending = isAuthenticated && coupon.is_code_required && isCouponPending(coupon.id); // Only pending if code is required
               const logoUrl = (coupon as PublicCoupon).logo_url;
               
               // Loyalty logic
@@ -133,7 +133,6 @@ const CouponsSection = () => {
               let pointStatusText = '';
               
               if (isAuthenticated && isPointCoupon) {
-                  // We need the organization ID to check points, but we only have the name here.
                   const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
                   const organizationId = organizationRecord?.organization_id;
                   const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
@@ -156,6 +155,8 @@ const CouponsSection = () => {
                   buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
               } else if (!canRedeem) {
                   buttonText = pointStatusText;
+              } else if (!coupon.is_code_required) {
+                  buttonText = 'Azonnali beváltás';
               }
               
               return (
@@ -197,6 +198,19 @@ const CouponsSection = () => {
                   <CardContent className="space-y-3 flex-grow text-left">
                     <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
                     
+                    {/* Redemption Type Badge */}
+                    <div className="flex items-center text-sm">
+                        {coupon.is_code_required ? (
+                            <Badge variant="outline" className="bg-cyan-900/50 text-cyan-300 border-cyan-500/50">
+                                <QrCode className="h-3 w-3 mr-1" /> Kódos beváltás
+                            </Badge>
+                        ) : (
+                            <Badge variant="outline" className="bg-green-900/50 text-green-300 border-green-500/50">
+                                <CheckCircle className="h-3 w-3 mr-1" /> Azonnali beváltás
+                            </Badge>
+                        )}
+                    </div>
+                    
                     {/* Loyalty Status/Reward */}
                     {(isPointCoupon || isRewardCoupon) && (
                         <div className="flex items-center text-sm pt-2 border-t border-gray-700/50">
@@ -230,7 +244,7 @@ const CouponsSection = () => {
                       {isAuthenticated ? (
                         <>
                           {pending ? (
-                            // Horizontal layout for pending buttons
+                            // Horizontal layout for pending buttons (only for code-required coupons)
                             <div className="flex gap-2 items-center">
                               <Button 
                                 className="flex-grow bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"

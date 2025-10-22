@@ -37,55 +37,6 @@ const getOrganizationId = async (organizationName: string): Promise<string | nul
     return data?.id || null;
 };
 
-// Helper function to update loyalty points
-const updateLoyaltyPoints = async (userId: string, organizationId: string, pointsChange: number) => {
-    if (pointsChange === 0) return { success: true };
-
-    // 1. Try to update existing record (increment/decrement)
-    const { data: updateData, error: updateError } = await supabase
-        .from('loyalty_points')
-        .update({ 
-            points: supabase.raw(`points + ${pointsChange}`),
-            updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-        .select()
-        .single();
-
-    if (updateError && updateError.code !== 'PGRST116') { // PGRST116: No rows found
-        console.error('Error updating loyalty points:', updateError);
-        // If update failed because no row exists, try to insert
-    }
-    
-    if (updateData) {
-        return { success: true };
-    }
-
-    // 2. If no row found (PGRST116), try to insert the initial record
-    if (pointsChange > 0) {
-        const { error: insertError } = await supabase
-            .from('loyalty_points')
-            .insert({ 
-                user_id: userId, 
-                organization_id: organizationId, 
-                points: pointsChange 
-            });
-            
-        if (insertError) {
-            console.error('Error inserting initial loyalty points:', insertError);
-            return { success: false };
-        }
-    } else {
-        // If pointsChange is negative and no record exists, something is wrong (should have been checked earlier)
-        showError('Hiba: Nincs hűségpont rekord a levonáshoz.');
-        return { success: false };
-    }
-    
-    return { success: true };
-};
-
-
 export const usePublicCoupons = () => {
   const { user, isAuthenticated } = useAuth();
   const [coupons, setCoupons] = useState<PublicCoupon[]>([]);
@@ -283,41 +234,7 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
     
-    // 0. Check Loyalty Points Cost
-    if (coupon.points_cost > 0) {
-        const organizationId = await getOrganizationId(coupon.organization_name);
-        if (!organizationId) {
-            showError('Hiba: Nem található a szervezet azonosítója.');
-            return { success: false };
-        }
-        
-        // Fetch current points for this organization
-        const { data: pointsData, error: pointsError } = await supabase
-            .from('loyalty_points')
-            .select('points')
-            .eq('user_id', user.id)
-            .eq('organization_id', organizationId)
-            .single();
-            
-        const currentPoints = pointsData?.points || 0;
-        
-        if (currentPoints < coupon.points_cost) {
-            showError(`Nincs elegendő hűségpontod (${coupon.points_cost} pont szükséges). Jelenlegi pont: ${currentPoints}.`);
-            return { success: false };
-        }
-        
-        // If points are sufficient, proceed. Points deduction happens after successful usage insertion.
-    }
-    
-    // 1. Check for active pending usage
-    const activePendingCheck = getActivePendingUsage(coupon.id);
-    if (activePendingCheck) {
-        showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
-        return { success: false };
-    }
-    
-    // 2. Check finalized usage count (re-check against DB for safety)
-    // CRITICAL CHANGE: Count ALL usages (used, active, and expired)
+    // 1. Check finalized usage count (re-check against DB for safety)
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
@@ -335,71 +252,153 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
     
-    let redemptionCode: string;
-    let codeIsUnique = false;
-    let attempts = 0;
-    
-    do {
-      redemptionCode = generateRedemptionCode();
-      const { count: codeCount } = await supabase
-        .from('coupon_usages')
-        .select('id', { count: 'exact', head: true })
-        .eq('redemption_code', redemptionCode);
-      
-      if (codeCount === 0) {
-        codeIsUnique = true;
-      }
-      attempts++;
-    } while (!codeIsUnique && attempts < 5);
+    // --- NEW LOGIC BRANCHING ---
+    if (!coupon.is_code_required) {
+        // A. Simple Redemption (Immediate, no code, no modal)
+        try {
+            const { data: success, error: rpcError } = await supabase.rpc('redeem_simple_coupon', {
+                coupon_id_in: coupon.id,
+            });
+            
+            if (rpcError) {
+                // Handle specific Postgres exceptions raised in the function
+                if (rpcError.message.includes('Usage limit reached')) {
+                    showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
+                } else if (rpcError.message.includes('Insufficient loyalty points')) {
+                    showError(`Nincs elegendő hűségpontod a beváltáshoz.`);
+                } else {
+                    showError(`Hiba történt az azonnali beváltás során: ${rpcError.message}`);
+                }
+                console.error('Simple Redeem RPC error:', rpcError);
+                return { success: false };
+            }
+            
+            const pointsReward = coupon.points_reward;
+            showSuccess(`Sikeres beváltás! Kupon: ${coupon.title}${pointsReward > 0 ? ` (+${pointsReward} pont)` : ''}`);
+            
+            // Refresh usages immediately after successful insertion to update local state
+            await refreshUsages();
+            
+            return { success: true };
+            
+        } catch (error) {
+            console.error('Simple Redeem error:', error);
+            showError('Váratlan hiba történt az azonnali beváltás során.');
+            return { success: false };
+        }
+        
+    } else {
+        // B. Code Redemption (Generates code, requires admin approval)
+        
+        // 2. Check for active pending usage (Only relevant for code-based redemption)
+        const activePendingCheck = getActivePendingUsage(coupon.id);
+        if (activePendingCheck) {
+            showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
+            return { success: false };
+        }
+        
+        // 3. Check Loyalty Points Cost (Pre-check for code generation)
+        if (coupon.points_cost > 0) {
+            const organizationId = await getOrganizationId(coupon.organization_name);
+            if (!organizationId) {
+                showError('Hiba: Nem található a szervezet azonosítója.');
+                return { success: false };
+            }
+            
+            // Fetch current points for this organization
+            const { data: pointsData } = await supabase
+                .from('loyalty_points')
+                .select('points')
+                .eq('user_id', user.id)
+                .eq('organization_id', organizationId)
+                .single();
+                
+            const currentPoints = pointsData?.points || 0;
+            
+            if (currentPoints < coupon.points_cost) {
+                showError(`Nincs elegendő hűségpontod (${coupon.points_cost} pont szükséges). Jelenlegi pont: ${currentPoints}.`);
+                return { success: false };
+            }
+            
+            // NOTE: Points deduction happens *after* successful code generation insertion below.
+        }
+        
+        // 4. Generate unique redemption code
+        let redemptionCode: string;
+        let codeIsUnique = false;
+        let attempts = 0;
+        
+        do {
+          redemptionCode = generateRedemptionCode();
+          const { count: codeCount } = await supabase
+            .from('coupon_usages')
+            .select('id', { count: 'exact', head: true })
+            .eq('redemption_code', redemptionCode);
+          
+          if (codeCount === 0) {
+            codeIsUnique = true;
+          }
+          attempts++;
+        } while (!codeIsUnique && attempts < 5);
 
-    if (!codeIsUnique) {
-      showError('Nem sikerült egyedi beváltási kódot generálni. Próbáld újra.');
-      return { success: false };
-    }
+        if (!codeIsUnique) {
+          showError('Nem sikerült egyedi beváltási kódot generálni. Próbáld újra.');
+          return { success: false };
+        }
 
-    try {
-      const { data, error } = await supabase
-        .from('coupon_usages')
-        .insert({ 
-          user_id: user.id, 
-          coupon_id: coupon.id,
-          redemption_code: redemptionCode,
-          is_used: false,
-        })
-        .select('id, redemption_code')
-        .single();
+        try {
+          // 5. Insert usage record (is_used: false)
+          const { data, error } = await supabase
+            .from('coupon_usages')
+            .insert({ 
+              user_id: user.id, 
+              coupon_id: coupon.id,
+              redemption_code: redemptionCode,
+              is_used: false,
+            })
+            .select('id, redemption_code')
+            .single();
 
-      if (error) {
-        showError('Hiba történt a beváltás rögzítésekor.');
-        console.error('Insert usage error:', error);
-        return { success: false };
-      }
-      
-      // 3. If points cost > 0, deduct points immediately upon successful code generation
-      if (coupon.points_cost > 0) {
-          const organizationId = await getOrganizationId(coupon.organization_name);
-          if (organizationId) {
-              const pointResult = await updateLoyaltyPoints(user.id, organizationId, -coupon.points_cost);
-              if (!pointResult.success) {
-                  // Critical failure: points deducted, but usage recorded. Show error.
-                  showError('Hiba történt a hűségpontok levonásakor. Kérjük, lépj kapcsolatba az ügyfélszolgálattal.');
+          if (error) {
+            showError('Hiba történt a beváltás rögzítésekor.');
+            console.error('Insert usage error:', error);
+            return { success: false };
+          }
+          
+          // 6. Deduct points immediately upon successful code generation
+          if (coupon.points_cost > 0) {
+              const organizationId = await getOrganizationId(coupon.organization_name);
+              if (organizationId) {
+                  // We use a raw update to deduct points
+                  const { error: pointError } = await supabase
+                      .from('loyalty_points')
+                      .update({ 
+                          points: supabase.raw(`points - ${coupon.points_cost}`),
+                          updated_at: new Date().toISOString(),
+                      })
+                      .eq('user_id', user.id)
+                      .eq('organization_id', organizationId);
+                      
+                  if (pointError) {
+                      // Critical failure: usage recorded, but points deduction failed.
+                      // We rely on the user contacting support, as rolling back the usage is complex.
+                      showError('Hiba történt a hűségpontok levonásakor. Kérjük, lépj kapcsolatba az ügyfélszolgálattal.');
+                  }
               }
           }
-      }
-      
-      // Refresh usages immediately after successful insertion to update local state
-      await refreshUsages();
-      
-      return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
+          
+          // Refresh usages immediately after successful insertion to update local state
+          await refreshUsages();
+          
+          return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
 
-    } catch (error) {
-      console.error('Redeem error:', error);
-      showError('Váratlan hiba történt a beváltás során.');
-      return { success: false };
+        } catch (error) {
+          console.error('Redeem error:', error);
+          showError('Váratlan hiba történt a beváltás során.');
+          return { success: false };
+        }
     }
   };
-  
-  // We keep deletePendingUsage for manual modal closure cleanup, but it's no longer used for expired codes.
   
   return {
     coupons,
