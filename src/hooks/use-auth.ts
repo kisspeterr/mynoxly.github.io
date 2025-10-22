@@ -168,3 +168,11 @@ export const useAuth = () => {
     fetchProfile,
   };
 };
+
+const initialAuthState = {
+  session: null,
+  user: null,
+  profile: null,
+  isLoading: true,      // auth+profile töltése
+  isReady: false        // minden kész → session + profile betöltve
+};
