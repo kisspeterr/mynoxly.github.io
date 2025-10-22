@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
@@ -25,7 +25,7 @@ export const useCouponUsages = () => {
 
   const organizationName = profile?.organization_name;
 
-  const fetchUsages = useCallback(async () => {
+  const fetchUsages = async () => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setUsages([]);
       return;
@@ -33,27 +33,7 @@ export const useCouponUsages = () => {
 
     setIsLoading(true);
     try {
-      // 1. Fetch all coupon IDs belonging to the current organization
-      const { data: couponIdsData, error: couponIdError } = await supabase
-        .from('coupons')
-        .select('id')
-        .eq('organization_name', organizationName);
-        
-      if (couponIdError) {
-        showError('Hiba történt a kupon ID-k betöltésekor.');
-        console.error('Fetch coupon IDs error:', couponIdError);
-        return;
-      }
-      
-      const couponIds = couponIdsData.map(c => c.id);
-      
-      if (couponIds.length === 0) {
-          setUsages([]);
-          return;
-      }
-
-      // 2. Fetch usages filtered by these coupon IDs
-      // RLS should already handle this, but we add client-side filtering for robustness.
+      // Fetch all usages for coupons belonging to this organization
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -64,7 +44,6 @@ export const useCouponUsages = () => {
           redemption_code,
           coupon:coupon_id (title, organization_name)
         `)
-        .in('coupon_id', couponIds) // CRITICAL: Filter by organization's coupon IDs
         .order('redeemed_at', { ascending: false });
 
       if (error) {
@@ -78,18 +57,22 @@ export const useCouponUsages = () => {
         return;
       }
 
-      // 3. Final processing (ensuring redeemed_at is present for countdown)
+      // Filter data client-side:
+      // 1. Ensure coupon data exists (join successful)
+      // 2. Ensure coupon belongs to the current organization
+      // 3. CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
       const filteredData = (data as CouponUsageRecord[]).filter(
         (usage) => 
           usage.coupon && 
-          typeof usage.redeemed_at === 'string'
+          usage.coupon.organization_name === organizationName &&
+          typeof usage.redeemed_at === 'string' // Must be a string for Date() constructor
       );
       
       setUsages(filteredData);
     } finally {
       setIsLoading(false);
     }
-  }, [organizationName, isAuthenticated, isAdmin]);
+  };
 
   useEffect(() => {
     if (organizationName) {
@@ -118,7 +101,7 @@ export const useCouponUsages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [organizationName, isAuthenticated, isAdmin, fetchUsages]);
+  }, [organizationName, isAuthenticated, isAdmin]);
 
   return {
     usages,

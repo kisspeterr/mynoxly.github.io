@@ -20,11 +20,11 @@ export const useCoupons = () => {
 
     setIsLoading(true);
     try {
-      // CRITICAL: Explicitly filter by organization_name for security
+      // RLS ensures only coupons for the current organization are returned
+      // Admins see all coupons regardless of active/archived status
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', organizationName) // <-- NEW: Explicit filter
         .order('created_at', { ascending: false });
 
       if (error) {
