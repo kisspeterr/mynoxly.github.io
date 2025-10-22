@@ -15,16 +15,16 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
     window.location.reload();
   };
   
-  // Automatic refresh after 10 seconds if stuck
+  // Automatic refresh after 1 second if stuck
   useEffect(() => {
     let timer: number | undefined;
     
     if (isLoading) {
-      // Set a timeout for 10 seconds (10000 ms)
+      // Set a timeout for 1 second (1000 ms)
       timer = setTimeout(() => {
-        console.warn("Auth loading timed out after 10 seconds. Attempting automatic page reload.");
+        console.warn("Auth loading timed out after 1 second. Attempting automatic page reload.");
         handleManualRefresh();
-      }, 10000) as unknown as number;
+      }, 1000) as unknown as number;
     }
 
     return () => {
@@ -48,7 +48,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
           className="border-purple-500 text-purple-300 hover:bg-purple-500/10"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          Frissítés (Automatikus frissítés 10 mp után)
+          Frissítés (Automatikus frissítés 1 mp után)
         </Button>
       </div>
     );
