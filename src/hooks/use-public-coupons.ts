@@ -75,10 +75,12 @@ export const usePublicCoupons = () => {
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch all coupons
+      // 1. Fetch all ACTIVE and NON-ARCHIVED coupons
       const { data: couponData, error: couponError } = await supabase
         .from('coupons')
         .select(`*`)
+        .eq('is_active', true) // Filter by active
+        .eq('is_archived', false) // Filter by non-archived
         .order('created_at', { ascending: false });
 
       if (couponError) {
