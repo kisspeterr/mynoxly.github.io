@@ -11,8 +11,8 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
   const { isLoading } = useAuth();
   
   const handleManualRefresh = () => {
-    // Trigger the window focus event, which is handled by useAuth to refresh the session
-    window.dispatchEvent(new Event('focus'));
+    // Perform a full page reload to ensure the entire application state and Supabase session are re-initialized.
+    window.location.reload();
   };
 
   if (isLoading) {
