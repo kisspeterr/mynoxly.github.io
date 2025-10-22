@@ -14,12 +14,13 @@ const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
   const navigate = useNavigate();
 
-  // NOTE: The redirection logic is now handled by ProtectedRoute wrapper.
-  // We only need to handle the loading state display if the component renders while loading.
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
-    // This state should ideally be caught by AuthLoader/ProtectedRoute, 
-    // but we keep a minimal check for safety.
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
         <p className="text-cyan-400">Betöltés...</p>
@@ -28,7 +29,6 @@ const Profile = () => {
   }
   
   if (!isAuthenticated) {
-    // Should be unreachable due to ProtectedRoute, but return null if somehow reached.
     return null;
   }
 

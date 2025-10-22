@@ -9,10 +9,8 @@ import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
-import OrganizationProfile from "./pages/OrganizationProfile";
-import AuthLoader from "./components/AuthLoader";
-import ProtectedRoute from "./components/auth/ProtectedRoute"; // Import ProtectedRoute
-import AdminRoute from "./components/auth/AdminRoute";       // Import AdminRoute
+import OrganizationProfile from "./pages/OrganizationProfile"; // Import new page
+import AuthLoader from "./components/AuthLoader"; // Import AuthLoader
 
 const queryClient = new QueryClient();
 
@@ -22,25 +20,14 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        {/* AuthLoader wraps the entire application to handle initial loading state */}
         <AuthLoader>
           <Routes>
-            {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/organization/:organizationName" element={<OrganizationProfile />} />
-            
-            {/* Protected Routes (Requires Authentication) */}
-            <Route element={<ProtectedRoute />}>
-              <Route path="/profile" element={<Profile />} />
-            </Route>
-            
-            {/* Admin Routes (Requires Admin Role) */}
-            <Route element={<AdminRoute />}>
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/code" element={<RedemptionPage />} />
-            </Route>
-
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/code" element={<RedemptionPage />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> {/* New dynamic route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

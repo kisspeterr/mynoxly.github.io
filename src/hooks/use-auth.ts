@@ -24,7 +24,7 @@ const initialAuthState: AuthState = {
   session: null,
   user: null,
   profile: null,
-  isLoading: true, // Start loading
+  isLoading: true,
 };
 
 export const useAuth = () => {
@@ -62,14 +62,13 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     
-    // --- Initial Load Logic (Runs once on mount) ---
     const initialLoad = async () => {
       let session: Session | null = null;
       let profile: Profile | null = null;
       let user: User | null = null;
 
       try {
-        // 1. Get Session (This is the primary source of truth)
+        // 1. Get Session (This also triggers a refresh if needed)
         const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -100,19 +99,16 @@ export const useAuth = () => {
 
     initialLoad();
 
-    // --- Real-time Listener Logic ---
+    // 2. Real-time auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
-      // Only set loading true for active user actions (sign in/out)
-      let loading = false;
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        loading = true;
-        // Temporarily set loading state for immediate UI feedback
+      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED)
+      // We only set loading true if we expect a profile fetch or a significant change
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
       
-      // Skip profile fetch if SIGNED_OUT
       let profile: Profile | null = null;
       if (session) {
         profile = await fetchProfile(session.user.id);
@@ -122,9 +118,46 @@ export const useAuth = () => {
       updateAuthState(session, profile, false);
     });
     
+    // 3. Handle focus event for session refresh (Crucial for mobile/tab switching)
+    const handleFocus = async () => {
+        if (!isMounted) return;
+        
+        // Set loading state immediately to prevent UI flicker/hanging
+        setAuthState(prev => ({ ...prev, isLoading: true }));
+        
+        try {
+            // Explicitly refresh the session
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+            
+            let profile: Profile | null = null;
+            if (refreshedSession) {
+                profile = await fetchProfile(refreshedSession.user.id);
+            }
+            
+            if (isMounted) {
+                // Update state with the refreshed session and profile
+                updateAuthState(refreshedSession, profile, false);
+            }
+            
+            if (refreshError) {
+                console.error("Session refresh error on focus:", refreshError);
+            }
+        } catch (error) {
+            console.error("Unexpected error during focus refresh:", error);
+            if (isMounted) {
+                // Ensure loading state is cleared even on error
+                updateAuthState(null, null, false);
+            }
+        }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      window.removeEventListener('focus', handleFocus);
     };
   }, []); 
 
@@ -135,18 +168,6 @@ export const useAuth = () => {
       console.error('Sign out error:', error);
     }
   };
-  
-  // DEBUG LOGGING
-  useEffect(() => {
-    console.log("AUTH STATE:", {
-      isLoading: authState.isLoading,
-      session: authState.session,
-      user: authState.user,
-      profile: authState.profile,
-      role: authState.profile?.role,
-    });
-  }, [authState]);
-  // END DEBUG LOGGING
 
   return {
     ...authState,

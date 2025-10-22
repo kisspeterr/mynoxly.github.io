@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home } from 'lucide-react';
+import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
 import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
@@ -13,12 +14,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const AdminDashboard = () => {
-  // We rely on AdminRoute to ensure isAuthenticated and isAdmin are true here.
-  const { signOut, profile } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, signOut, profile } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
-  // Note: No need for useEffect or explicit UnauthorizedAccess check here.
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
+        <p className="text-cyan-400">Jogosultság ellenőrzése...</p>
+      </div>
+    );
+  }
+
+  if (isAuthenticated && !isAdmin) {
+    return <UnauthorizedAccess />;
+  }
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
       <div className="container mx-auto max-w-7xl">
