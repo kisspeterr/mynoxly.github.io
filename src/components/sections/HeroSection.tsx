@@ -37,7 +37,7 @@ const HeroSection = () => {
       <div className="container mx-auto text-center">
         <Badge className="mb-6 bg-cyan-500/20 text-cyan-300 border-cyan-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
-          Hamarosan Pécsett!
+          Pécs Éjszakai Élete
         </Badge>
         
         <div className="flex justify-center mb-6">
@@ -55,11 +55,11 @@ const HeroSection = () => {
         </h1>
         
         <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto">
-          Akciók, Kuponok és Kedvezmények - Pécs
+          Fedezd fel Pécs legizgalmasabb eseményeit és exkluzív kuponjait!
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
-          Fedezd fel Pécs legjobb eseményeit, kuponjait!
+          Ne maradj le semmiről! Gyűjts hűségpontokat, élvezd a kedvezményeket, és találd meg a legjobb helyeket a városban.
         </p>
         
         {/* Responsive Button Group: Stacks on mobile, horizontal on larger screens */}
