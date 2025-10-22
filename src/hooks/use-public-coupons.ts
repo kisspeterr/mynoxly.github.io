@@ -16,9 +16,10 @@ interface CouponUsage {
   redeemed_at: string; // We need this to check expiration time
 }
 
-// Extend Coupon type to include organization profile data
+// Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
   logo_url: string | null; // Simplified: logo_url directly on coupon object
+  usage_count: number; // New field for total successful usages
 }
 
 export const usePublicCoupons = () => {
@@ -53,7 +54,7 @@ export const usePublicCoupons = () => {
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch all coupons (without join)
+      // 1. Fetch all coupons
       const { data: couponData, error: couponError } = await supabase
         .from('coupons')
         .select(`*`)
@@ -72,14 +73,24 @@ export const usePublicCoupons = () => {
       // 2. Fetch organization logos separately
       const logoMap = await fetchOrganizationLogos(organizationNames);
       
-      const couponsWithLogos: PublicCoupon[] = rawCoupons.map(coupon => ({
-        ...coupon,
-        logo_url: logoMap[coupon.organization_name] || null,
-      }));
+      // 3. Fetch usage counts for all coupons concurrently
+      const usageCountPromises = rawCoupons.map(coupon => 
+        supabase.rpc('get_coupon_usage_count', { coupon_id_in: coupon.id })
+      );
+      const usageCountResults = await Promise.all(usageCountPromises);
+      
+      const couponsWithLogos: PublicCoupon[] = rawCoupons.map((coupon, index) => {
+        const usageCount = usageCountResults[index].data || 0;
+        return {
+          ...coupon,
+          logo_url: logoMap[coupon.organization_name] || null,
+          usage_count: Number(usageCount), // Ensure it's a number
+        };
+      });
       
       setCoupons(couponsWithLogos);
 
-      // 3. Fetch current user's ALL usages if authenticated
+      // 4. Fetch current user's ALL usages if authenticated
       if (isAuthenticated && user) {
         const { data: usageData, error: usageError } = await supabase
           .from('coupon_usages')
@@ -102,16 +113,8 @@ export const usePublicCoupons = () => {
 
   // Function to manually refresh usages (called after successful redemption or modal close)
   const refreshUsages = async () => {
-    if (isAuthenticated && user) {
-      const { data: usageData, error: usageError } = await supabase
-        .from('coupon_usages')
-        .select('id, coupon_id, is_used, redeemed_at') // Include redeemed_at
-        .eq('user_id', user.id);
-
-      if (!usageError) {
-        setAllUsages(usageData as CouponUsage[]);
-      }
-    }
+    // We need to refresh both usages (for pending/used status) AND coupon counts (for public display)
+    await fetchCouponsAndUsages();
   };
 
   useEffect(() => {
@@ -132,7 +135,9 @@ export const usePublicCoupons = () => {
             filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            refreshUsages();
+            // We rely on explicit refreshUsages calls for immediate feedback, 
+            // but keep this for general consistency.
+            refreshUsages(); 
           }
         )
         .subscribe();
@@ -145,10 +150,10 @@ export const usePublicCoupons = () => {
     };
   }, [isAuthenticated, user?.id]);
 
-  // --- New Logic: Check for expired pending codes ---
+  // --- Logic for checking pending/expired codes ---
   
   const isPendingExpired = (usage: CouponUsage): boolean => {
-    if (usage.is_used) return false; // Already used, not pending
+    if (usage.is_used) return false;
     
     const redeemedTime = new Date(usage.redeemed_at).getTime();
     const expiryTime = redeemedTime + REDEMPTION_DURATION_MS;
@@ -160,7 +165,6 @@ export const usePublicCoupons = () => {
   const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
     if (maxUses === 0) return false;
     
-    // Only count usages that are finalized (is_used: true)
     const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used).length;
     return count >= maxUses;
   };
@@ -172,10 +176,7 @@ export const usePublicCoupons = () => {
         return { isPending: false };
     }
     
-    // If pending, check if it has expired
     if (isPendingExpired(pendingUsage)) {
-        // If expired, we treat it as NOT pending anymore, and delete it from the DB
-        // We run this deletion asynchronously and don't wait for it to finish.
         deletePendingUsage(pendingUsage.id);
         return { isPending: false };
     }
@@ -192,14 +193,14 @@ export const usePublicCoupons = () => {
         .delete()
         .eq('id', usageId)
         .eq('is_used', false)
-        .eq('user_id', user.id); // Ensure user can only delete their own pending code
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error deleting pending usage:', error);
         return { success: false };
       }
       
-      // Realtime subscription will handle the state update (refreshUsages)
+      await refreshUsages(); 
       return { success: true };
     } catch (error) {
       console.error('Unexpected error during pending usage deletion:', error);
@@ -214,12 +215,13 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
     
-    if (isCouponPending(coupon.id).isPending) {
+    const pendingCheck = isCouponPending(coupon.id);
+    if (pendingCheck.isPending) {
         showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
         return { success: false };
     }
 
-    // Check finalized usage count
+    // Check finalized usage count (re-check against DB for safety)
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
@@ -234,7 +236,7 @@ export const usePublicCoupons = () => {
     }
 
     if (coupon.max_uses_per_user !== 0 && count !== null && count >= coupon.max_uses_per_user) {
-      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per-user} alkalommal.`);
+      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
       return { success: false };
     }
     

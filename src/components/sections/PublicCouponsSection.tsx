@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building, BarChart2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,9 +11,10 @@ import RedemptionModal from '@/components/RedemptionModal';
 import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons'; // Import Coupon type
 
-// Extend Coupon type to include organization profile data
+// Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
   logo_url: string | null;
+  usage_count: number;
 }
 
 const PublicCouponsSection = () => {
@@ -71,14 +72,12 @@ const PublicCouponsSection = () => {
     setCurrentRedemptionCode(undefined);
     
     if (wasRedeemed) {
-      // If redeemed by admin (via Realtime), refresh usages to update button state
+      // If redeemed by admin (via Realtime), refresh usages to update button state AND usage count
       refreshUsages(); 
     } else if (usageIdToClear) {
       // If closed by user AND not redeemed, delete the pending usage record
       await deletePendingUsage(usageIdToClear);
-      // The deletion triggers Realtime, which calls refreshUsages internally, 
-      // but we call it explicitly here for immediate UI feedback if Realtime is slow.
-      refreshUsages(); 
+      // refreshUsages is called inside deletePendingUsage
     }
   };
 
@@ -152,8 +151,14 @@ const PublicCouponsSection = () => {
                   <CardContent className="space-y-3 flex-grow text-left">
                     <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
                     
+                    {/* Usage Count Display */}
+                    <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                      <BarChart2 className="h-4 w-4 mr-2 text-pink-400" />
+                      Beváltva: <span className="font-semibold ml-1 text-white">{coupon.usage_count} alkalommal</span>
+                    </div>
+                    
                     {coupon.expiry_date && (
-                      <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                      <div className="flex items-center text-sm text-gray-300">
                         <Calendar className="h-4 w-4 mr-2 text-purple-400" />
                         Lejárat: {format(new Date(coupon.expiry_date), 'yyyy. MM. dd.')}
                       </div>
