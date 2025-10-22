@@ -21,6 +21,7 @@ export const useCoupons = () => {
     setIsLoading(true);
     try {
       // RLS ensures only coupons for the current organization are returned
+      // Admins see all coupons regardless of active/archived status
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
@@ -56,7 +57,8 @@ export const useCoupons = () => {
     try {
       const { data, error } = await supabase
         .from('coupons')
-        .insert({ ...couponData, organization_name: organizationName })
+        // Ensure new coupons are active and not archived by default
+        .insert({ ...couponData, organization_name: organizationName, is_active: true, is_archived: false })
         .select()
         .single();
 
@@ -95,8 +97,63 @@ export const useCoupons = () => {
       setIsLoading(false);
     }
   };
+  
+  const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
+    setIsLoading(true);
+    try {
+      const newStatus = !currentStatus;
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({ is_active: newStatus })
+        .eq('id', id)
+        .select()
+        .single();
 
-  const deleteCoupon = async (id: string) => {
+      if (error) {
+        showError(`Hiba a kupon ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}.`);
+        console.error('Toggle active status error:', error);
+        return { success: false };
+      }
+
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess(`Kupon sikeresen ${newStatus ? 'aktiválva' : 'deaktiválva'}!`);
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const archiveCoupon = async (id: string) => {
+    setIsLoading(true);
+    try {
+      // Archiving automatically sets is_active to false
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({ is_archived: true, is_active: false })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        showError('Hiba történt a kupon archiválásakor.');
+        console.error('Archive coupon error:', error);
+        return { success: false };
+      }
+
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess('Kupon sikeresen archiválva!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteCoupon = async (id: string, isArchived: boolean) => {
+    if (!isArchived) {
+      showError('Csak archivált kuponokat lehet véglegesen törölni.');
+      return { success: false };
+    }
+    
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -106,6 +163,7 @@ export const useCoupons = () => {
 
       if (error) {
         showError('Hiba történt a kupon törlésekor.');
+        console.error('Delete coupon error:', error);
         return { success: false };
       }
 
@@ -123,7 +181,9 @@ export const useCoupons = () => {
     fetchCoupons, // Keep exported for manual refresh if needed
     createCoupon,
     updateCoupon,
-    deleteCoupon,
+    toggleActiveStatus, // New action
+    archiveCoupon,      // New action
+    deleteCoupon,       // Modified action
     organizationName,
   };
 };
