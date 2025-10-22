@@ -29,7 +29,7 @@ const HeroSection = () => {
       <div className="container mx-auto text-center">
         <Badge className="mb-6 bg-purple-500/20 text-purple-300 border-purple-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
-          Pécsi Egyetemisták Kedvence
+          Pécsi Bulizók Kedvence
         </Badge>
         
         <div className="flex justify-center mb-6">
