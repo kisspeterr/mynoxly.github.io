@@ -12,14 +12,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import ImageUploaderWithCrop from '@/components/ImageUploaderWithCrop'; // Import new component
 
 // Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
   coupon_code: z.string().min(4, 'A kuponkód túl rövid.'),
-  // image_url is now handled by the uploader, but we keep it as a string (URL) in the schema
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
   max_uses_per_user: z.coerce.number().int().min(1, 'Minimum 1 használat.'),
@@ -29,9 +27,12 @@ const couponSchema = z.object({
   points_reward: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
   points_cost: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
 }).refine(data => {
-    // Custom validation: Cannot be both a reward and a cost coupon
+    // Custom validation: If points_cost > 0, then max_uses_per_user must be 1 (or handle complex logic later)
+    // For simplicity, if it costs points, it must be a single-use redemption.
+    // However, the user request implies that points_cost > 0 means it's a points-only coupon.
+    // Let's enforce that if points_cost > 0, points_reward must be 0, and vice versa.
     if (data.points_cost > 0 && data.points_reward > 0) {
-        return false; 
+        return false; // Cannot be both a reward and a cost coupon
     }
     return true;
 }, {
@@ -69,7 +70,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
   });
 
   const expiryDate = watch('expiry_date');
-  const imageUrl = watch('image_url');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: CouponFormData) => {
@@ -78,21 +78,9 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
       onClose();
     }
   };
-  
-  // Aspect ratio for coupon card image (40 units high, full width, roughly 16:9)
-  const COUPON_ASPECT_RATIO = 16 / 9; 
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      
-      {/* Image Uploader with Cropping */}
-      <ImageUploaderWithCrop
-        onUploadSuccess={(url) => setValue('image_url', url, { shouldValidate: true })}
-        initialUrl={imageUrl}
-        aspectRatio={COUPON_ASPECT_RATIO}
-      />
-      {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
-      
       <div className="space-y-2">
         <Label htmlFor="title" className="text-gray-300">Cím *</Label>
         <Input 
@@ -123,6 +111,16 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
         />
         {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="image_url" className="text-gray-300">Kép URL (opcionális)</Label>
+        <Input 
+          id="image_url"
+          {...register('image_url')}
+          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+        />
+        {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
       </div>
 
       {/* Loyalty Points Configuration */}
