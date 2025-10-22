@@ -68,7 +68,7 @@ export const useAuth = () => {
       let user: User | null = null;
 
       try {
-        // 1. Get Session
+        // 1. Get Session (This also triggers a refresh if needed)
         const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -103,8 +103,11 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
-      // Start loading state for state changes (e.g., SIGNED_IN/OUT)
-      setAuthState(prev => ({ ...prev, isLoading: true }));
+      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED)
+      // We only set loading true if we expect a profile fetch or a significant change
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+        setAuthState(prev => ({ ...prev, isLoading: true }));
+      }
       
       let profile: Profile | null = null;
       if (session) {
@@ -114,12 +117,34 @@ export const useAuth = () => {
       // Update state after profile fetch, setting isLoading=false
       updateAuthState(session, profile, false);
     });
+    
+    // 3. Handle focus event for session refresh (Supabase handles this internally, but this ensures our state reacts)
+    const handleFocus = async () => {
+        // Explicitly refresh session when the window gains focus
+        // This is crucial for mobile/tab switching scenarios
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && isMounted) {
+            // If we have a session, ensure we are not stuck in loading state
+            if (authState.isLoading) {
+                // Re-trigger profile fetch if we were stuck loading
+                const profile = await fetchProfile(session.user.id);
+                updateAuthState(session, profile, false);
+            }
+        } else if (!session && isMounted) {
+            // If no session, ensure we are signed out
+            updateAuthState(null, null, false);
+        }
+    };
+
+    window.addEventListener('focus', handleFocus);
+
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
+      window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, []); // Removed authState from dependency array to prevent infinite loops
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
