@@ -4,10 +4,14 @@ export interface Event {
   title: string;
   description: string | null;
   start_time: string; // ISO string
+  end_time: string | null; // NEW: ISO string
   location: string | null;
   image_url: string | null;
   coupon_id: string | null;
   created_at: string;
+  latitude: number | null;
+  longitude: number | null;
+  event_link: string | null;
   
   // Optional relation data (fetched via join)
   coupon?: {
@@ -21,6 +25,7 @@ export interface EventInsert {
   title: string;
   description: string | null;
   start_time: string;
+  end_time: string | null; // NEW
   location: string | null;
   image_url: string | null;
   coupon_id: string | null;

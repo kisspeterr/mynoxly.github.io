@@ -16,6 +16,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCoupons } from '@/hooks/use-coupons';
 import { showError } from '@/utils/toast';
 
+const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
 const eventSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
@@ -23,9 +25,40 @@ const eventSchema = z.object({
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   coupon_id: z.string().nullable().optional().transform(e => e === "" ? null : e),
   
-  // Date and Time handling
+  // Start Date and Time handling
   startDate: z.date({ required_error: "A kezdő dátum kötelező." }),
-  time: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Érvénytelen idő formátum (HH:MM)."),
+  startTime: z.string().regex(timeRegex, "Érvénytelen kezdő idő formátum (HH:MM)."),
+  
+  // End Date and Time handling (Optional)
+  endDate: z.date().nullable().optional(),
+  endTime: z.string().regex(timeRegex, "Érvénytelen vég idő formátum (HH:MM).").nullable().optional().transform(e => e === "" ? null : e),
+}).refine(data => {
+    // Custom validation: If endTime is provided, endDate must also be provided
+    if (data.endTime && !data.endDate) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Ha megadsz befejezési időt, a befejezési dátum is kötelező.",
+    path: ["endDate"],
+}).refine(data => {
+    // Custom validation: End time must be after start time
+    if (data.startDate && data.startTime && data.endDate && data.endTime) {
+        const [startHours, startMinutes] = data.startTime.split(':').map(Number);
+        const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+        
+        const startDateTime = new Date(data.startDate);
+        startDateTime.setHours(startHours, startMinutes, 0, 0);
+        
+        const endDateTime = new Date(data.endDate);
+        endDateTime.setHours(endHours, endMinutes, 0, 0);
+        
+        return endDateTime.getTime() > startDateTime.getTime();
+    }
+    return true;
+}, {
+    message: "A befejezési időnek későbbinek kell lennie, mint a kezdési idő.",
+    path: ["endTime"],
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -38,10 +71,11 @@ interface EventFormProps {
 }
 
 const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
-  const { coupons, isLoading: isCouponsLoading } = useCoupons(); // Removed fetchCoupons
+  const { coupons, isLoading: isCouponsLoading } = useCoupons();
   
   // Prepare default values for editing
   const defaultStartTime = initialData?.start_time ? new Date(initialData.start_time) : new Date();
+  const defaultEndTime = initialData?.end_time ? new Date(initialData.end_time) : null;
   
   const defaultValues: EventFormData = {
     title: initialData?.title || '',
@@ -50,7 +84,9 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     image_url: initialData?.image_url || null,
     coupon_id: initialData?.coupon_id || null,
     startDate: initialData?.start_time ? defaultStartTime : undefined,
-    time: format(defaultStartTime, 'HH:mm'),
+    startTime: format(defaultStartTime, 'HH:mm'),
+    endDate: defaultEndTime,
+    endTime: defaultEndTime ? format(defaultEndTime, 'HH:mm') : null,
   };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, setError } = useForm<EventFormData>({
@@ -59,23 +95,29 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
   });
 
   const startDate = watch('startDate');
+  const endDate = watch('endDate');
   const isEditing = !!initialData;
 
-  // Removed useEffect(() => { fetchCoupons(); }, []);
-
   const handleFormSubmit = async (data: EventFormData) => {
-    const [hours, minutes] = data.time.split(':').map(Number);
+    const [startHours, startMinutes] = data.startTime.split(':').map(Number);
     
     if (!data.startDate) {
       setError('startDate', { message: 'A kezdő dátum kötelező.' });
       return;
     }
 
-    // Combine date and time
+    // Combine start date and time
     const startDateTime = new Date(data.startDate);
-    startDateTime.setHours(hours, minutes, 0, 0);
+    startDateTime.setHours(startHours, startMinutes, 0, 0);
+    
+    let endDateTime: Date | null = null;
+    if (data.endDate && data.endTime) {
+        const [endHours, endMinutes] = data.endTime.split(':').map(Number);
+        endDateTime = new Date(data.endDate);
+        endDateTime.setHours(endHours, endMinutes, 0, 0);
+    }
 
-    if (isNaN(startDateTime.getTime())) {
+    if (isNaN(startDateTime.getTime()) || (endDateTime && isNaN(endDateTime.getTime()))) {
       showError('Érvénytelen dátum vagy időpont.');
       return;
     }
@@ -87,6 +129,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       image_url: data.image_url,
       coupon_id: data.coupon_id,
       start_time: startDateTime.toISOString(),
+      end_time: endDateTime ? endDateTime.toISOString() : null, // NEW
     };
 
     const result = await onSubmit(eventInsert);
@@ -127,49 +170,101 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         {errors.location && <p className="text-red-400 text-sm">{errors.location.message}</p>}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        {/* Date Picker */}
-        <div className="space-y-2">
-          <Label htmlFor="startDate" className="text-gray-300">Dátum *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50",
-                  !startDate && "text-gray-500"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {startDate ? format(startDate, "PPP") : <span>Válassz dátumot</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-black/80 border-cyan-500/30 backdrop-blur-sm">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(date) => setValue('startDate', date || undefined, { shouldValidate: true })}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-          {errors.startDate && <p className="text-red-400 text-sm">{errors.startDate.message}</p>}
-        </div>
-
-        {/* Time Input */}
-        <div className="space-y-2">
-          <Label htmlFor="time" className="text-gray-300">Idő (HH:MM) *</Label>
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
-            <Input 
-              id="time"
-              type="text"
-              placeholder="20:00"
-              {...register('time')}
-              className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-            />
+      <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-cyan-300">Kezdési időpont</h4>
+        <div className="grid grid-cols-2 gap-4">
+          {/* Start Date Picker */}
+          <div className="space-y-2">
+            <Label htmlFor="startDate" className="text-gray-300">Dátum *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50",
+                    !startDate && "text-gray-500"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "PPP") : <span>Válassz dátumot</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-black/80 border-cyan-500/30 backdrop-blur-sm">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => setValue('startDate', date || undefined, { shouldValidate: true })}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            {errors.startDate && <p className="text-red-400 text-sm">{errors.startDate.message}</p>}
           </div>
-          {errors.time && <p className="text-red-400 text-sm">{errors.time.message}</p>}
+
+          {/* Start Time Input */}
+          <div className="space-y-2">
+            <Label htmlFor="startTime" className="text-gray-300">Idő (HH:MM) *</Label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input 
+                id="startTime"
+                type="text"
+                placeholder="20:00"
+                {...register('startTime')}
+                className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              />
+            </div>
+            {errors.startTime && <p className="text-red-400 text-sm">{errors.startTime.message}</p>}
+          </div>
+        </div>
+      </div>
+      
+      <div className="space-y-4 border border-purple-500/20 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-purple-300">Befejezési időpont (opcionális)</h4>
+        <div className="grid grid-cols-2 gap-4">
+          {/* End Date Picker */}
+          <div className="space-y-2">
+            <Label htmlFor="endDate" className="text-gray-300">Dátum</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50",
+                    !endDate && "text-gray-500"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "PPP") : <span>Válassz dátumot</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 bg-black/80 border-purple-500/30 backdrop-blur-sm">
+                <Calendar
+                  mode="single"
+                  selected={endDate || undefined}
+                  onSelect={(date) => setValue('endDate', date || null, { shouldValidate: true })}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+            {errors.endDate && <p className="text-red-400 text-sm">{errors.endDate.message}</p>}
+          </div>
+
+          {/* End Time Input */}
+          <div className="space-y-2">
+            <Label htmlFor="endTime" className="text-gray-300">Idő (HH:MM)</Label>
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input 
+                id="endTime"
+                type="text"
+                placeholder="23:00"
+                {...register('endTime')}
+                className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              />
+            </div>
+            {errors.endTime && <p className="text-red-400 text-sm">{errors.endTime.message}</p>}
+          </div>
         </div>
       </div>
 

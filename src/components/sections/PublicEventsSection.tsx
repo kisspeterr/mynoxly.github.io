@@ -1,11 +1,15 @@
-import React from 'react';
-import { Calendar, MapPin, Clock, Tag, Loader2, Building } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, MapPin, Clock, Tag, Loader2, Building, Heart, Loader2 as Spinner } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { usePublicEvents } from '@/hooks/use-public-events';
+import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import new hook
+import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Event } from '@/types/events';
+import EventCountdown from '@/components/EventCountdown'; // Import Countdown
 
 // Extend Event type to include organization profile data
 interface PublicEvent extends Event {
@@ -14,6 +18,19 @@ interface PublicEvent extends Event {
 
 const PublicEventsSection = () => {
   const { events, isLoading } = usePublicEvents();
+  const { isAuthenticated } = useAuth();
+  const { isInterested, toggleInterest } = useInterestedEvents();
+  const [isToggling, setIsToggling] = useState<string | null>(null);
+
+  const handleToggleInterest = async (event: PublicEvent) => {
+    if (!isAuthenticated) {
+      // Error handling is done inside toggleInterest hook
+      return;
+    }
+    setIsToggling(event.id);
+    await toggleInterest(event.id, event.title);
+    setIsToggling(null);
+  };
 
   return (
     <section id="events-section" className="py-20 px-6">
@@ -42,6 +59,8 @@ const PublicEventsSection = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.map((event) => {
               const logoUrl = (event as PublicEvent).logo_url;
+              const interested = isInterested(event.id);
+              const isCurrentToggling = isToggling === event.id;
               
               return (
                 <Card 
@@ -58,7 +77,10 @@ const PublicEventsSection = () => {
                     </div>
                   )}
                   <CardHeader className="pb-4">
-                    <CardTitle className="text-2xl text-purple-300">{event.title}</CardTitle>
+                    <div className="flex justify-between items-start mb-2">
+                        <CardTitle className="text-2xl text-purple-300 mr-2">{event.title}</CardTitle>
+                        <EventCountdown startTime={event.start_time} endTime={event.end_time} />
+                    </div>
                     
                     {/* Organization Name with Logo and Link */}
                     <Link 
@@ -85,6 +107,9 @@ const PublicEventsSection = () => {
                     <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
                       <Clock className="h-4 w-4 mr-2 text-cyan-400" />
                       Kezdés: <span className="font-semibold ml-1 text-white">{format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}</span>
+                      {event.end_time && (
+                        <span className="ml-2 text-gray-500"> - {format(new Date(event.end_time), 'HH:mm')}</span>
+                      )}
                     </div>
                     
                     {event.location && (
@@ -99,6 +124,27 @@ const PublicEventsSection = () => {
                         <Tag className="h-4 w-4 mr-2" />
                         Kupon: <span className="font-semibold ml-1">{event.coupon.title}</span>
                       </div>
+                    )}
+                    
+                    {/* Interest Button */}
+                    {isAuthenticated && (
+                        <Button
+                            variant="outline"
+                            onClick={() => handleToggleInterest(event)}
+                            disabled={isCurrentToggling}
+                            className={`w-full mt-4 transition-colors duration-300 ${
+                                interested 
+                                    ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
+                                    : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
+                            }`}
+                        >
+                            {isCurrentToggling ? (
+                                <Spinner className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
+                            )}
+                            {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
+                        </Button>
                     )}
                   </CardContent>
                 </Card>
