@@ -62,6 +62,7 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     
+    // --- Initial Load Logic (Runs once on mount) ---
     const initialLoad = async () => {
       let session: Session | null = null;
       let profile: Profile | null = null;
@@ -99,7 +100,7 @@ export const useAuth = () => {
 
     initialLoad();
 
-    // 3. Real-time auth state changes (Handles sign in/out/token refresh)
+    // --- Real-time Listener Logic ---
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!isMounted) return;
       
@@ -107,9 +108,11 @@ export const useAuth = () => {
       let loading = false;
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
         loading = true;
+        // Temporarily set loading state for immediate UI feedback
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
       
+      // Skip profile fetch if SIGNED_OUT
       let profile: Profile | null = null;
       if (session) {
         profile = await fetchProfile(session.user.id);
@@ -119,8 +122,6 @@ export const useAuth = () => {
       updateAuthState(session, profile, false);
     });
     
-    // Removed window.addEventListener('focus', handleFocus) as Supabase handles session refresh internally.
-
     return () => {
       isMounted = false;
       subscription.unsubscribe();
