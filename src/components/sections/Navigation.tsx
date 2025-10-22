@@ -37,6 +37,7 @@ const Navigation = () => {
 
   const AuthButtons = () => {
     if (isLoading) {
+      // Show a loading placeholder while the initial session is being checked
       return <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>;
     }
 
@@ -221,12 +222,14 @@ const Navigation = () => {
                 </button>
               )}
               {!isAuthenticated && (
-                <button
-                  onClick={() => navigateToSection('waitlist')}
-                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
+                <Link
+                  to="/login"
+                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
                 >
-                  Csatlakozom
-                </button>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Bejelentkezés
+                </Link>
               )}
             </div>
           </div>

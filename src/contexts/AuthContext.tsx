@@ -63,9 +63,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         setProfile(userProfile);
         
-        setIsLoading(false);
+        // CRITICAL: Ensure isLoading is set to false after the initial check
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            setIsLoading(false);
+        }
       }
     );
+
+    // Also perform an immediate check for the initial session state
+    supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+            setSession(session);
+            setUser(session.user);
+            fetchProfile(session.user.id).then(setProfile);
+        }
+        setIsLoading(false);
+    }).catch(() => {
+        setIsLoading(false);
+    });
+
 
     return () => {
       subscription.unsubscribe();
@@ -80,7 +96,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  // NEW: Auto sign out on browser/tab close
+  // Auto sign out on browser/tab close
   useEffect(() => {
     const handleBeforeUnload = async () => {
       if (user) {
@@ -95,7 +111,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [user]); // Dependency on user ensures we only try to sign out if a user is logged in
+  }, [user]);
 
   const value = {
     session,
