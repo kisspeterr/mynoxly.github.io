@@ -1,4 +1,4 @@
-import { Moon, MessageCircle, Share, Heart, Gift, Calendar, Building } from "lucide-react";
+import { Moon, MessageCircle, Share, Heart, Gift, Calendar, Building, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -56,7 +56,11 @@ const FooterSection = () => {
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Partnereknek</h3>
             <ul className="space-y-2">
-              <li><Link to="/" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Partneri jelentkezés</Link></li>
+              <li>
+                <a href="/#partner-section" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300 flex items-center">
+                  <Handshake className="h-4 w-4 mr-2" /> Partner leszek
+                </a>
+              </li>
               <li><Link to="/" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Média és sajtó</Link></li>
               <li><Link to="/login" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Admin bejelentkezés</Link></li>
             </ul>
