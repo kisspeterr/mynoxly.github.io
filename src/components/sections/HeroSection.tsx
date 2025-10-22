@@ -4,12 +4,6 @@ import { Badge } from "@/components/ui/badge";
 
 const HeroSection = () => {
   // Stats array is no longer needed but kept for reference if needed later
-  const stats = [
-    { number: "500+", label: "Előregisztrált felhasználó" },
-    { number: "30+", label: "Érdeklődő partner" },
-    { number: "2026", label: "Bemutató éve" },
-    { number: "10+", label: "Induló akció" }
-  ];
 
   const scrollToCoupons = () => {
     const couponsSection = document.getElementById('coupons-section');
@@ -59,7 +53,7 @@ const HeroSection = () => {
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-2xl mx-auto">
-          Ne maradj le semmiről! Gyűjts hűségpontokat, élvezd a kedvezményeket, és találd meg a legjobb helyeket a városban.
+          Gyűjts hűségpontokat, élvezd a kedvezményeket, és találd meg a legjobb helyeket a városban.
         </p>
         
         {/* Responsive Button Group: Stacks on mobile, horizontal on larger screens */}
