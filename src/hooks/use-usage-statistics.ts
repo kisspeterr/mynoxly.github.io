@@ -2,10 +2,12 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
-import { format, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
+
+export type TimeRange = 'day' | 'week' | 'month' | 'year';
 
 export interface UsageStat {
-  hour: string; // HH:00 format
+  label: string; // Formatted label (e.g., HH:00, MM. dd., Week X)
   count: number;
 }
 
@@ -24,7 +26,7 @@ export const useUsageStatistics = () => {
 
   const organizationName = profile?.organization_name;
 
-  const fetchStatistics = useCallback(async (date: Date, userEmailFilter: string = '') => {
+  const fetchStatistics = useCallback(async (date: Date, timeRange: TimeRange, userEmailFilter: string = '') => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setStats([]);
       setDetailedUsages([]);
@@ -33,9 +35,53 @@ export const useUsageStatistics = () => {
 
     setIsLoading(true);
     try {
-      // 1. Define date range for the selected day
-      const start = startOfDay(date).toISOString();
-      const end = endOfDay(date).toISOString();
+      let start: string;
+      let end: string;
+      let dateFormat: string;
+      let groupFn: (d: Date) => string;
+      let initialData: UsageStat[] = [];
+
+      // 1. Determine date range and grouping logic
+      switch (timeRange) {
+        case 'day':
+          start = startOfDay(date).toISOString();
+          end = endOfDay(date).toISOString();
+          dateFormat = 'HH:00';
+          groupFn = (d) => format(d, dateFormat);
+          // Initialize 24 hours
+          for (let i = 0; i < 24; i++) {
+            initialData.push({ label: i.toString().padStart(2, '0') + ':00', count: 0 });
+          }
+          break;
+        case 'week':
+          start = startOfWeek(date, { weekStartsOn: 1 }).toISOString(); // Monday start
+          end = endOfWeek(date, { weekStartsOn: 1 }).toISOString();
+          dateFormat = 'EEE'; // Mon, Tue, etc.
+          groupFn = (d) => format(d, dateFormat);
+          // Initialize 7 days
+          const days = ['Hé', 'Ke', 'Sze', 'Csü', 'Pé', 'Szo', 'Va'];
+          initialData = days.map(day => ({ label: day, count: 0 }));
+          break;
+        case 'month':
+          start = startOfMonth(date).toISOString();
+          end = endOfMonth(date).toISOString();
+          dateFormat = 'MM. dd.';
+          groupFn = (d) => format(d, dateFormat);
+          // We don't pre-initialize days for a month, we'll use the actual data points
+          break;
+        case 'year':
+          start = startOfYear(date).toISOString();
+          end = endOfYear(date).toISOString();
+          dateFormat = 'yyyy. MM.';
+          groupFn = (d) => format(d, dateFormat);
+          // Initialize 12 months
+          for (let i = 0; i < 12; i++) {
+            initialData.push({ label: format(new Date(date.getFullYear(), i, 1), 'yyyy. MM.'), count: 0 });
+          }
+          break;
+        default:
+          throw new Error('Invalid time range');
+      }
 
       // 2. Build the base query for successfully used coupons in the organization
       let query = supabase
@@ -51,9 +97,6 @@ export const useUsageStatistics = () => {
         .gte('redeemed_at', start)
         .lte('redeemed_at', end)
         .order('redeemed_at', { ascending: true });
-
-      // RLS ensures only the current organization's coupons are returned, 
-      // but we rely on the join filter in the hook for safety/clarity.
 
       const { data, error } = await query;
 
@@ -76,52 +119,77 @@ export const useUsageStatistics = () => {
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       
-      // 4. Fetch user emails for detailed view (requires separate query for each user ID, which is inefficient, 
-      // but necessary as auth.users is not joinable/publicly accessible)
-      const userIds = Array.from(new Set(organizationUsages.map(u => u.user_id)));
-      const { data: usersData } = await supabase.rpc('get_user_emails_by_ids', { user_ids: userIds });
-      
-      const emailMap = (usersData || []).reduce((acc, user) => {
-        acc[user.id] = user.email;
-        return acc;
-      }, {} as Record<string, string>);
-
-      // 5. Group by hour and filter by email
-      const hourlyCounts: Record<string, number> = {};
+      // 4. Fetch user emails for detailed view (ONLY for 'day' range)
       const processedDetails: DetailedUsage[] = [];
+      let emailMap: Record<string, string> = {};
 
+      if (timeRange === 'day') {
+        const userIds = Array.from(new Set(organizationUsages.map(u => u.user_id)));
+        const { data: usersData } = await supabase.rpc('get_user_emails_by_ids', { user_ids: userIds });
+        
+        emailMap = (usersData || []).reduce((acc, user) => {
+          acc[user.id] = user.email;
+          return acc;
+        }, {} as Record<string, string>);
+      }
+
+      // 5. Group by time range and filter by email (only for 'day' range)
+      const hourlyCounts: Record<string, number> = {};
+      
       for (const usage of organizationUsages) {
         const redeemedAt = new Date(usage.redeemed_at);
-        const hourKey = format(redeemedAt, 'HH:00');
-        const userEmail = emailMap[usage.user_id] || `ID: ${usage.user_id.slice(0, 8)}...`;
+        const groupKey = groupFn(redeemedAt);
         
-        // Apply email filter
-        if (userEmailFilter && !userEmail.toLowerCase().includes(userEmailFilter.toLowerCase())) {
-            continue;
+        // Detailed view processing (only for 'day' range)
+        if (timeRange === 'day') {
+            const userEmail = emailMap[usage.user_id] || `ID: ${usage.user_id.slice(0, 8)}...`;
+            
+            // Apply email filter
+            if (userEmailFilter && !userEmail.toLowerCase().includes(userEmailFilter.toLowerCase())) {
+                continue;
+            }
+            
+            processedDetails.push({
+                id: usage.id,
+                redeemed_at: usage.redeemed_at,
+                coupon_title: usage.coupon?.title || 'Ismeretlen kupon',
+                user_email: userEmail,
+            });
         }
 
-        hourlyCounts[hourKey] = (hourlyCounts[hourKey] || 0) + 1;
-        
-        processedDetails.push({
-            id: usage.id,
-            redeemed_at: usage.redeemed_at,
-            coupon_title: usage.coupon?.title || 'Ismeretlen kupon',
-            user_email: userEmail,
-        });
+        // Aggregate counts
+        hourlyCounts[groupKey] = (hourlyCounts[groupKey] || 0) + 1;
       }
 
-      // 6. Format hourly stats (00:00 to 23:00)
-      const formattedStats: UsageStat[] = [];
-      for (let i = 0; i < 24; i++) {
-        const hour = i.toString().padStart(2, '0') + ':00';
-        formattedStats.push({
-          hour,
-          count: hourlyCounts[hour] || 0,
+      // 6. Format stats array
+      let finalStats: UsageStat[];
+      
+      if (timeRange === 'day' || timeRange === 'year') {
+        // Use pre-initialized array and fill counts
+        finalStats = initialData.map(stat => ({
+          ...stat,
+          count: hourlyCounts[stat.label] || 0,
+        }));
+      } else if (timeRange === 'week') {
+        // Map counts to the fixed day labels
+        finalStats = initialData.map((stat, index) => {
+            // Find the corresponding day key (e.g., 'Mon')
+            const dayKey = stat.label;
+            // Find the actual count from the aggregated data
+            const count = Object.keys(hourlyCounts).find(key => key.includes(dayKey)) 
+                ? hourlyCounts[dayKey] 
+                : 0;
+            return { label: stat.label, count };
         });
+      } else { // month
+        // Sort unique keys and map to stats
+        finalStats = Object.keys(hourlyCounts)
+            .sort()
+            .map(label => ({ label, count: hourlyCounts[label] }));
       }
 
-      setStats(formattedStats);
-      setDetailedUsages(processedDetails);
+      setStats(finalStats);
+      setDetailedUsages(processedDetails); // Only populated for 'day' range
 
     } catch (error) {
       console.error('Unexpected statistics error:', error);
