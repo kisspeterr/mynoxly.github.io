@@ -16,7 +16,15 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
   };
   
   // Automatic refresh after 1 second if stuck
-  
+  if (isLoading) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin" />
+      <p>Hitelesítési állapot betöltése...</p>
+    </div>
+  );
+}
+
 
     return () => {
       if (timer !== undefined) {
