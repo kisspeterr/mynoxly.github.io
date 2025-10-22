@@ -16,7 +16,7 @@ const PublicEventsSection = () => {
   const { events, isLoading } = usePublicEvents();
 
   return (
-    <section id="events-section" className="py-20 px-6 bg-black/50">
+    <section id="events-section" className="py-20 px-6">
       <div className="container mx-auto text-center">
         <Badge className="mb-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
           <Calendar className="h-4 w-4 mr-2" />
