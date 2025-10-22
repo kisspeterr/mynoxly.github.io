@@ -6,12 +6,12 @@ const BenefitsSection = () => {
   return (
     <section id="benefits" className="py-20 px-6">
       <div className="container mx-auto">
-        <h2 className="text-4xl md:text-5xl font-bold text-center mb-12 text-purple-300">
+        <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 text-purple-300">
           Ki mit nyer a NOXLY-val?
         </h2>
         
         {/* Users Section */}
-        <div className="mb-16">
+        <div className="mb-20">
           <div className="text-center mb-12">
             <Badge className="mb-4 bg-amber-500 animate-pulse text-white">
               <Crown className="h-4 w-4 mr-2" />
