@@ -9,8 +9,10 @@ import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
-import OrganizationProfile from "./pages/OrganizationProfile"; // Import new page
-import AuthLoader from "./components/AuthLoader"; // Import AuthLoader
+import OrganizationProfile from "./pages/OrganizationProfile";
+import AuthLoader from "./components/AuthLoader";
+import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute";
+import UnauthorizedAccess from "./components/UnauthorizedAccess";
 
 const queryClient = new QueryClient();
 
@@ -22,13 +24,41 @@ const App = () => (
       <BrowserRouter>
         <AuthLoader>
           <Routes>
+            {/* Public Routes */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/code" element={<RedemptionPage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> {/* New dynamic route */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/organization/:organizationName" element={<OrganizationProfile />} />
+            <Route path="/unauthorized" element={<UnauthorizedAccess />} />
+
+            {/* Protected User Routes */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Protected Admin Routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/code"
+              element={
+                <AdminRoute>
+                  <RedemptionPage />
+                </AdminRoute>
+              }
+            />
+            
+            {/* Catch-all Not Found Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthLoader>

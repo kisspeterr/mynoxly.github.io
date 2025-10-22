@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
@@ -20,17 +20,15 @@ interface AuthState {
   isLoading: boolean;
 }
 
-const initialAuthState: AuthState = {
-  session: null,
-  user: null,
-  profile: null,
-  isLoading: true,
-};
-
 export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>(initialAuthState);
+  const [authState, setAuthState] = useState<AuthState>({
+    session: null,
+    user: null,
+    profile: null,
+    isLoading: true,
+  });
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -47,30 +45,53 @@ export const useAuth = () => {
       console.error('Unexpected error during profile fetch:', e);
       return null;
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Supabase onAuthStateChange handles the initial session check automatically.
-    // The 'INITIAL_SESSION' event will fire once when the listener is first set up.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      let profile: Profile | null = null;
+    let ignore = false;
+
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (ignore) return;
+
+      let userProfile: Profile | null = null;
       if (session?.user) {
-        profile = await fetchProfile(session.user.id);
+        userProfile = await fetchProfile(session.user.id);
       }
-      
-      // Set the final state. isLoading becomes false after the initial check is complete.
+
       setAuthState({
         session,
-        user: session?.user || null,
-        profile,
+        user: session?.user ?? null,
+        profile: userProfile,
         isLoading: false,
       });
-    });
+    };
+
+    getInitialSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (ignore) return;
+
+        let userProfile: Profile | null = null;
+        if (session?.user) {
+          userProfile = await fetchProfile(session.user.id);
+        }
+
+        setAuthState({
+          session,
+          user: session?.user ?? null,
+          profile: userProfile,
+          isLoading: false,
+        });
+      }
+    );
 
     return () => {
+      ignore = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchProfile]);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -78,7 +99,6 @@ export const useAuth = () => {
       showError('Hiba történt a kijelentkezés során.');
       console.error('Sign out error:', error);
     }
-    // onAuthStateChange will handle the state update automatically
   };
 
   return {
