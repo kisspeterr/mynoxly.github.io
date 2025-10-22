@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -12,13 +12,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import ImageCropper from './ImageCropper'; // Import the new component
 
 // Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
   coupon_code: z.string().min(4, 'A kuponkód túl rövid.'),
-  image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
+  image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e), // Keep URL in schema for data handling
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
   max_uses_per_user: z.coerce.number().int().min(1, 'Minimum 1 használat.'),
   total_max_uses: z.coerce.number().int().min(0, 'Minimum 0.').nullable().optional().transform(e => e === 0 ? null : e),
@@ -27,12 +28,9 @@ const couponSchema = z.object({
   points_reward: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
   points_cost: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
 }).refine(data => {
-    // Custom validation: If points_cost > 0, then max_uses_per_user must be 1 (or handle complex logic later)
-    // For simplicity, if it costs points, it must be a single-use redemption.
-    // However, the user request implies that points_cost > 0 means it's a points-only coupon.
-    // Let's enforce that if points_cost > 0, points_reward must be 0, and vice versa.
+    // Custom validation: Cannot be both a reward and a cost coupon
     if (data.points_cost > 0 && data.points_reward > 0) {
-        return false; // Cannot be both a reward and a cost coupon
+        return false; 
     }
     return true;
 }, {
@@ -48,6 +46,8 @@ interface CouponFormProps {
   isLoading: boolean;
   initialData?: Coupon; // Optional data for editing
 }
+
+const COUPON_ASPECT_RATIO = 2 / 1; // 2:1 ratio for coupon cards
 
 const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
   
@@ -71,9 +71,18 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
 
   const expiryDate = watch('expiry_date');
   const isEditing = !!initialData;
+  
+  // State to manage image URL from the cropper component
+  const [imageUrl, setImageUrl] = useState<string | null>(initialData?.image_url || null);
 
   const handleFormSubmit = async (data: CouponFormData) => {
-    const result = await onSubmit(data as CouponInsert);
+    // Ensure the final image URL is included in the submission data
+    const submissionData: CouponInsert = {
+        ...data,
+        image_url: imageUrl, // Use the URL managed by the cropper component
+    };
+    
+    const result = await onSubmit(submissionData);
     if (result.success) {
       onClose();
     }
@@ -113,15 +122,21 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="image_url" className="text-gray-300">Kép URL (opcionális)</Label>
-        <Input 
-          id="image_url"
-          {...register('image_url')}
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-        {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
-      </div>
+      {/* Image Cropper Component */}
+      <ImageCropper
+        aspectRatio={COUPON_ASPECT_RATIO}
+        initialImageUrl={initialData?.image_url || null}
+        onUploadSuccess={(url) => {
+            setImageUrl(url);
+            setValue('image_url', url, { shouldValidate: true }); // Update form state internally
+        }}
+        onDelete={() => {
+            setImageUrl(null);
+            setValue('image_url', null, { shouldValidate: true }); // Clear form state
+        }}
+      />
+      {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
+
 
       {/* Loyalty Points Configuration */}
       <div className="pt-4 border-t border-gray-700/50">
