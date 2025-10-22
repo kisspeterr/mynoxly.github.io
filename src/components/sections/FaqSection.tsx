@@ -33,7 +33,7 @@ const faqItems = [
 
 const FaqSection: React.FC = () => {
   return (
-    <section id="faq" className="py-20 px-6">
+    <section id="faq" className="py-12 px-6">
       <div className="container mx-auto text-center max-w-4xl">
         <Badge className="mb-4 bg-gradient-to-r from-pink-500 to-purple-500 text-white border-0">
           <HelpCircle className="h-4 w-4 mr-2" />

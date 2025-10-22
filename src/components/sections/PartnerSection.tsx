@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 
 const PartnerSection: React.FC = () => {
   return (
-    <section id="partner-section" className="py-20 px-6">
+    <section id="partner-section" className="py-12 px-6">
       <div className="container mx-auto text-center max-w-4xl">
         <Badge className="mb-4 bg-gradient-to-r from-green-500 to-teal-500 text-white border-0">
           <Handshake className="h-4 w-4 mr-2" />

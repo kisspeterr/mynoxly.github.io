@@ -27,7 +27,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="pt-32 pb-20 px-6">
+    <section className="pt-24 pb-12 px-6">
       <div className="container mx-auto text-center">
         <Badge className="mb-6 bg-cyan-500/20 text-cyan-300 border-cyan-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
