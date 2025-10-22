@@ -3,16 +3,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
 
+// 🔹 Profile tábla definíció
 interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'user' | 'admin'; // Simplified roles
-  organization_name: string | null; // Added missing field
-  logo_url: string | null; // Added new field
+  role: 'user' | 'admin';
+  organization_name: string | null;
+  logo_url: string | null;
 }
 
+// 🔹 Auth állapot
 interface AuthState {
   session: Session | null;
   user: User | null;
@@ -20,6 +22,7 @@ interface AuthState {
   isLoading: boolean;
 }
 
+// 🔹 Kezdőérték
 const initialAuthState: AuthState = {
   session: null,
   user: null,
@@ -30,15 +33,16 @@ const initialAuthState: AuthState = {
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
 
+  // 🔹 Profil lekérdezése profile táblából
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url') // Fetching all fields including logo_url
+        .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url')
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116: No rows found
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
         return null;
       }
@@ -49,7 +53,7 @@ export const useAuth = () => {
     }
   };
 
-  // This function handles setting the final state based on session/user/profile data
+  // 🔹 Állapot frissítése
   const updateAuthState = (session: Session | null, profile: Profile | null, loading: boolean = false) => {
     setAuthState({
       session,
@@ -59,107 +63,83 @@ export const useAuth = () => {
     });
   };
 
+  // ✅ Teljes auth-logika egy useEffect-ben
   useEffect(() => {
-  let isMounted = true;
+    let isMounted = true;
 
-  const initialLoad = async () => {
-    try {
-      // 1️⃣ Try to get session (from storage or Supabase)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // 1️⃣ Inicializálás - Session + Profile lekérés
+    const initialLoad = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) console.error('Initial session error:', error);
 
-      if (sessionError) {
-        console.error("Initial Supabase session fetch failed:", sessionError);
-      }
-
-      // 2️⃣ If user exists, try loading the profile
-      let profile: Profile | null = null;
-      if (session?.user) {
-        profile = await fetchProfile(session.user.id);
-      }
-
-      // 3️⃣ Set final state no matter what → IMPORTANT
-      if (isMounted) {
-        updateAuthState(session, profile, false); // isLoading always becomes false
-      }
-
-    } catch (error) {
-      console.error("Unexpected error during initial auth load:", error);
-      if (isMounted) {
-        updateAuthState(null, null, false); // Safely stop loading
-      }
-    }
-  };
-
-  initialLoad();
-
-  return () => {
-    isMounted = false;
-  };
-}, []);
-
-
-    // 2. Real-time auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-      
-      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED)
-      // We only set loading true if we expect a profile fetch or a significant change
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-      }
-      
-      let profile: Profile | null = null;
-      if (session) {
-        profile = await fetchProfile(session.user.id);
-      }
-      
-      // Update state after profile fetch, setting isLoading=false
-      updateAuthState(session, profile, false);
-    });
-    
-    // 3. Handle focus event for session refresh (Crucial for mobile/tab switching)
-    const handleFocus = async () => {
-        if (!isMounted) return;
-        
-        // Set loading state immediately to prevent UI flicker/hanging
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-        
-        try {
-            // Explicitly refresh the session
-            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-            
-            let profile: Profile | null = null;
-            if (refreshedSession) {
-                profile = await fetchProfile(refreshedSession.user.id);
-            }
-            
-            if (isMounted) {
-                // Update state with the refreshed session and profile
-                updateAuthState(refreshedSession, profile, false);
-            }
-            
-            if (refreshError) {
-                console.error("Session refresh error on focus:", refreshError);
-            }
-        } catch (error) {
-            console.error("Unexpected error during focus refresh:", error);
-            if (isMounted) {
-                // Ensure loading state is cleared even on error
-                updateAuthState(null, null, false);
-            }
+        let profile: Profile | null = null;
+        if (session?.user) {
+          profile = await fetchProfile(session.user.id);
         }
+
+        if (isMounted) {
+          updateAuthState(session, profile, false);
+        }
+      } catch (err) {
+        console.error('Initial auth load failed:', err);
+        if (isMounted) {
+          updateAuthState(null, null, false);
+        }
+      }
+    };
+
+    initialLoad();
+
+    // 2️⃣ Auth események (login/logout/token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+
+        setAuthState((prev) => ({ ...prev, isLoading: true }));
+
+        let profile: Profile | null = null;
+        if (session?.user) {
+          profile = await fetchProfile(session.user.id);
+        }
+
+        updateAuthState(session, profile, false);
+      }
+    );
+
+    // 3️⃣ Ha visszatérsz az oldalra / mobilról → session frissítés
+    const handleFocus = async () => {
+      if (!isMounted) return;
+
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+
+      try {
+        const { data: { session }, error } = await supabase.auth.refreshSession();
+        if (error) console.error('Session refresh error:', error);
+
+        let profile = null;
+        if (session?.user) {
+          profile = await fetchProfile(session.user.id);
+        }
+
+        if (isMounted) updateAuthState(session, profile, false);
+      } catch (err) {
+        console.error('Focus refresh error:', err);
+        if (isMounted) updateAuthState(null, null, false);
+      }
     };
 
     window.addEventListener('focus', handleFocus);
 
-
+    // 4️⃣ Takarítás memóriahibák ellen
     return () => {
       isMounted = false;
       subscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
     };
-  }, []); 
+  }, []);
 
+  // 🔹 Kijelentkezés
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -168,11 +148,12 @@ export const useAuth = () => {
     }
   };
 
+  // 🔹 Visszatérő értékek
   return {
     ...authState,
     signOut,
-    isAdmin: authState.profile?.role === 'admin', // Simplified check
+    isAdmin: authState.profile?.role === 'admin',
     isAuthenticated: !!authState.user,
-    fetchProfile, // Export fetchProfile for manual refresh after update
+    fetchProfile,
   };
 };
