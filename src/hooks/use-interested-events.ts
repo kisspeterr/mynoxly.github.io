@@ -36,7 +36,7 @@ export const useInterestedEvents = () => {
           event_id,
           event:event_id (
             *,
-            profile:organization_name (logo_url)
+            organization_profile:organization_name (logo_url)
           )
         `)
         .eq('user_id', user.id) // RLS ensures this is safe
@@ -52,16 +52,20 @@ export const useInterestedEvents = () => {
       const processedEvents: InterestedEventRecord[] = (data as any[]).map(record => {
         const event = record.event;
         
-        // Extract logo_url from the nested profile array/object
-        const logo_url = Array.isArray(event.profile) && event.profile.length > 0 
-            ? event.profile[0].logo_url 
+        // Extract logo_url from the nested organization_profile array/object
+        // Supabase returns an array if the join is on a non-primary key (organization_name)
+        const logo_url = Array.isArray(event.organization_profile) && event.organization_profile.length > 0 
+            ? event.organization_profile[0].logo_url 
             : null;
+            
+        // Remove the temporary organization_profile field before returning the final event structure
+        const { organization_profile, ...restOfEvent } = event;
             
         return {
           id: record.id,
           event_id: record.event_id,
           event: {
-            ...event,
+            ...restOfEvent,
             logo_url: logo_url,
           }
         };
@@ -69,6 +73,11 @@ export const useInterestedEvents = () => {
       
       setInterestedEvents(processedEvents);
 
+    } catch (e) {
+        // Catch unexpected errors during processing (like accessing properties on null)
+        showError('Váratlan hiba történt az érdeklődő események feldolgozásakor.');
+        console.error('Processing error:', e);
+        setInterestedEvents([]);
     } finally {
       setIsLoading(false);
     }
