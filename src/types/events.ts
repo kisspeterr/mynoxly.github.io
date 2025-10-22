@@ -13,6 +13,11 @@ export interface Event {
   longitude: number | null;
   event_link: string | null;
   
+  // NEW Email fields
+  send_email_notification: boolean;
+  email_subject: string | null;
+  email_body: string | null;
+  
   // Optional relation data (fetched via join)
   coupon?: {
     id: string;
@@ -29,4 +34,9 @@ export interface EventInsert {
   location: string | null;
   image_url: string | null;
   coupon_id: string | null;
+  
+  // NEW Email fields
+  send_email_notification: boolean;
+  email_subject: string | null;
+  email_body: string | null;
 }

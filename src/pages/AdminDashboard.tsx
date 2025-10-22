@@ -9,7 +9,7 @@ import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
 import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
 import ProfileSettingsPage from '@/components/admin/ProfileSettingsPage';
-import UsageStatisticsPage from '@/components/admin/UsageStatisticsPage';
+import UsageStatisticsPage from '@/components/admin/UsageStatisticsPage'; // Import Statistics Page
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -120,7 +120,7 @@ const AdminDashboard = () => {
           <p className="text-md text-gray-400 mb-6 md:mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Tabs List - Now 5 tabs */}
+            {/* Tabs List - Full width on mobile (5 tabs now) */}
             <TabsList className="grid w-full grid-cols-5 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
               <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
                 <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
