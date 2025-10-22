@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building, Sparkles } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -119,8 +119,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between">
           {/* Logo (Left) */}
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent flex items-center">
-              <Sparkles className="h-6 w-6 mr-2 text-purple-400" />
+            <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
               NOXLY
             </Link>
           </div>
