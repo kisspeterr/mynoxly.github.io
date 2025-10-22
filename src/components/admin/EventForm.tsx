@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Clock, Save, MapPin, Mail } from 'lucide-react';
+import { CalendarIcon, Clock, Save, MapPin } from 'lucide-react';
 import { Event, EventInsert } from '@/types/events';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -14,7 +14,6 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCoupons } from '@/hooks/use-coupons';
-import { useEmailTemplates } from '@/hooks/use-email-templates'; // Import template hook
 import { showError } from '@/utils/toast';
 
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -33,9 +32,6 @@ const eventSchema = z.object({
   // End Date and Time handling (Optional)
   endDate: z.date().nullable().optional(),
   endTime: z.string().regex(timeRegex, "Érvénytelen vég idő formátum (HH:MM).").nullable().optional().transform(e => e === "" ? null : e),
-  
-  // NEW: Template ID
-  email_template_id: z.string().nullable().optional().transform(e => e === "" || e === "null" ? null : e),
 }).refine(data => {
     // Custom validation: If endTime is provided, endDate must also be provided
     if (data.endTime && !data.endDate) {
@@ -76,7 +72,6 @@ interface EventFormProps {
 
 const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
   const { coupons, isLoading: isCouponsLoading } = useCoupons();
-  const { templates, isLoading: isTemplatesLoading } = useEmailTemplates();
   
   // Prepare default values for editing
   const defaultStartTime = initialData?.start_time ? new Date(initialData.start_time) : new Date();
@@ -92,9 +87,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     startTime: format(defaultStartTime, 'HH:mm'),
     endDate: defaultEndTime,
     endTime: defaultEndTime ? format(defaultEndTime, 'HH:mm') : null,
-    
-    // NEW: Template ID
-    email_template_id: (initialData as any)?.email_template_id || null,
   };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch, setError } = useForm<EventFormData>({
@@ -104,7 +96,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
 
   const startDate = watch('startDate');
   const endDate = watch('endDate');
-  const emailTemplateId = watch('email_template_id');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: EventFormData) => {
@@ -139,9 +130,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       coupon_id: data.coupon_id,
       start_time: startDateTime.toISOString(),
       end_time: endDateTime ? endDateTime.toISOString() : null,
-      
-      // NEW FIELD
-      email_template_id: data.email_template_id,
     };
 
     const result = await onSubmit(eventInsert);
@@ -312,37 +300,11 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         </Select>
         {errors.coupon_id && <p className="text-red-400 text-sm">{errors.coupon_id.message}</p>}
       </div>
-      
-      {/* NEW: Email Template Selection */}
-      <div className="pt-4 border-t border-gray-700/50 space-y-2">
-        <Label htmlFor="email_template_id" className="text-gray-300 flex items-center">
-            <Mail className="h-4 w-4 mr-2 text-pink-400" /> Email Sablon (Érdeklődéskor)
-        </Label>
-        <Select 
-          onValueChange={(value) => setValue('email_template_id', value === 'null' ? null : value, { shouldValidate: true })}
-          value={emailTemplateId || 'null'}
-          disabled={isTemplatesLoading}
-        >
-          <SelectTrigger className="w-full bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50">
-            <SelectValue placeholder={isTemplatesLoading ? "Sablonok betöltése..." : "Válassz sablont (opcionális)"} />
-          </SelectTrigger>
-          <SelectContent className="bg-black/90 border-cyan-500/30 text-white">
-            <SelectItem value="null">Nincs email értesítés</SelectItem>
-            {templates.map(template => (
-              <SelectItem key={template.id} value={template.id}>
-                {template.template_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.email_template_id && <p className="text-red-400 text-sm">{errors.email_template_id.message}</p>}
-        <p className="text-xs text-gray-500">A sablonok a "Sablonok" fülön kezelhetők.</p>
-      </div>
 
       <Button 
         type="submit" 
         className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white"
-        disabled={isLoading || isCouponsLoading || isTemplatesLoading}
+        disabled={isLoading || isCouponsLoading}
       >
         <Save className="h-4 w-4 mr-2" />
         {isLoading ? 'Mentés...' : (isEditing ? 'Esemény frissítése' : 'Esemény létrehozása')}

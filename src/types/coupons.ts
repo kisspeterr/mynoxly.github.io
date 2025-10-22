@@ -14,9 +14,6 @@ export interface Coupon {
   is_code_required: boolean; // If true, requires admin validation code
   is_active: boolean; // If false, coupon is hidden from public view
   is_archived: boolean; // If true, coupon is moved to archive tab
-  
-  // NEW Email field
-  email_template_id: string | null;
 }
 
 export interface CouponInsert {
@@ -30,7 +27,4 @@ export interface CouponInsert {
   points_reward: number;
   points_cost: number;
   is_code_required: boolean;
-  
-  // NEW Email field
-  email_template_id: string | null;
 }

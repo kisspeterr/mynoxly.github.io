@@ -13,9 +13,6 @@ export interface Event {
   longitude: number | null;
   event_link: string | null;
   
-  // NEW Email field
-  email_template_id: string | null;
-  
   // Optional relation data (fetched via join)
   coupon?: {
     id: string;
@@ -32,7 +29,4 @@ export interface EventInsert {
   location: string | null;
   image_url: string | null;
   coupon_id: string | null;
-  
-  // NEW Email field
-  email_template_id: string | null;
 }

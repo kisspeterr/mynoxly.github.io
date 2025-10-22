@@ -6,15 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Save, Gift, Coins, QrCode, CheckCircle, Mail, Info } from 'lucide-react';
+import { CalendarIcon, Save, Gift, Coins, QrCode, CheckCircle } from 'lucide-react';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useEmailTemplates } from '@/hooks/use-email-templates'; // Import template hook
 
 // Define the schema for form validation
 const couponSchema = z.object({
@@ -32,9 +30,6 @@ const couponSchema = z.object({
   
   // Code Requirement
   is_code_required: z.boolean().default(true),
-  
-  // NEW: Template ID
-  email_template_id: z.string().nullable().optional().transform(e => e === "" || e === "null" ? null : e),
 }).refine(data => {
     // Custom validation: Cannot be both a reward and a cost coupon
     if (data.points_cost > 0 && data.points_reward > 0) {
@@ -65,7 +60,6 @@ interface CouponFormProps {
 }
 
 const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
-  const { templates, isLoading: isTemplatesLoading } = useEmailTemplates();
   
   // Prepare default values for editing
   const defaultValues: CouponFormData = {
@@ -79,9 +73,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
     points_reward: initialData?.points_reward || 0,
     points_cost: initialData?.points_cost || 0,
     is_code_required: initialData?.is_code_required ?? true,
-    
-    // NEW: Template ID
-    email_template_id: (initialData as any)?.email_template_id || null,
   };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CouponFormData>({
@@ -91,27 +82,12 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
 
   const expiryDate = watch('expiry_date');
   const isCodeRequired = watch('is_code_required');
-  const emailTemplateId = watch('email_template_id');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: CouponFormData) => {
     // Ensure coupon_code is null if not required
     const finalCouponCode = data.is_code_required ? data.coupon_code : null;
     
-    const insertData: CouponInsert = {
-        ...data,
-        coupon_code: finalCouponCode,
-        
-        // Remove old email fields from insert data (they are no longer in CouponInsert type)
-        // We only pass the template ID
-        email_template_id: data.email_template_id,
-        
-        // Dummy values for old fields to satisfy TS if needed, but they should be removed from CouponInsert type
-        // Since I cannot modify CouponInsert type here, I must ensure the data passed matches the new DB schema.
-        // NOTE: The CouponInsert type needs updating in src/types/coupons.ts
-    };
-    
-    // We must manually map the data to the new CouponInsert structure
     const finalInsertData: CouponInsert = {
         title: data.title,
         description: data.description,
@@ -123,9 +99,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         points_reward: data.points_reward,
         points_cost: data.points_cost,
         is_code_required: data.is_code_required,
-        
-        // NEW FIELD
-        email_template_id: data.email_template_id,
     };
     
     const result = await onSubmit(finalInsertData);
@@ -261,32 +234,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
           </div>
         </div>
       </div>
-      
-      {/* NEW: Email Template Selection */}
-      <div className="pt-4 border-t border-gray-700/50 space-y-2">
-        <Label htmlFor="email_template_id" className="text-gray-300 flex items-center">
-            <Mail className="h-4 w-4 mr-2 text-pink-400" /> Email Sablon (Beváltáskor)
-        </Label>
-        <Select 
-          onValueChange={(value) => setValue('email_template_id', value === 'null' ? null : value, { shouldValidate: true })}
-          value={emailTemplateId || 'null'}
-          disabled={isTemplatesLoading}
-        >
-          <SelectTrigger className="w-full bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50">
-            <SelectValue placeholder={isTemplatesLoading ? "Sablonok betöltése..." : "Válassz sablont (opcionális)"} />
-          </SelectTrigger>
-          <SelectContent className="bg-black/90 border-cyan-500/30 text-white">
-            <SelectItem value="null">Nincs email értesítés</SelectItem>
-            {templates.map(template => (
-              <SelectItem key={template.id} value={template.id}>
-                {template.template_name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.email_template_id && <p className="text-red-400 text-sm">{errors.email_template_id.message}</p>}
-        <p className="text-xs text-gray-500">A sablonok a "Sablonok" fülön kezelhetők.</p>
-      </div>
 
       <div className="space-y-2">
         <Label htmlFor="expiry_date" className="text-gray-300">Lejárati dátum (opcionális)</Label>
@@ -318,7 +265,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
       <Button 
         type="submit" 
         className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white"
-        disabled={isLoading || isTemplatesLoading}
+        disabled={isLoading}
       >
         <Save className="h-4 w-4 mr-2" />
         {isLoading ? 'Mentés...' : (isEditing ? 'Kupon frissítése' : 'Kupon létrehozása')}
