@@ -7,7 +7,6 @@ import { useAuth } from './use-auth';
 export const useCoupons = () => {
   const { profile, isAuthenticated, isAdmin } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [archivedCoupons, setArchivedCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const organizationName = profile?.organization_name;
@@ -16,7 +15,6 @@ export const useCoupons = () => {
   const fetchCoupons = async () => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setCoupons([]);
-      setArchivedCoupons([]);
       return;
     }
 
@@ -34,12 +32,7 @@ export const useCoupons = () => {
         return;
       }
 
-      const allCoupons = data as Coupon[];
-      
-      // Separate active/inactive from archived
-      setCoupons(allCoupons.filter(c => !c.is_archived));
-      setArchivedCoupons(allCoupons.filter(c => c.is_archived));
-
+      setCoupons(data as Coupon[]);
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +56,7 @@ export const useCoupons = () => {
     try {
       const { data, error } = await supabase
         .from('coupons')
-        .insert({ ...couponData, organization_name: organizationName, is_active: true, is_archived: false })
+        .insert({ ...couponData, organization_name: organizationName })
         .select()
         .single();
 
@@ -80,7 +73,7 @@ export const useCoupons = () => {
     }
   };
   
-  const updateCoupon = async (id: string, couponData: Partial<CouponInsert & { is_active?: boolean, is_archived?: boolean }>) => {
+  const updateCoupon = async (id: string, couponData: Partial<CouponInsert>) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -95,8 +88,7 @@ export const useCoupons = () => {
         return { success: false };
       }
 
-      // Re-fetch all data to ensure correct sorting and separation
-      await fetchCoupons();
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
       showSuccess('Kupon sikeresen frissítve!');
       return { success: true };
     } finally {
@@ -104,31 +96,7 @@ export const useCoupons = () => {
     }
   };
 
-  const archiveCoupon = async (id: string) => {
-    const result = await updateCoupon(id, { is_archived: true, is_active: false });
-    if (result.success) {
-        showSuccess('Kupon sikeresen archiválva!');
-    }
-    return result;
-  };
-  
-  const unarchiveCoupon = async (id: string) => {
-    const result = await updateCoupon(id, { is_archived: false, is_active: true });
-    if (result.success) {
-        showSuccess('Kupon sikeresen visszaállítva!');
-    }
-    return result;
-  };
-  
-  const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
-    const result = await updateCoupon(id, { is_active: !currentStatus });
-    if (result.success) {
-        showSuccess(`Kupon sikeresen ${!currentStatus ? 'aktiválva' : 'deaktiválva'}!`);
-    }
-    return result;
-  };
-
-  const permanentDeleteCoupon = async (id: string) => {
+  const deleteCoupon = async (id: string) => {
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -137,12 +105,12 @@ export const useCoupons = () => {
         .eq('id', id);
 
       if (error) {
-        showError('Hiba történt a kupon végleges törlésekor.');
+        showError('Hiba történt a kupon törlésekor.');
         return { success: false };
       }
 
-      setArchivedCoupons(prev => prev.filter(c => c.id !== id));
-      showSuccess('Kupon véglegesen törölve!');
+      setCoupons(prev => prev.filter(c => c.id !== id));
+      showSuccess('Kupon sikeresen törölve!');
       return { success: true };
     } finally {
       setIsLoading(false);
@@ -151,15 +119,11 @@ export const useCoupons = () => {
 
   return {
     coupons,
-    archivedCoupons,
     isLoading,
     fetchCoupons, // Keep exported for manual refresh if needed
     createCoupon,
     updateCoupon,
-    archiveCoupon,
-    unarchiveCoupon,
-    toggleActiveStatus,
-    permanentDeleteCoupon,
+    deleteCoupon,
     organizationName,
   };
 };
