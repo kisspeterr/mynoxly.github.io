@@ -9,30 +9,17 @@ interface AuthLoaderProps {
 
 const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
   const { isLoading } = useAuth();
-
-  useEffect(() => {
-    let intervalId: number | undefined;
-    if (isLoading) {
-      // This will repeatedly refresh the page every 0.7 seconds while loading.
-      // WARNING: This is likely to cause an infinite loop if the auth check takes longer than 0.7s.
-      intervalId = setInterval(() => {
-        window.location.reload();
-      }, 700);
-    }
-
-    // Cleanup the interval when the component unmounts or isLoading becomes false
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isLoading]);
-
+  
   const handleManualRefresh = () => {
+    // Perform a full page reload to ensure the entire application state and Supabase session are re-initialized.
     window.location.reload();
   };
   
+  // Az agresszív 1 másodperces időzítő eltávolítva, mivel végtelen ciklust okozott.
+  // A Supabase SDK-nak magától kell kezelnie a session betöltését.
+
   if (isLoading) {
+    // Show a global loading screen while the initial session is being checked
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 p-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mr-3 mb-4" />
