@@ -2,8 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend"; // Using npm:resend package
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-// NOTE: Using a generic Resend-verified address for reliability.
-const SENDER_EMAIL = 'noreply@resend.dev'; 
+// NOTE: Using the user's verified domain/subdomain for sending.
+const SENDER_EMAIL = 'send@noxly.hu'; 
 
 // Initialize Resend client
 const resend = new Resend(RESEND_API_KEY);
