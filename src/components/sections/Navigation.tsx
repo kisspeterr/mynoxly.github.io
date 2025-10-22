@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 
 const Navigation = () => {

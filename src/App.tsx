@@ -10,9 +10,9 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
 import OrganizationProfile from "./pages/OrganizationProfile";
-import AuthLoader from "./components/AuthLoader";
 import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute";
 import UnauthorizedAccess from "./components/UnauthorizedAccess";
+import { AuthProvider } from "./contexts/AuthContext";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +22,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthLoader>
+        <AuthProvider>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Index />} />
@@ -61,7 +61,7 @@ const App = () => (
             {/* Catch-all Not Found Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthLoader>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

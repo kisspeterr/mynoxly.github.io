@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import Navigation from '@/components/sections/Navigation';
 import FooterSection from '@/components/sections/FooterSection';
 import { usePublicCoupons } from '@/hooks/use-public-coupons';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import RedemptionModal from '@/components/RedemptionModal';
 import FavoriteButton from '@/components/FavoriteButton';
 import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';

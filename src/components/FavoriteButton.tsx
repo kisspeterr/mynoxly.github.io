@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/use-favorites';
 import { showError } from '@/utils/toast';
 

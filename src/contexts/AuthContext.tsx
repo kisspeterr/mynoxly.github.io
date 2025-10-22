@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
@@ -13,20 +13,24 @@ interface Profile {
   logo_url: string | null;
 }
 
-interface AuthState {
+interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
+  isAdmin: boolean;
+  isAuthenticated: boolean;
+  signOut: () => Promise<void>;
+  fetchProfile: (userId: string) => Promise<Profile | null>;
 }
 
-export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>({
-    session: null,
-    user: null,
-    profile: null,
-    isLoading: true,
-  });
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
@@ -48,21 +52,18 @@ export const useAuth = () => {
   }, []);
 
   useEffect(() => {
-    // onAuthStateChange is called immediately with the current session,
-    // so we don't need a separate getSession() call. This is the single source of truth.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+
         let userProfile: Profile | null = null;
         if (session?.user) {
           userProfile = await fetchProfile(session.user.id);
         }
-
-        setAuthState({
-          session,
-          user: session?.user ?? null,
-          profile: userProfile,
-          isLoading: false, // This will be set after the initial check is complete.
-        });
+        setProfile(userProfile);
+        
+        setIsLoading(false);
       }
     );
 
@@ -79,11 +80,24 @@ export const useAuth = () => {
     }
   };
 
-  return {
-    ...authState,
+  const value = {
+    session,
+    user,
+    profile,
+    isLoading,
+    isAdmin: profile?.role === 'admin',
+    isAuthenticated: !!user,
     signOut,
-    isAdmin: authState.profile?.role === 'admin',
-    isAuthenticated: !!authState.user,
     fetchProfile,
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

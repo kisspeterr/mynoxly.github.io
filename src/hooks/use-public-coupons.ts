@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth } from './use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateRedemptionCode } from '@/utils/code-generator';
 import { Coupon } from '@/types/coupons';
 
