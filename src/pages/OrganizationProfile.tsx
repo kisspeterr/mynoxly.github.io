@@ -21,7 +21,7 @@ interface OrganizationProfileData {
   logo_url: string | null;
 }
 
-// Extend Coupon type to include organization profile data and usage count
+// NOTE: This definition must match the one in use-public-coupons.ts
 interface PublicCoupon extends Coupon {
   logo_url: string | null;
   usage_count: number;
@@ -59,7 +59,8 @@ const OrganizationProfile = () => {
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
 
   // Filter coupons relevant to this organization
-  const organizationCoupons = allPublicCoupons.filter(c => c.organization_name === organizationName);
+  // We cast the filtered list back to PublicCoupon[] for rendering
+  const organizationCoupons = (allPublicCoupons as PublicCoupon[]).filter(c => c.organization_name === organizationName);
   
   // --- Data Fetching ---
   const fetchOrganizationData = useCallback(async () => {
@@ -142,10 +143,12 @@ const OrganizationProfile = () => {
 
     setIsRedeeming(true);
     try {
-      const result = await redeemCoupon(coupon);
+      // Pass the coupon object (which is PublicCoupon, but redeemCoupon only uses Coupon fields)
+      const result = await redeemCoupon(coupon); 
 
       if (result.success && result.usageId && result.redemptionCode) {
-        setSelectedCoupon(coupon);
+        // Store the base Coupon data for the modal
+        setSelectedCoupon(coupon); 
         setCurrentUsageId(result.usageId);
         setCurrentRedemptionCode(result.redemptionCode);
         setIsModalOpen(true);
@@ -166,6 +169,7 @@ const OrganizationProfile = () => {
     if (wasRedeemed) {
       refreshUsages(); 
     } else if (usageIdToClear) {
+      // If closed by user AND not redeemed, delete the pending usage record
       await deletePendingUsage(usageIdToClear);
     }
   };
@@ -299,7 +303,7 @@ const OrganizationProfile = () => {
                               </div>
                             ) : (
                               <Button 
-                                onClick={() => handleRedeemClick(coupon as PublicCoupon)}
+                                onClick={() => handleRedeemClick(coupon)}
                                 className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
                                 disabled={isDisabled}
                               >
