@@ -3,12 +3,13 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
 import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
-import ProfileSettingsPage from '@/components/admin/ProfileSettingsPage'; // Import new page
+import ProfileSettingsPage from '@/components/admin/ProfileSettingsPage';
+import UsageStatisticsPage from '@/components/admin/UsageStatisticsPage'; // Import Statistics Page
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
@@ -87,6 +88,12 @@ const AdminDashboard = () => {
                     Beváltás
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/dashboard?tab=statistics" className="flex items-center">
+                    <BarChart className="h-4 w-4 mr-2 text-pink-400" />
+                    Statisztikák
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={signOut} className="text-red-400 flex items-center">
                   <LogOut className="h-4 w-4 mr-2" />
                   Kijelentkezés
@@ -101,8 +108,8 @@ const AdminDashboard = () => {
           <p className="text-md text-gray-400 mb-6 md:mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Tabs List - Full width on mobile */}
-            <TabsList className="grid w-full grid-cols-4 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
+            {/* Tabs List - Full width on mobile (5 tabs now) */}
+            <TabsList className="grid w-full grid-cols-5 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
               <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
                 <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
               </TabsTrigger>
@@ -111,6 +118,9 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
                 <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
+              </TabsTrigger>
+              <TabsTrigger value="statistics" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
+                <BarChart className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Statisztikák</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
                 <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
@@ -125,6 +135,9 @@ const AdminDashboard = () => {
               </TabsContent>
               <TabsContent value="usages">
                 <CouponUsagesPage />
+              </TabsContent>
+              <TabsContent value="statistics">
+                <UsageStatisticsPage />
               </TabsContent>
               <TabsContent value="settings">
                 <ProfileSettingsPage />

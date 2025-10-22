@@ -12,6 +12,7 @@ import FloatingDemoButton from "@/components/FloatingDemoButton";
 import FloatingScrollArrow from "@/components/FloatingScrollArrow";
 import PublicCouponsSection from "@/components/sections/PublicCouponsSection";
 import PublicEventsSection from "@/components/sections/PublicEventsSection";
+import OrganizersSection from "@/components/sections/OrganizersSection"; // Import new section
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -33,6 +34,7 @@ const Index = () => {
       <div className="bg-black/30">
         <PublicCouponsSection />
         <PublicEventsSection />
+        <OrganizersSection /> {/* Insert Organizers Section here */}
         <MapSection />
         <BenefitsSection />
         <ComingSoonSection />

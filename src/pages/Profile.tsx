@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, User, Home } from 'lucide-react';
 import ProfileCard from '@/components/ProfileCard';
 import UserCouponsList from '@/components/user/UserCouponsList';
+import UserFavoritesList from '@/components/user/UserFavoritesList'; // Import Favorites List
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -61,8 +62,9 @@ const Profile = () => {
             </div>
           </div>
           
-          {/* Right Column: Coupons List (Full width on mobile, 2/3 on large) */}
-          <div className="lg:col-span-2">
+          {/* Right Column: Coupons List and Favorites (Full width on mobile, 2/3 on large) */}
+          <div className="lg:col-span-2 space-y-10">
+            <UserFavoritesList /> {/* Favorites List added here */}
             <UserCouponsList />
           </div>
         </div>
