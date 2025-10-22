@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,17 +42,39 @@ const Navigation = () => {
 
     if (isAuthenticated) {
       if (isAdmin) {
-        // Admin: Dashboard button
+        // Admin: Dashboard, Redemption, Profile buttons
         return (
-          <Button 
-            asChild
-            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white transition-all duration-300 hover:scale-105"
-          >
-            <Link to="/admin/dashboard">
-              <Shield className="mr-2 h-4 w-4" />
-              Dashboard
-            </Link>
-          </Button>
+          <div className="flex space-x-3">
+            <Button 
+              asChild
+              variant="outline"
+              size="icon"
+              className="border-green-400 text-green-400 hover:bg-green-400/10 transition-all duration-300 hover:scale-105"
+            >
+              <Link to="/code">
+                <QrCode className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button 
+              asChild
+              variant="outline"
+              size="icon"
+              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 hover:scale-105"
+            >
+              <Link to="/profile">
+                <User className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button 
+              asChild
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white transition-all duration-300 hover:scale-105"
+            >
+              <Link to="/admin/dashboard">
+                <Shield className="mr-2 h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+          </div>
         );
       } else {
         // Regular User: Profile icon button
@@ -117,18 +139,6 @@ const Navigation = () => {
               >
                 <Calendar className="h-4 w-4" /> Események
               </a>
-              <a
-                href="/#benefits"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
-              >
-                Előnyök
-              </a>
-              <a
-                href="/#testimonials"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
-              >
-                Vélemények
-              </a>
             </div>
           )}
 
@@ -166,20 +176,8 @@ const Navigation = () => {
               >
                 <Calendar className="h-4 w-4 mr-2" /> Események
               </a>
-              <a
-                href="/#benefits"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => navigateToSection('benefits')}
-              >
-                Előnyök
-              </a>
-              <a
-                href="/#testimonials"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => navigateToSection('testimonials')}
-              >
-                Vélemények
-              </a>
+              {/* Removed Benefits and Testimonials links */}
+              
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
               {isAuthenticated && (
                 <Link
@@ -189,6 +187,16 @@ const Navigation = () => {
                 >
                   {isAdmin ? <Shield className="h-4 w-4 mr-2 text-purple-300" /> : <User className="h-4 w-4 mr-2 text-cyan-300" />}
                   {isAdmin ? "Admin Dashboard" : "Profil"}
+                </Link>
+              )}
+              {isAuthenticated && isAdmin && (
+                <Link
+                  to="/code"
+                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <QrCode className="h-4 w-4 mr-2 text-green-300" />
+                  Beváltás
                 </Link>
               )}
               {isAuthenticated && (

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home } from 'lucide-react';
 import { useRedemption } from '@/hooks/use-redemption';
 import { format } from 'date-fns';
 
@@ -127,6 +127,15 @@ const RedemptionPage = () => {
             </CardContent>
           </Card>
         )}
+        
+        <div className="mt-8">
+          <Button asChild variant="outline" className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
+            <Link to="/">
+              <Home className="h-4 w-4 mr-2" />
+              Vissza a főoldalra
+            </Link>
+          </Button>
+        </div>
       </div>
     </AuthLayout>
   );

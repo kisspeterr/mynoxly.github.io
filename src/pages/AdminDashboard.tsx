@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -50,6 +50,12 @@ const AdminDashboard = () => {
           {/* Desktop Actions */}
           <div className="hidden md:flex space-x-3">
             <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
+              <Link to="/">
+                <Home className="h-4 w-4 mr-2" />
+                Főoldal
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
               <Link to="/profile">
                 <User className="h-4 w-4 mr-2" />
                 Személyes Profil
@@ -76,6 +82,12 @@ const AdminDashboard = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-black/90 border-purple-500/30 backdrop-blur-sm text-white">
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="flex items-center">
+                    <Home className="h-4 w-4 mr-2 text-cyan-400" />
+                    Főoldal
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/profile" className="flex items-center">
                     <User className="h-4 w-4 mr-2 text-cyan-400" />
