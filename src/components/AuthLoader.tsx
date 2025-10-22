@@ -6,8 +6,8 @@ interface AuthLoaderProps {
   children: React.ReactNode;
 }
 
-// Maximális betöltési idő 5 másodperc
-const MAX_LOADING_TIME_MS = 5000;
+// Maximális betöltési idő 1 másodperc
+const MAX_LOADING_TIME_MS = 1000;
 
 const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
   const { isLoading } = useAuth();
@@ -27,11 +27,11 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
         setShouldShowLoading(true);
       }, 200);
       
-      // 2. Maximális időtúllépés (5000ms)
+      // 2. Maximális időtúllépés (1000ms)
       maxTimer = window.setTimeout(() => {
         if (isLoading) {
-            // Ha 5 másodperc után még mindig tölt, kényszerítsünk egy teljes frissítést.
-            console.warn("Auth loading timeout reached (5s). Forcing hard refresh.");
+            // Ha 1 másodperc után még mindig tölt, kényszerítsünk egy teljes frissítést.
+            console.warn("Auth loading timeout reached (1s). Forcing hard refresh.");
             window.location.reload();
         }
         // Ha a reload nem történik meg azonnal (pl. tesztkörnyezetben), akkor is befejezzük a loadert.
