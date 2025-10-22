@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins } from 'lucide-react';
+import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
@@ -14,7 +14,9 @@ import { usePublicCoupons } from '@/hooks/use-public-coupons';
 import { useAuth } from '@/hooks/use-auth';
 import RedemptionModal from '@/components/RedemptionModal';
 import FavoriteButton from '@/components/FavoriteButton';
-import { useLoyaltyPoints } from '@/hooks/use-loyalty-points'; // Import loyalty hook
+import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
+import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
+import EventCountdown from '@/components/EventCountdown'; // Import EventCountdown
 
 interface OrganizationProfileData {
   id: string;
@@ -28,9 +30,14 @@ interface PublicCoupon extends Coupon {
   usage_count: number;
 }
 
+// Extend Event type to include logo_url for display
+interface PublicEvent extends Event {
+  logo_url: string | null;
+}
+
 interface OrganizationContent {
   profile: OrganizationProfileData;
-  events: Event[];
+  events: PublicEvent[]; // Use PublicEvent here
 }
 
 const OrganizationProfile = () => {
@@ -39,6 +46,7 @@ const OrganizationProfile = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
+  const { isInterested, toggleInterest } = useInterestedEvents(); // Use interested events hook
   
   const [organizationData, setOrganizationData] = useState<OrganizationContent | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -52,7 +60,6 @@ const OrganizationProfile = () => {
     isCouponUsedUp, 
     isCouponPending, 
     refreshUsages, 
-    deletePendingUsage 
   } = usePublicCoupons();
   
   const [isRedeeming, setIsRedeeming] = useState(false);
@@ -60,6 +67,7 @@ const OrganizationProfile = () => {
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
+  const [isTogglingInterest, setIsTogglingInterest] = useState<string | null>(null); // Local state for interest button loading
 
   // Filter coupons relevant to this organization
   const organizationCoupons = organizationName 
@@ -78,7 +86,7 @@ const OrganizationProfile = () => {
     setError(null);
     
     try {
-      // 1. Fetch Organization Profile (using RLS policy that allows public read on profiles)
+      // 1. Fetch Organization Profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id, organization_name, logo_url')
@@ -97,20 +105,29 @@ const OrganizationProfile = () => {
         return;
       }
       
-      // 2. Fetch Events (RLS allows public read)
+      // 2. Fetch Events
       const { data: eventData, error: eventError } = await supabase
         .from('events')
-        .select('*')
+        .select(`
+          *,
+          coupon:coupon_id (id, title, coupon_code)
+        `)
         .eq('organization_name', organizationName)
         .order('start_time', { ascending: true });
 
       if (eventError) {
         console.error('Event fetch error:', eventError);
       }
+      
+      // 3. Combine events with logo data (since we have the profile data here)
+      const eventsWithLogo: PublicEvent[] = (eventData || []).map(event => ({
+          ...(event as Event),
+          logo_url: profileData.logo_url, // Use the fetched organization logo
+      }));
 
       setOrganizationData({
         profile: profileData as OrganizationProfileData,
-        events: (eventData || []) as Event[],
+        events: eventsWithLogo,
       });
 
     } catch (e) {
@@ -122,7 +139,6 @@ const OrganizationProfile = () => {
   }, [organizationName]);
 
   useEffect(() => {
-    // Only attempt to fetch if organizationName is present
     if (organizationName) {
       fetchOrganizationData();
     } else {
@@ -153,7 +169,6 @@ const OrganizationProfile = () => {
     
     // Check points cost (The actual check is done in redeemCoupon, but we check here for immediate UI feedback)
     if (coupon.points_cost > 0) {
-        // We need the organization ID from the profile list to check points
         const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
         const organizationId = organizationRecord?.organization_id;
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
@@ -166,11 +181,9 @@ const OrganizationProfile = () => {
 
     setIsRedeeming(true);
     try {
-      // Pass the coupon object (which is PublicCoupon, but redeemCoupon only uses Coupon fields)
       const result = await redeemCoupon(coupon); 
 
       if (result.success && result.usageId && result.redemptionCode) {
-        // Store the base Coupon data for the modal
         setSelectedCoupon(coupon); 
         setCurrentUsageId(result.usageId);
         setCurrentRedemptionCode(result.redemptionCode);
@@ -192,9 +205,19 @@ const OrganizationProfile = () => {
     if (wasRedeemed) {
       refreshUsages(); 
     } else if (usageIdToClear) {
-      // We keep the usage record in the DB to count towards the limit.
       refreshUsages(); // Refresh to update button state
     }
+  };
+  
+  // --- Interest Toggle Logic ---
+  const handleToggleInterest = async (event: PublicEvent) => {
+    if (!isAuthenticated) {
+      showError('Kérjük, jelentkezz be az érdeklődés jelöléséhez.');
+      return;
+    }
+    setIsTogglingInterest(event.id);
+    await toggleInterest(event.id, event.title);
+    setIsTogglingInterest(null);
   };
   // --- End Redemption Logic ---
 
@@ -438,37 +461,86 @@ const OrganizationProfile = () => {
             <p className="text-gray-400">Jelenleg nincsenek meghirdetett események ehhez a szervezethez.</p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {events.map(event => (
-                <Card key={event.id} className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white">
-                  {event.image_url && (
-                    <div className="h-40 w-full overflow-hidden rounded-t-xl">
-                      <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p className="text-gray-300">{event.description || 'Nincs leírás.'}</p>
-                    <div className="flex items-center text-gray-400 pt-2 border-t border-gray-700/50">
-                      <Clock className="h-4 w-4 mr-2 text-cyan-400" />
-                      Kezdés: {format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center text-gray-400">
-                        <MapPin className="h-4 w-4 mr-2 text-cyan-400" />
-                        Helyszín: {event.location}
+              {events.map(event => {
+                const interested = isInterested(event.id);
+                const isCurrentToggling = isTogglingInterest === event.id;
+                
+                return (
+                  <Card key={event.id} className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white flex flex-col">
+                    {event.image_url && (
+                      <div className="h-40 w-full overflow-hidden rounded-t-xl">
+                        <img src={event.image_url} alt={event.title} className="w-full h-full object-cover" />
                       </div>
                     )}
-                    {event.coupon_id && (
-                      <div className="flex items-center text-green-400">
-                        <Tag className="h-4 w-4 mr-2" />
-                        Kupon csatolva
+                    <CardHeader className="pb-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <CardTitle className="text-xl text-purple-300 mr-2">{event.title}</CardTitle>
+                        <EventCountdown startTime={event.start_time} endTime={event.end_time} />
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      <CardDescription className="text-gray-400 flex items-center text-sm">
+                        <Building className="h-4 w-4 mr-1" /> {event.organization_name}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm flex-grow">
+                      <p className="text-gray-300">{event.description || 'Nincs leírás.'}</p>
+                      
+                      <div className="flex items-center text-gray-400 pt-2 border-t border-gray-700/50">
+                        <Clock className="h-4 w-4 mr-2 text-cyan-400" />
+                        Kezdés: {format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}
+                        {event.end_time && (
+                          <span className="ml-2 text-gray-500"> - {format(new Date(event.end_time), 'HH:mm')}</span>
+                        )}
+                      </div>
+                      
+                      {event.location && (
+                        <div className="flex items-center text-gray-400">
+                          <MapPin className="h-4 w-4 mr-2 text-cyan-400" />
+                          Helyszín: {event.location}
+                        </div>
+                      )}
+                      
+                      {event.coupon_id && (
+                        <div className="flex items-center text-green-400">
+                          <Tag className="h-4 w-4 mr-2" />
+                          Kupon csatolva
+                        </div>
+                      )}
+                      
+                      {/* Interest Button */}
+                      {isAuthenticated && (
+                          <Button
+                              variant="outline"
+                              onClick={() => handleToggleInterest(event)}
+                              disabled={isCurrentToggling}
+                              className={`w-full mt-4 transition-colors duration-300 ${
+                                  interested 
+                                      ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
+                                      : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
+                              }`}
+                          >
+                              {isCurrentToggling ? (
+                                  <Spinner className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                  <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
+                              )}
+                              {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
+                          </Button>
+                      )}
+                      {!isAuthenticated && (
+                          <Button 
+                            asChild
+                            className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                          >
+                            <Link to="/login" className="flex items-center justify-center">
+                              <LogIn className="h-4 w-4 mr-2" />
+                              Bejelentkezés
+                            </Link>
+                          </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
