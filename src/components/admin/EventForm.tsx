@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCoupons } from '@/hooks/use-coupons';
 import { showError } from '@/utils/toast';
+import ImageUploaderWithCrop from '@/components/ImageUploaderWithCrop'; // Import new component
 
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
@@ -22,6 +23,7 @@ const eventSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
   location: z.string().nullable().optional().transform(e => e === "" ? null : e),
+  // image_url is now handled by the uploader, but we keep it as a string (URL) in the schema
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   coupon_id: z.string().nullable().optional().transform(e => e === "" ? null : e),
   
@@ -96,6 +98,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
 
   const startDate = watch('startDate');
   const endDate = watch('endDate');
+  const imageUrl = watch('image_url');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: EventFormData) => {
@@ -137,9 +140,21 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       onClose();
     }
   };
+  
+  // Aspect ratio for event card image (40 units high, full width, roughly 16:9)
+  const EVENT_ASPECT_RATIO = 16 / 9; 
 
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
+      
+      {/* Image Uploader with Cropping */}
+      <ImageUploaderWithCrop
+        onUploadSuccess={(url) => setValue('image_url', url, { shouldValidate: true })}
+        initialUrl={imageUrl}
+        aspectRatio={EVENT_ASPECT_RATIO}
+      />
+      {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
+      
       <div className="space-y-2">
         <Label htmlFor="title" className="text-gray-300">Esemény címe *</Label>
         <Input 
