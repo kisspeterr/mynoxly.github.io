@@ -18,7 +18,7 @@ interface PublicCoupon extends Coupon {
   usage_count: number;
 }
 
-const CouponsSection = () => {
+const PublicCouponsSection = () => {
   const { 
     coupons, 
     isLoading, 
@@ -90,8 +90,16 @@ const CouponsSection = () => {
     if (wasRedeemed) {
       refreshUsages(); 
     } else if (usageIdToClear) {
+      // If closed by user AND not redeemed, delete the pending usage record
+      // NOTE: We no longer delete expired codes here, only the currently active one if the user closes the modal manually.
+      // Since we count ALL generated codes towards the limit now, we should NOT delete the pending usage here, 
+      // as closing the modal means the user wasted that attempt.
+      
       // If the user closes the modal, the code remains active until it expires (3 mins), 
-      // and it counts towards the limit. We keep the usage record in the DB to count towards the limit.
+      // and it counts towards the limit. We only delete if the user explicitly cancels the redemption process 
+      // before the code is generated, which is not possible here.
+      
+      // We keep the usage record in the DB to count towards the limit.
       refreshUsages();
     }
   };
@@ -315,4 +323,4 @@ const CouponsSection = () => {
   );
 };
 
-export default CouponsSection;
+export default PublicCouponsSection;
