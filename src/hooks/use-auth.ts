@@ -119,17 +119,12 @@ export const useAuth = () => {
     const handleFocus = async () => {
       if (!isMounted) return;
 
-      // Ha már van felhasználó, ne mutassunk loadert, csak frissítsünk a háttérben.
-      // Ha nincs felhasználó, de a session frissítés elindul, akkor is a jelenlegi állapotot tartjuk.
-      const userExists = !!authState.user;
-      
       // Ha nincs felhasználó, de még tölt (initialLoad), akkor hagyjuk, hogy az initialLoad befejezze.
-      if (!userExists && authState.isLoading) {
+      if (!authState.user && authState.isLoading) {
           return;
       }
       
-      // Ha van felhasználó, ideiglenesen beállítjuk a loadingot, hogy a profil frissüljön, de a AuthLoader már nem fogja mutatni, ha a shouldShowLoading logikája helyes.
-      // DE: A mobil böngészőben a focus esemény okozza a beragadást. Ezért itt nem állítjuk be a loadingot, csak a végén.
+      // Ha van felhasználó, csak a háttérben frissítünk, nem állítjuk be a loadingot.
       
       let session: Session | null = authState.session;
       let profile: Profile | null = authState.profile;
@@ -162,7 +157,7 @@ export const useAuth = () => {
       subscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
     };
-  }, [authState.user]); // Dependency added: authState.user. Ha a felhasználó bejelentkezik/kijelentkezik, újra kell futtatni a focus listenert.
+  }, []); // Dependency array is empty, runs only once on mount
   
   // 🔹 Kijelentkezés
   const signOut = async () => {
