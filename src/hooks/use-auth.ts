@@ -62,7 +62,7 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     
-    const initial Load = async () => {
+    const initialLoad = async () => { // Corrected function name
       let session: Session | null = null;
       let profile: Profile | null = null;
       let user: User | null = null;
@@ -118,14 +118,10 @@ export const useAuth = () => {
     });
     
     // Removed manual window focus listener as Supabase SDK handles session refresh automatically.
-    // const handleFocus = async () => { ... };
-    // window.addEventListener('focus', handleFocus);
-
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      // window.removeEventListener('focus', handleFocus);
     };
   }, []); 
 
