@@ -27,7 +27,7 @@ const initialAuthState: AuthState = {
   session: null,
   user: null,
   profile: null,
-  isLoading: true,
+  isLoading: true, // CRITICAL: Must be true initially
 };
 
 export const useAuth = () => {
@@ -44,7 +44,6 @@ export const useAuth = () => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
-        // Ha hiba van, de nem "nincs találat", akkor is null-t adunk vissza, de logoljuk.
         return null;
       }
       return data as Profile;
@@ -74,6 +73,7 @@ export const useAuth = () => {
       let profile: Profile | null = null;
       
       try {
+        // Ez a hívás a Supabase kliensből azonnal megpróbálja lekérni a sessiont a localStorage-ból.
         const { data: sessionData, error } = await supabase.auth.getSession();
         session = sessionData.session;
         
@@ -102,8 +102,10 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
-        // Ideiglenesen true-ra állítjuk, amíg a profil betöltődik
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+        // Csak a SIGNED_IN/SIGNED_OUT eseményeknél állítjuk be a loadingot, hogy elkerüljük a villogást
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+            setAuthState((prev) => ({ ...prev, isLoading: true }));
+        }
 
         let profile: Profile | null = null;
         if (session?.user) {
@@ -115,7 +117,7 @@ export const useAuth = () => {
       }
     );
 
-    // 3️⃣ Ha visszatérsz az oldalra / mobilról → session frissítés
+    // 3️⃣ Ha visszatérsz az oldalra / mobilról → session frissítés (CSAK HÁTTÉRBEN)
     const handleFocus = async () => {
       if (!isMounted) return;
 
@@ -124,7 +126,7 @@ export const useAuth = () => {
           return;
       }
       
-      // Ha van felhasználó, csak a háttérben frissítünk, nem állítjuk be a loadingot.
+      // Ha van felhasználó, NE állítsuk be a loadingot, hogy elkerüljük a villogást.
       
       let session: Session | null = authState.session;
       let profile: Profile | null = authState.profile;
@@ -141,9 +143,8 @@ export const useAuth = () => {
       } catch (err) {
         console.error('Focus refresh error:', err);
       } finally {
-        // CRITICAL: Garantáljuk, hogy a betöltés befejeződik, de csak akkor frissítjük az állapotot, ha van változás.
+        // Frissítjük az állapotot, de isLoading=false-szal.
         if (isMounted) {
-            // Ha a session frissült, frissítjük az állapotot, de isLoading=false-szal.
             updateAuthState(session, profile, false);
         }
       }
