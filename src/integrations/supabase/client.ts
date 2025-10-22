@@ -9,9 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Use sessionStorage instead of localStorage. This means the session 
-    // will be cleared when the browser tab/window is closed.
-    storage: window.sessionStorage,
+    storage: localStorage, // EZ FONTOS, NE sessionStorage
     persistSession: true,
   }
 });
