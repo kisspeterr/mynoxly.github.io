@@ -276,7 +276,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
                 <div className="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300 flex items-start">
                     <Info className="h-5 w-5 mr-2 flex-shrink-0 mt-1" />
                     <p className="text-left">
-                        Használható változók: <code>{{coupon_title}}</code> (a kupon címe) és <code>{{organization_name}}</code> (a szervezet neve).
+                        Használható változók: <code>{'{{coupon_title}}'}</code> (a kupon címe) és <code>{'{{organization_name}}'}</code> (a szervezet neve).
                     </p>
                 </div>
                 <div className="space-y-2">
