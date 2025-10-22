@@ -50,22 +50,25 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    // The onAuthStateChange listener is the single source of truth.
-    // It fires an INITIAL_SESSION event on page load, which handles the initial state.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // 1. Immediately check for an existing session to quickly resolve the initial loading state.
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       let profile: Profile | null = null;
       if (session?.user) {
         profile = await fetchProfile(session.user.id);
       }
+      // Set initial state. This is our first and primary attempt to set isLoading: false
+      setAuthState({ session, user: session?.user || null, profile, isLoading: false });
+    });
 
-      // This callback handles all cases: initial load, sign in, sign out, etc.
-      // After the first event (INITIAL_SESSION), isLoading will be set to false, resolving the bug.
-      setAuthState({
-        session,
-        user: session?.user || null,
-        profile,
-        isLoading: false, // Always set loading to false after the auth state is determined.
-      });
+    // 2. Set up a listener for any future auth changes (SIGN_IN, SIGN_OUT).
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      // This listener will handle subsequent changes.
+      // It might also fire on initial load, but it's safe to set the state again.
+      let profile: Profile | null = null;
+      if (session?.user) {
+        profile = await fetchProfile(session.user.id);
+      }
+      setAuthState({ session, user: session?.user || null, profile, isLoading: false });
     });
 
     return () => {
