@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner } from 'lucide-react';
@@ -62,63 +62,63 @@ const OrganizationProfile = () => {
   const organizationCoupons = allPublicCoupons.filter(c => c.organization_name === organizationName);
   
   // --- Data Fetching ---
-  useEffect(() => {
+  const fetchOrganizationData = useCallback(async () => {
     if (!organizationName) {
       setError('Hiányzó szervezet neve.');
       setIsLoadingProfile(false);
       return;
     }
 
-    const fetchOrganizationData = async () => {
-      setIsLoadingProfile(true);
-      setError(null);
-      
-      try {
-        // 1. Fetch Organization Profile (using RLS policy that allows public read on profiles)
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, organization_name, logo_url')
-          .eq('organization_name', organizationName)
-          .single();
+    setIsLoadingProfile(true);
+    setError(null);
+    
+    try {
+      // 1. Fetch Organization Profile (using RLS policy that allows public read on profiles)
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, organization_name, logo_url')
+        .eq('organization_name', organizationName)
+        .single();
 
-        if (profileError || !profileData) {
-          if (profileError?.code === 'PGRST116') {
-            setError('A szervezet nem található.');
-          } else {
-            showError('Hiba történt a szervezet adatainak betöltésekor.');
-            setError('Hiba történt a szervezet adatainak betöltésekor.');
-            console.error('Profile fetch error:', profileError);
-          }
-          setIsLoadingProfile(false);
-          return;
+      if (profileError || !profileData) {
+        if (profileError?.code === 'PGRST116') {
+          setError('A szervezet nem található.');
+        } else {
+          showError('Hiba történt a szervezet adatainak betöltésekor.');
+          setError('Hiba történt a szervezet adatainak betöltésekor.');
+          console.error('Profile fetch error:', profileError);
         }
-        
-        // 2. Fetch Events (RLS allows public read)
-        const { data: eventData, error: eventError } = await supabase
-          .from('events')
-          .select('*')
-          .eq('organization_name', organizationName)
-          .order('start_time', { ascending: true });
-
-        if (eventError) {
-          console.error('Event fetch error:', eventError);
-        }
-
-        setOrganizationData({
-          profile: profileData as OrganizationProfileData,
-          events: (eventData || []) as Event[],
-        });
-
-      } catch (e) {
-        setError('Váratlan hiba történt.');
-        console.error('Unexpected fetch error:', e);
-      } finally {
-        setIsLoadingProfile(false);
+        setOrganizationData(null);
+        return;
       }
-    };
+      
+      // 2. Fetch Events (RLS allows public read)
+      const { data: eventData, error: eventError } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organization_name', organizationName)
+        .order('start_time', { ascending: true });
 
-    fetchOrganizationData();
+      if (eventError) {
+        console.error('Event fetch error:', eventError);
+      }
+
+      setOrganizationData({
+        profile: profileData as OrganizationProfileData,
+        events: (eventData || []) as Event[],
+      });
+
+    } catch (e) {
+      setError('Váratlan hiba történt.');
+      console.error('Unexpected fetch error:', e);
+    } finally {
+      setIsLoadingProfile(false);
+    }
   }, [organizationName]);
+
+  useEffect(() => {
+    fetchOrganizationData();
+  }, [fetchOrganizationData]);
   
   // --- Redemption Logic ---
   const handleRedeemClick = async (coupon: PublicCoupon) => {
