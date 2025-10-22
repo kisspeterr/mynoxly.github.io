@@ -119,14 +119,20 @@ export const useAuth = () => {
     const handleFocus = async () => {
       if (!isMounted) return;
 
-      // Csak akkor állítjuk true-ra, ha van már felhasználó, hogy elkerüljük a villanást
-      const shouldShowLoader = !!authState.user;
-      if (shouldShowLoader) {
-        setAuthState(prev => ({ ...prev, isLoading: true }));
+      // Ha már van felhasználó, ne mutassunk loadert, csak frissítsünk a háttérben.
+      // Ha nincs felhasználó, de a session frissítés elindul, akkor is a jelenlegi állapotot tartjuk.
+      const userExists = !!authState.user;
+      
+      // Ha nincs felhasználó, de még tölt (initialLoad), akkor hagyjuk, hogy az initialLoad befejezze.
+      if (!userExists && authState.isLoading) {
+          return;
       }
-
-      let session: Session | null = null;
-      let profile: Profile | null = null;
+      
+      // Ha van felhasználó, ideiglenesen beállítjuk a loadingot, hogy a profil frissüljön, de a AuthLoader már nem fogja mutatni, ha a shouldShowLoading logikája helyes.
+      // DE: A mobil böngészőben a focus esemény okozza a beragadást. Ezért itt nem állítjuk be a loadingot, csak a végén.
+      
+      let session: Session | null = authState.session;
+      let profile: Profile | null = authState.profile;
 
       try {
         const { data: refreshData, error } = await supabase.auth.refreshSession();
@@ -140,8 +146,9 @@ export const useAuth = () => {
       } catch (err) {
         console.error('Focus refresh error:', err);
       } finally {
-        // CRITICAL: Garantáljuk, hogy a betöltés befejeződik
+        // CRITICAL: Garantáljuk, hogy a betöltés befejeződik, de csak akkor frissítjük az állapotot, ha van változás.
         if (isMounted) {
+            // Ha a session frissült, frissítjük az állapotot, de isLoading=false-szal.
             updateAuthState(session, profile, false);
         }
       }
@@ -155,8 +162,8 @@ export const useAuth = () => {
       subscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
     };
-  }, []); // Dependency array is empty, runs only once on mount
-
+  }, [authState.user]); // Dependency added: authState.user. Ha a felhasználó bejelentkezik/kijelentkezik, újra kell futtatni a focus listenert.
+  
   // 🔹 Kijelentkezés
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
