@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import ReactCrop, { Crop, centerCrop, makeCropFromPercent, percentCrop, PixelCrop } from 'react-image-crop';
+import ReactCrop, { Crop, centerCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,33 +46,17 @@ const ImageCropper: React.FC<ImageCropperProps> = ({ aspectRatio, onUploadSucces
     imgRef.current = e.currentTarget;
     const { width, height } = e.currentTarget;
     
-    // Calculate initial crop area (centered, covering max area while maintaining aspect ratio)
-    const initialCrop = centerCrop(
-      makeCropFromPercent({
+    const crop = centerCrop(
+      {
         unit: '%',
-        width: 100,
-        height: 100,
-        x: 0,
-        y: 0,
-      }, width, height),
+        width: 90,
+      },
       width,
-      height
+      height,
+      aspectRatio
     );
     
-    // Adjust initial crop to fit the required aspect ratio
-    const initialCropAdjusted = percentCrop(
-        {
-            unit: '%',
-            width: 80,
-            height: 80 / aspectRatio,
-            x: 10,
-            y: (100 - (80 / aspectRatio)) / 2,
-        },
-        width,
-        height
-    );
-    
-    setCrop(initialCropAdjusted);
+    setCrop(crop);
     setCompletedCrop(undefined);
   }, [aspectRatio]);
 
