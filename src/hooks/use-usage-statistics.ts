@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 export type TimeRange = 'day' | 'week' | 'month' | 'year';
 
@@ -82,8 +82,29 @@ export const useUsageStatistics = () => {
         default:
           throw new Error('Invalid time range');
       }
+      
+      // 2. Fetch all coupon IDs belonging to the current organization
+      const { data: couponIdsData, error: couponIdError } = await supabase
+        .from('coupons')
+        .select('id')
+        .eq('organization_name', organizationName);
+        
+      if (couponIdError) {
+        showError('Hiba történt a kupon ID-k betöltésekor a statisztikákhoz.');
+        console.error('Fetch coupon IDs error:', couponIdError);
+        return;
+      }
+      
+      const couponIds = couponIdsData.map(c => c.id);
+      
+      if (couponIds.length === 0) {
+          setStats([]);
+          setDetailedUsages([]);
+          return;
+      }
 
-      // 2. Build the base query for successfully used coupons in the organization
+
+      // 3. Build the base query for successfully used coupons in the organization
       let query = supabase
         .from('coupon_usages')
         .select(`
@@ -94,6 +115,7 @@ export const useUsageStatistics = () => {
           coupon:coupon_id (title, organization_name)
         `)
         .eq('is_used', true)
+        .in('coupon_id', couponIds) // CRITICAL: Filter by organization's coupon IDs
         .gte('redeemed_at', start)
         .lte('redeemed_at', end)
         .order('redeemed_at', { ascending: true });
@@ -114,12 +136,12 @@ export const useUsageStatistics = () => {
         return;
       }
 
-      // 3. Filter and process data client-side
+      // 4. Filter and process data client-side (RLS should have filtered, but we ensure the coupon join is valid)
       const organizationUsages = data.filter(
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       
-      // 4. Fetch user emails for detailed view (ONLY for 'day' range)
+      // 5. Fetch user emails for detailed view (ONLY for 'day' range)
       const processedDetails: DetailedUsage[] = [];
       let emailMap: Record<string, string> = {};
 
@@ -133,7 +155,7 @@ export const useUsageStatistics = () => {
         }, {} as Record<string, string>);
       }
 
-      // 5. Group by time range and filter by email (only for 'day' range)
+      // 6. Group by time range and filter by email (only for 'day' range)
       const hourlyCounts: Record<string, number> = {};
       
       for (const usage of organizationUsages) {
@@ -161,7 +183,7 @@ export const useUsageStatistics = () => {
         hourlyCounts[groupKey] = (hourlyCounts[groupKey] || 0) + 1;
       }
 
-      // 6. Format stats array
+      // 7. Format stats array
       let finalStats: UsageStat[];
       
       if (timeRange === 'day' || timeRange === 'year') {
