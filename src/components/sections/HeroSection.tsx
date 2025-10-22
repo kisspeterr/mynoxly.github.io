@@ -1,4 +1,4 @@
-import { Sparkles, Moon, Bell, Play, Gift, Calendar } from "lucide-react";
+import { Sparkles, Moon, Bell, Play, Gift, Calendar, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -21,6 +21,13 @@ const HeroSection = () => {
     const eventsSection = document.getElementById('events-section');
     if (eventsSection) {
       eventsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  const scrollToOrganizers = () => {
+    const organizersSection = document.getElementById('organizers-section');
+    if (organizersSection) {
+      organizersSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -54,21 +61,30 @@ const HeroSection = () => {
           Fedezd fel Pécs legjobb éjszakai helyeit kedvezményes áron. Exkluzív akciók, 1+1 italok és VIP kedvezmények egy alkalmazásban!
         </p>
         
+        {/* Responsive Button Group: Stacks on mobile, horizontal on larger screens */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
           <Button 
             onClick={scrollToCoupons}
-            className="bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white px-8 py-6 text-lg border-0 rounded-2xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105 animate-pulse"
+            className="w-full sm:w-auto bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white px-8 py-6 text-lg border-0 rounded-2xl shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-105 animate-pulse"
           >
             <Gift className="mr-2 h-5 w-5" />
             Kuponok
           </Button>
           <Button 
-            variant="outline" 
-            className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
             onClick={scrollToEvents}
+            variant="outline" 
+            className="w-full sm:w-auto border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
           >
             <Calendar className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
             Események
+          </Button>
+          <Button 
+            onClick={scrollToOrganizers}
+            variant="outline" 
+            className="w-full sm:w-auto border-purple-400 text-purple-400 hover:bg-purple-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
+          >
+            <Building className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+            Partnerek
           </Button>
         </div>
 
