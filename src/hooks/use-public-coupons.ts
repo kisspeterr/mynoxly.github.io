@@ -230,6 +230,7 @@ export const usePublicCoupons = () => {
     if (!isAuthenticated || !user) return { success: false };
     
     try {
+      // We only delete if it's NOT used, and belongs to the user
       const { error } = await supabase
         .from('coupon_usages')
         .delete()
@@ -250,10 +251,12 @@ export const usePublicCoupons = () => {
     }
   };
 
+  // NEW LOGIC: Check if the user has reached the max uses limit, counting ALL generated codes.
   const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
     if (maxUses === 0) return false;
     
-    const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used).length;
+    // Count ALL usages (used, active, and expired)
+    const count = allUsages.filter(u => u.coupon_id === couponId).length;
     return count >= maxUses;
   };
   
@@ -266,6 +269,7 @@ export const usePublicCoupons = () => {
     }
     
     // If it's expired, treat it as non-pending for the purpose of generating a new code
+    // NOTE: We keep the expired record in the DB now, so we only check if it's currently active.
     if (isPendingExpired(pendingUsage)) {
         return undefined;
     }
@@ -312,25 +316,13 @@ export const usePublicCoupons = () => {
         return { success: false };
     }
     
-    // 2. Check for expired pending usages and delete them synchronously before proceeding
-    const expiredPendingUsages = allUsages.filter(u => u.coupon_id === coupon.id && u.is_used === false && isPendingExpired(u));
-    
-    if (expiredPendingUsages.length > 0) {
-        // Delete all expired pending usages for this coupon
-        const deletePromises = expiredPendingUsages.map(u => deletePendingUsage(u.id));
-        await Promise.all(deletePromises);
-        
-        // After deletion, refresh the local state to ensure the usage count is correct
-        await refreshUsages();
-    }
-
-    // 3. Check finalized usage count (re-check against DB for safety)
+    // 2. Check finalized usage count (re-check against DB for safety)
+    // CRITICAL CHANGE: Count ALL usages (used, active, and expired)
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('coupon_id', coupon.id)
-      .eq('is_used', true);
+      .eq('coupon_id', coupon.id);
 
     if (countError) {
       showError('Hiba történt a beváltási korlát ellenőrzésekor.');
@@ -339,7 +331,7 @@ export const usePublicCoupons = () => {
     }
 
     if (coupon.max_uses_per_user !== 0 && count !== null && count >= coupon.max_uses_per_user) {
-      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
+      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal (beleértve a lejárt kódokat is).`);
       return { success: false };
     }
     
@@ -383,15 +375,13 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
       
-      // 4. If points cost > 0, deduct points immediately upon successful code generation
+      // 3. If points cost > 0, deduct points immediately upon successful code generation
       if (coupon.points_cost > 0) {
           const organizationId = await getOrganizationId(coupon.organization_name);
           if (organizationId) {
               const pointResult = await updateLoyaltyPoints(user.id, organizationId, -coupon.points_cost);
               if (!pointResult.success) {
-                  // This is a critical failure, but we already generated the code. 
-                  // We should ideally roll back the usage insertion, but for simplicity, 
-                  // we show an error and rely on the admin to manually fix the points if needed.
+                  // Critical failure: points deducted, but usage recorded. Show error.
                   showError('Hiba történt a hűségpontok levonásakor. Kérjük, lépj kapcsolatba az ügyfélszolgálattal.');
               }
           }
@@ -409,14 +399,7 @@ export const usePublicCoupons = () => {
     }
   };
   
-  // --- Logic for rewarding points upon finalization ---
-  
-  // We need to update the usage finalization logic in useRedemption.ts to reward points.
-  // However, since usePublicCoupons is responsible for the public side, we need a way 
-  // to ensure points are rewarded when the admin marks it as used.
-  
-  // Since the admin uses the `finalizeRedemption` function in `useRedemption.ts`, 
-  // we must modify that hook to handle point rewards.
+  // We keep deletePendingUsage for manual modal closure cleanup, but it's no longer used for expired codes.
   
   return {
     coupons,
