@@ -50,6 +50,12 @@ export const usePublicCoupons = () => {
     }, {} as Record<string, string | null>);
   };
 
+  // Function to manually refresh usages (called after successful redemption or modal close)
+  const refreshUsages = async () => {
+    // We need to refresh both usages (for pending/used status) AND coupon counts (for public display)
+    await fetchCouponsAndUsages();
+  };
+
   // Fetches all coupons and the current user's finalized usages
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
@@ -111,12 +117,6 @@ export const usePublicCoupons = () => {
     }
   };
 
-  // Function to manually refresh usages (called after successful redemption or modal close)
-  const refreshUsages = async () => {
-    // We need to refresh both usages (for pending/used status) AND coupon counts (for public display)
-    await fetchCouponsAndUsages();
-  };
-
   useEffect(() => {
     fetchCouponsAndUsages();
     
@@ -162,28 +162,6 @@ export const usePublicCoupons = () => {
     return now > expiryTime;
   }
 
-  const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
-    if (maxUses === 0) return false;
-    
-    const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used).length;
-    return count >= maxUses;
-  };
-  
-  const isCouponPending = (couponId: string): { isPending: boolean, usageId?: string } => {
-    const pendingUsage = allUsages.find(u => u.coupon_id === couponId && u.is_used === false);
-    
-    if (!pendingUsage) {
-        return { isPending: false };
-    }
-    
-    if (isPendingExpired(pendingUsage)) {
-        deletePendingUsage(pendingUsage.id);
-        return { isPending: false };
-    }
-    
-    return { isPending: true, usageId: pendingUsage.id };
-  };
-  
   const deletePendingUsage = async (usageId: string) => {
     if (!isAuthenticated || !user) return { success: false };
     
@@ -208,7 +186,29 @@ export const usePublicCoupons = () => {
     }
   };
 
-
+  const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
+    if (maxUses === 0) return false;
+    
+    const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used).length;
+    return count >= maxUses;
+  };
+  
+  const isCouponPending = (couponId: string): { isPending: boolean, usageId?: string } => {
+    const pendingUsage = allUsages.find(u => u.coupon_id === couponId && u.is_used === false);
+    
+    if (!pendingUsage) {
+        return { isPending: false };
+    }
+    
+    if (isPendingExpired(pendingUsage)) {
+        // Automatically delete expired pending usage
+        deletePendingUsage(pendingUsage.id);
+        return { isPending: false };
+    }
+    
+    return { isPending: true, usageId: pendingUsage.id };
+  };
+  
   const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
