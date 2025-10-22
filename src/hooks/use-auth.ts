@@ -62,36 +62,40 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
     
-    cconst initialLoad = async () => {
-  try {
-    // 1️⃣ Session lekérése Supabase-től (storage-ből/jwt-ből)
-    const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
+    const initialLoad = async () => {
+      let session: Session | null = null;
+      let profile: Profile | null = null;
+      let user: User | null = null;
 
-    if (sessionError) {
-      console.error("Initial Supabase session fetch failed:", sessionError);
-    }
+      try {
+        // 1. Get Session (This also triggers a refresh if needed)
+        const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Initial Supabase session fetch failed:", sessionError);
+        }
+        
+        session = fetchedSession;
+        user = session?.user || null;
 
-    let profile: Profile | null = null;
+        // 2. Fetch Profile if session exists
+        if (user) {
+          profile = await fetchProfile(user.id);
+        }
+        
+        if (isMounted) {
+          // Set final state: isAuthenticated, profile loaded, isLoading=false
+          updateAuthState(session, profile, false);
+        }
 
-    // 2️⃣ Ha be van jelentkezve → profil lekérése
-    if (fetchedSession?.user) {
-      profile = await fetchProfile(fetchedSession.user.id);
-    }
-
-    // 3️⃣ A legfontosabb rész: akár van user, akár nincs → állítsuk le a loadingot
-    if (isMounted) {
-      updateAuthState(fetchedSession, profile, false); // isLoading = false
-    }
-
-  } catch (error) {
-    console.error("Unexpected error during initial auth load:", error);
-    if (isMounted) {
-      // Hiba esetén is zárjuk le a loading állapotot
-      updateAuthState(null, null, false);
-    }
-  }
-};
-
+      } catch (error) {
+        console.error("Unexpected error during initial auth load:", error);
+        if (isMounted) {
+          // If any unexpected error occurs, clear loading state
+          updateAuthState(null, null, false);
+        }
+      }
+    };
 
     initialLoad();
 
