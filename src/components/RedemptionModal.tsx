@@ -8,35 +8,53 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface RedemptionModalProps {
   coupon: Coupon;
-  redemptionCode: string; // Now using the short code
-  usageId: string; // Still needed for potential cleanup/tracking
+  redemptionCode: string;
+  usageId: string;
   isOpen: boolean;
-  onClose: (wasRedeemed?: boolean) => void; // Updated signature
+  onClose: (wasRedeemed?: boolean) => void;
 }
 
-// 3 minutes in seconds
 const REDEMPTION_DURATION_SECONDS = 3 * 60;
 
 const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCode, usageId, isOpen, onClose }) => {
   const [timeLeft, setTimeLeft] = useState(REDEMPTION_DURATION_SECONDS);
   const [isExpired, setIsExpired] = useState(false);
-  const [isRedeemed, setIsRedeemed] = useState(false); // New state for success display
+  const [isRedeemed, setIsRedeemed] = useState(false);
 
-  // Function to handle expiration (time ran out client-side)
   const handleExpiration = useCallback(() => {
     setIsExpired(true);
-    // We notify the user that the client-side timer ran out, but the code might still be valid for a few seconds server-side.
-    showError('A beváltási kód érvényessége lejárt a telefonodon. Kérjük, kérdezd meg a személyzetet.');
-    onClose(false); // Closed due to expiration
+    showError('A beváltási kód érvényessége lejárt.');
+    onClose(false);
   }, [onClose]);
 
-  // --- Realtime Subscription Effect ---
+  // Realtime Subscription Effect
   useEffect(() => {
-    if (!isOpen || !usageId) return;
+    if (!isOpen || !usageId) {
+      return;
+    }
 
-    // 1. Setup Realtime Channel
-    const channel = supabase
-      .channel(`coupon_usage_${usageId}`)
+    // Reset state on open
+    setIsRedeemed(false);
+    setIsExpired(false);
+    setTimeLeft(REDEMPTION_DURATION_SECONDS);
+
+    const channel = supabase.channel(`coupon_usage_${usageId}`);
+
+    const handleUpdate = (payload: any) => {
+      const updatedUsage = payload.new as { is_used: boolean };
+      // Check if the update marks the coupon as used and we haven't already processed it
+      if (updatedUsage.is_used === true && !isRedeemed) {
+        setIsRedeemed(true);
+        showSuccess(`Sikeres beváltás! Kupon: ${coupon.title}`);
+        
+        // Close the modal after a short delay to show the success message
+        setTimeout(() => {
+          onClose(true);
+        }, 2000);
+      }
+    };
+
+    channel
       .on(
         'postgres_changes',
         { 
@@ -45,44 +63,27 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
           table: 'coupon_usages',
           filter: `id=eq.${usageId}`
         },
-        (payload) => {
-          const updatedUsage = payload.new as { is_used: boolean };
-          if (updatedUsage.is_used === true) {
-            // Admin finalized the redemption!
-            setIsRedeemed(true); // Set success state
-            showSuccess(`Sikeres beváltás! Kupon: ${coupon.title}`);
-            
-            // Wait 2 seconds before closing the modal
-            setTimeout(() => {
-              onClose(true); 
-            }, 2000);
-          }
-        }
+        handleUpdate
       )
       .subscribe();
 
+    // Cleanup function to remove the channel subscription
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOpen, usageId, coupon.title, onClose]);
-  // ------------------------------------
+  }, [isOpen, usageId, coupon.title, onClose]); // Rerunning the effect when these change
 
-
-  // --- Countdown Timer Effect ---
+  // Countdown Timer Effect
   useEffect(() => {
-    if (!isOpen || isRedeemed) {
-      // Reset state when closed or if already redeemed
-      setTimeLeft(REDEMPTION_DURATION_SECONDS);
-      setIsExpired(false);
+    if (!isOpen || isRedeemed || isExpired) {
       return;
     }
 
-    // Start timer
     const timer = setInterval(() => {
       setTimeLeft(prevTime => {
         if (prevTime <= 1) {
           clearInterval(timer);
-          handleExpiration(); // Auto-expire client-side
+          handleExpiration();
           return 0;
         }
         return prevTime - 1;
@@ -92,18 +93,15 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
     return () => {
       clearInterval(timer);
     };
-  }, [isOpen, isRedeemed, handleExpiration]);
-  // ------------------------------------
+  }, [isOpen, isRedeemed, isExpired, handleExpiration]);
 
   const minutes = Math.floor(timeLeft / 60);
   const seconds = timeLeft % 60;
   const timeDisplay = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  
-  const uniqueCodeDisplay = redemptionCode;
 
   return (
-    <Dialog open={isOpen && !isExpired} onOpenChange={(open) => {
-      if (!open) onClose(false); // Simply close the modal, not redeemed via Realtime
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) onClose(isRedeemed);
     }}>
       <DialogContent className="bg-black/90 border-green-500/50 backdrop-blur-xl max-w-lg p-8 text-center">
         <DialogHeader>
@@ -132,19 +130,18 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
         }`}>
           <p className="text-xl font-semibold text-white mb-2">{coupon.title}</p>
           
-          {/* Animated, unique code display */}
           <div className={`text-6xl md:text-7xl font-mono font-extrabold p-4 rounded-lg border transition-all duration-500 ${
             isRedeemed 
               ? 'text-green-100 bg-green-700/50 border-green-300/50' 
               : 'text-green-300 bg-green-900/50 border-green-500/30 animate-pulse-slow'
           }`}>
-            {uniqueCodeDisplay}
+            {redemptionCode}
           </div>
           
           <p className="text-sm text-gray-400 mt-2">Beváltási azonosító: {usageId.slice(0, 8)}...</p>
         </div>
 
-        {!isRedeemed && (
+        {!isRedeemed && !isExpired && (
           <>
             <div className="flex items-center justify-center text-2xl font-bold text-red-400 mb-4">
               <Clock className="h-6 w-6 mr-2 animate-spin-slow" />
@@ -154,7 +151,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
             <div className="p-3 bg-red-900/30 border border-red-500/50 rounded-lg text-sm text-red-300 flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
               <p className="text-left">
-                FIGYELEM! A kód 3 percig érvényes a generálástól számítva. Ha lejár, a személyzet nem tudja beváltani.
+                FIGYELEM! A kód 3 percig érvényes. Ha lejár, a személyzet nem tudja beváltani.
               </p>
             </div>
           </>
@@ -171,7 +168,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
           </Button>
         ) : (
           <Button 
-            onClick={() => onClose(false)} // Just close the modal, not redeemed via Realtime
+            onClick={() => onClose(false)}
             variant="destructive"
             className="w-full mt-4"
           >
