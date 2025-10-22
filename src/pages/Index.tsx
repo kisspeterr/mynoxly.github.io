@@ -5,13 +5,12 @@ import HeroSection from "@/components/sections/HeroSection";
 import MapSection from "@/components/sections/MapSection";
 import ComingSoonSection from "@/components/sections/ComingSoonSection";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
-import WaitlistSection from "@/components/sections/WaitlistSection";
 import FooterSection from "@/components/sections/FooterSection";
 import FloatingDemoButton from "@/components/FloatingDemoButton";
 import FloatingScrollArrow from "@/components/FloatingScrollArrow";
-import PublicCouponsSection from "@/components/sections/PublicCouponsSection";
-import PublicEventsSection from "@/components/sections/PublicEventsSection";
-import OrganizersSection from "@/components/sections/OrganizersSection"; // Import new section
+import CouponsSection from "@/components/sections/CouponsSection";
+import EventsSection from "@/components/sections/EventsSection";
+import OrganizersSection from "@/components/sections/OrganizersSection";
 
 const Index = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -31,13 +30,13 @@ const Index = () => {
         <HeroSection />
       </div>
       <div className="bg-black/30">
-        <PublicCouponsSection />
-        <PublicEventsSection />
-        <OrganizersSection /> {/* Insert Organizers Section here */}
+        <CouponsSection />
+        <EventsSection />
+        <OrganizersSection />
         <MapSection />
         <ComingSoonSection />
         <TestimonialsSection />
-        <WaitlistSection />
+        {/* WaitlistSection removed */}
       </div>
       <FooterSection />
       {/* Floating buttons are now less relevant as they pointed to Demo/Waitlist, but keeping them for now */}
