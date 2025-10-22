@@ -142,7 +142,7 @@ const OrganizationProfile = () => {
     if (isRedeeming) return;
 
     if (isCouponUsedUp(coupon.id, coupon.max_uses_per_user)) {
-      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
+      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal (beleértve a lejárt kódokat is).`);
       return;
     }
     
@@ -192,9 +192,8 @@ const OrganizationProfile = () => {
     if (wasRedeemed) {
       refreshUsages(); 
     } else if (usageIdToClear) {
-      // If closed by user AND not redeemed, delete the pending usage record
-      await deletePendingUsage(usageIdToClear);
-      refreshUsages(); // Refresh after manual deletion
+      // We keep the usage record in the DB to count towards the limit.
+      refreshUsages(); // Refresh to update button state
     }
   };
   // --- End Redemption Logic ---
@@ -308,6 +307,16 @@ const OrganizationProfile = () => {
                 
                 const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
                 
+                // Determine button text based on status
+                let buttonText = 'Beváltás';
+                if (isRedeeming) {
+                    buttonText = 'Generálás...';
+                } else if (usedUp) {
+                    buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
+                } else if (!canRedeem) {
+                    buttonText = pointStatusText;
+                }
+                
                 return (
                   <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
                     <CardHeader>
@@ -379,22 +388,22 @@ const OrganizationProfile = () => {
                                 {isRedeeming ? (
                                   <>
                                     <Spinner className="h-4 w-4 mr-2 animate-spin" />
-                                    Generálás...
+                                    {buttonText}
                                   </>
                                 ) : usedUp ? (
                                   <>
                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                    Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
+                                    {buttonText}
                                   </>
                                 ) : !canRedeem ? (
                                   <>
                                     <Coins className="h-4 w-4 mr-2" />
-                                    {pointStatusText}
+                                    {buttonText}
                                   </>
                                 ) : (
                                   <>
                                     <CheckCircle className="h-4 w-4 mr-2" />
-                                    Beváltás
+                                    {buttonText}
                                   </>
                                 )}
                               </Button>
