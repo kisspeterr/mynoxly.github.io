@@ -29,9 +29,14 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
       
       // 2. Maximális időtúllépés (5000ms)
       maxTimer = window.setTimeout(() => {
+        if (isLoading) {
+            // Ha 5 másodperc után még mindig tölt, kényszerítsünk egy teljes frissítést.
+            console.warn("Auth loading timeout reached (5s). Forcing hard refresh.");
+            window.location.reload();
+        }
+        // Ha a reload nem történik meg azonnal (pl. tesztkörnyezetben), akkor is befejezzük a loadert.
         setIsTimeoutReached(true);
-        setShouldShowLoading(false); // Hide loader
-        console.warn("Auth loading timeout reached (5s). Displaying content anyway.");
+        setShouldShowLoading(false); 
       }, MAX_LOADING_TIME_MS);
       
     } else {
@@ -44,10 +49,10 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
       if (timer) clearTimeout(timer);
       if (maxTimer) clearTimeout(maxTimer);
     };
-  }, [isLoading]);
+  }, [isLoading]); // Dependency added: isLoading
 
   // Ha a useAuth hook még tölt, VAGY az időtúllépés még nem járt le, mutassuk a loadert.
-  if (isLoading && !isTimeoutReached) {
+  if (isLoading && shouldShowLoading && !isTimeoutReached) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 p-4">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mb-4" />
