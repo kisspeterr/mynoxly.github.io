@@ -25,61 +25,8 @@ const HeroSection = () => {
   };
 
   return (
-    <section id="hero-section" className="pt-32 pb-20 px-6 relative overflow-hidden">
-      
-      {/* --- Pécs TV Tower Neon Background --- */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg 
-          className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-4xl h-auto opacity-20 md:opacity-30 lg:opacity-40" 
-          viewBox="0 0 800 600" 
-          fill="none" 
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Base Tower Structure (Stilized) */}
-          <path 
-            d="M400 600 L380 150 L420 150 L400 600 Z" 
-            stroke="url(#neonGradient)" 
-            strokeWidth="10" 
-            strokeLinecap="round"
-            className="animate-fade-in"
-            style={{ animationDelay: '0.5s' }}
-          />
-          {/* Observation Deck (Stilized) */}
-          <circle 
-            cx="400" 
-            cy="150" 
-            r="50" 
-            stroke="url(#neonGradient)" 
-            strokeWidth="10" 
-            fill="none"
-            className="animate-fade-in"
-            style={{ animationDelay: '0.8s' }}
-          />
-          {/* Antenna */}
-          <path 
-            d="M400 100 L400 0" 
-            stroke="url(#neonGradient)" 
-            strokeWidth="5" 
-            strokeLinecap="round"
-            className="animate-fade-in"
-            style={{ animationDelay: '1.1s' }}
-          />
-          
-          {/* Neon Gradient Definition */}
-          <defs>
-            <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style={{ stopColor: 'rgb(0, 255, 255)', stopOpacity: 1 }} /> {/* Cyan */}
-              <stop offset="100%" style={{ stopColor: 'rgb(192, 0, 255)', stopOpacity: 1 }} /> {/* Purple */}
-            </linearGradient>
-          </defs>
-        </svg>
-        
-        {/* Subtle glow effect at the base */}
-        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-3/4 h-40 bg-cyan-500/10 blur-3xl animate-pulse-slow"></div>
-      </div>
-      {/* --- End Background --- */}
-      
-      <div className="container mx-auto text-center relative z-10">
+    <section id="hero-section" className="pt-32 pb-20 px-6">
+      <div className="container mx-auto text-center">
         <Badge className="mb-6 bg-purple-500/20 text-purple-300 border-purple-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
           Pécsi Egyetemisták Kedvence
