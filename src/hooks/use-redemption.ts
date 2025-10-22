@@ -24,7 +24,7 @@ interface UsageDetails {
   user_email: string;
 }
 
-// Helper function to get the organization ID from its name
+// Helper function to get the organization ID from its name (No longer needed in finalizeRedemption, but kept for checkCode)
 const getOrganizationId = async (organizationName: string): Promise<string | null> => {
     const { data, error } = await supabase
         .from('profiles')
@@ -39,44 +39,9 @@ const getOrganizationId = async (organizationName: string): Promise<string | nul
     return data?.id || null;
 };
 
-// Helper function to update loyalty points (simplified version for reward)
+// Helper function to update loyalty points (REMOVED: Logic moved to RPC)
 const rewardLoyaltyPoints = async (userId: string, organizationId: string, pointsReward: number) => {
-    if (pointsReward <= 0) return { success: true };
-
-    // 1. Try to update existing record (increment)
-    const { data: updateData, error: updateError } = await supabase
-        .from('loyalty_points')
-        .update({ 
-            points: supabase.raw(`points + ${pointsReward}`),
-            updated_at: new Date().toISOString(),
-        })
-        .eq('user_id', userId)
-        .eq('organization_id', organizationId)
-        .select()
-        .single();
-
-    if (updateError && updateError.code !== 'PGRST116') { // PGRST116: No rows found
-        console.error('Error updating loyalty points for reward:', updateError);
-    }
-    
-    if (updateData) {
-        return { success: true };
-    }
-
-    // 2. If no row found (PGRST116), try to insert the initial record
-    const { error: insertError } = await supabase
-        .from('loyalty_points')
-        .insert({ 
-            user_id: userId, 
-            organization_id: organizationId, 
-            points: pointsReward 
-        });
-        
-    if (insertError) {
-        console.error('Error inserting initial loyalty points for reward:', insertError);
-        return { success: false };
-    }
-    
+    // This function is now obsolete as the logic is in the RPC.
     return { success: true };
 };
 
@@ -177,40 +142,28 @@ export const useRedemption = () => {
 
     setIsLoading(true);
     try {
-      // Mark as used, BUT ONLY IF IT IS CURRENTLY UNUSED (is_used: false)
-      const { error } = await supabase
-        .from('coupon_usages')
-        .update({ is_used: true })
-        .eq('id', usageDetails.id)
-        .eq('is_used', false) // CRITICAL: Only update if it hasn't been used yet
-        .select()
-        .single();
+      // Call the secure Postgres RPC function
+      const { data: success, error: rpcError } = await supabase.rpc('finalize_coupon_redemption', {
+        usage_id_in: usageDetails.id,
+      });
 
-      if (error) {
-        showError('Hiba történt a beváltás véglegesítésekor.');
-        console.error('Finalize error:', error);
+      if (rpcError) {
+        // Handle specific Postgres exceptions raised in the function
+        if (rpcError.message.includes('Unauthorized')) {
+            showError('Jogosultsági hiba: Csak adminok véglegesíthetik a beváltást, vagy a kupon nem a szervezetéhez tartozik.');
+        } else if (rpcError.message.includes('Coupon already used')) {
+            showError('Ez a kupon már be lett váltva.');
+        } else {
+            showError(`Hiba történt a beváltás véglegesítésekor: ${rpcError.message}`);
+        }
+        console.error('Finalize RPC error:', rpcError);
         return false;
       }
       
-      // --- Loyalty Point Reward Logic ---
+      // If successful, the RPC handled the usage update and point reward
       const pointsReward = usageDetails.coupon.points_reward;
-      const organizationName = usageDetails.coupon.organization_name;
       
-      if (pointsReward > 0) {
-          const organizationId = await getOrganizationId(organizationName);
-          if (organizationId) {
-              const pointResult = await rewardLoyaltyPoints(usageDetails.user_id, organizationId, pointsReward);
-              if (pointResult.success) {
-                  showSuccess(`Sikeresen jóváírva ${pointsReward} hűségpont!`);
-              } else {
-                  showError('Hiba történt a hűségpontok jóváírásakor.');
-              }
-          }
-      }
-      // --- End Loyalty Point Reward Logic ---
-      
-      // If the update was successful, the Realtime event will fire.
-      showSuccess(`Sikeres beváltás! Kupon: ${usageDetails.coupon.title}`);
+      showSuccess(`Sikeres beváltás! Kupon: ${usageDetails.coupon.title}${pointsReward > 0 ? ` (+${pointsReward} pont)` : ''}`);
       setUsageDetails(null); // Clear details after successful redemption
       return true;
 
