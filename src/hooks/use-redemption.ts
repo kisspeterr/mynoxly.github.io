@@ -6,7 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 interface ProfileDetails {
   first_name: string | null;
   last_name: string | null;
-  organization_name: string | null; // Added organization_name
+  organization_name: string | null;
 }
 
 interface UsageDetails {
@@ -18,10 +18,68 @@ interface UsageDetails {
   coupon: {
     title: string;
     organization_name: string;
+    points_reward: number; // Added points_reward
   };
   profile: ProfileDetails | null;
   user_email: string;
 }
+
+// Helper function to get the organization ID from its name
+const getOrganizationId = async (organizationName: string): Promise<string | null> => {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('organization_name', organizationName)
+        .single();
+        
+    if (error) {
+        console.error('Error fetching organization ID:', error);
+        return null;
+    }
+    return data?.id || null;
+};
+
+// Helper function to update loyalty points (simplified version for reward)
+const rewardLoyaltyPoints = async (userId: string, organizationId: string, pointsReward: number) => {
+    if (pointsReward <= 0) return { success: true };
+
+    // 1. Try to update existing record (increment)
+    const { data: updateData, error: updateError } = await supabase
+        .from('loyalty_points')
+        .update({ 
+            points: supabase.raw(`points + ${pointsReward}`),
+            updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .select()
+        .single();
+
+    if (updateError && updateError.code !== 'PGRST116') { // PGRST116: No rows found
+        console.error('Error updating loyalty points for reward:', updateError);
+    }
+    
+    if (updateData) {
+        return { success: true };
+    }
+
+    // 2. If no row found (PGRST116), try to insert the initial record
+    const { error: insertError } = await supabase
+        .from('loyalty_points')
+        .insert({ 
+            user_id: userId, 
+            organization_id: organizationId, 
+            points: pointsReward 
+        });
+        
+    if (insertError) {
+        console.error('Error inserting initial loyalty points for reward:', insertError);
+        return { success: false };
+    }
+    
+    return { success: true };
+};
+
 
 export const useRedemption = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,10 +99,6 @@ export const useRedemption = () => {
     }
 
     // 2. Fetch User Email (This is the tricky part, as auth.users is protected)
-    // We rely on the fact that the admin session might have elevated privileges, 
-    // but client-side RLS usually prevents reading other users' emails from auth.users.
-    // Since we are client-side, we cannot reliably fetch the target user's email.
-    
     let userEmail = `User ID: ${userId.slice(0, 8)}...`;
     
     return {
@@ -64,7 +118,7 @@ export const useRedemption = () => {
     }
 
     try {
-      // 1. Fetch usage record by redemption code, joining only the coupon data
+      // 1. Fetch usage record by redemption code, joining coupon data including points_reward
       const { data: usage, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -73,7 +127,7 @@ export const useRedemption = () => {
           user_id,
           redeemed_at,
           is_used,
-          coupon:coupon_id (title, organization_name)
+          coupon:coupon_id (title, organization_name, points_reward)
         `)
         .eq('redemption_code', code)
         .single();
@@ -137,6 +191,23 @@ export const useRedemption = () => {
         console.error('Finalize error:', error);
         return false;
       }
+      
+      // --- Loyalty Point Reward Logic ---
+      const pointsReward = usageDetails.coupon.points_reward;
+      const organizationName = usageDetails.coupon.organization_name;
+      
+      if (pointsReward > 0) {
+          const organizationId = await getOrganizationId(organizationName);
+          if (organizationId) {
+              const pointResult = await rewardLoyaltyPoints(usageDetails.user_id, organizationId, pointsReward);
+              if (pointResult.success) {
+                  showSuccess(`Sikeresen jóváírva ${pointsReward} hűségpont!`);
+              } else {
+                  showError('Hiba történt a hűségpontok jóváírásakor.');
+              }
+          }
+      }
+      // --- End Loyalty Point Reward Logic ---
       
       // If the update was successful, the Realtime event will fire.
       showSuccess(`Sikeres beváltás! Kupon: ${usageDetails.coupon.title}`);

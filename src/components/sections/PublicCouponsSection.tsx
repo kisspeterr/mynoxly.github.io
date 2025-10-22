@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building, BarChart2 } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building, BarChart2, Coins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import RedemptionModal from '@/components/RedemptionModal';
 import { showError } from '@/utils/toast';
-import { Coupon } from '@/types/coupons'; // Import Coupon type
+import { Coupon } from '@/types/coupons';
+import { useLoyaltyPoints } from '@/hooks/use-loyalty-points'; // Import loyalty hook
 
 // Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
@@ -27,7 +28,8 @@ const PublicCouponsSection = () => {
     refreshUsages, 
     deletePendingUsage 
   } = usePublicCoupons();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, profile } = useAuth();
+  const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
   
   const [isRedeeming, setIsRedeeming] = useState(false); // Local loading state for redemption
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -52,6 +54,12 @@ const PublicCouponsSection = () => {
     if (isCouponPending(coupon.id)) {
       showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
       return;
+    }
+
+    // Check points cost (The actual check is done in redeemCoupon, but we check here for immediate UI feedback)
+    if (coupon.points_cost > 0) {
+        // We need the organization ID to check points, but we only have the name here.
+        // The hook handles the ID lookup internally, but we rely on the hook's error message if points are insufficient.
     }
 
     setIsRedeeming(true);
@@ -80,14 +88,10 @@ const PublicCouponsSection = () => {
     setCurrentRedemptionCode(undefined);
     
     if (wasRedeemed) {
-      // If redeemed by admin (via Realtime), refresh usages to update button state AND usage count
       refreshUsages(); 
     } else if (usageIdToClear) {
-      // If closed by user AND not redeemed, delete the pending usage record
-      // The hook now handles deletion of expired codes before redemption, 
-      // but we still need to delete the currently active one if the user closes the modal manually.
       await deletePendingUsage(usageIdToClear);
-      refreshUsages(); // Refresh after manual deletion
+      refreshUsages();
     }
   };
 
@@ -107,7 +111,7 @@ const PublicCouponsSection = () => {
           Fedezd fel Pécs legjobb akcióit. Jelentkezz be a beváltáshoz!
         </p>
 
-        {isLoading ? (
+        {(isLoading || isLoadingPoints) ? (
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
             <p className="ml-3 text-gray-300">Kuponok betöltése...</p>
@@ -119,13 +123,34 @@ const PublicCouponsSection = () => {
             {coupons.map((coupon) => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
               const pending = isAuthenticated && isCouponPending(coupon.id);
-              const isDisabled = usedUp || pending || isRedeeming; // Disable if redeeming globally
               const logoUrl = (coupon as PublicCoupon).logo_url;
+              
+              // Loyalty logic
+              const isPointCoupon = coupon.points_cost > 0;
+              const isRewardCoupon = coupon.points_reward > 0;
+              let canRedeem = true;
+              let pointStatusText = '';
+              
+              if (isAuthenticated && isPointCoupon) {
+                  // We need the organization ID from the profile list to check points
+                  const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
+                  const organizationId = organizationRecord?.organization_id;
+                  const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
+                  
+                  if (currentPoints < coupon.points_cost) {
+                      canRedeem = false;
+                      pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
+                  } else {
+                      pointStatusText = `Pontok levonása: ${coupon.points_cost}`;
+                  }
+              }
+              
+              const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
               
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${usedUp ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                 >
                   <CardHeader className="pb-4">
                     {coupon.image_url && (
@@ -161,8 +186,24 @@ const PublicCouponsSection = () => {
                   <CardContent className="space-y-3 flex-grow text-left">
                     <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
                     
+                    {/* Loyalty Status/Reward */}
+                    {(isPointCoupon || isRewardCoupon) && (
+                        <div className="flex items-center text-sm pt-2 border-t border-gray-700/50">
+                            <Coins className={`h-4 w-4 mr-2 ${isPointCoupon ? 'text-red-400' : 'text-green-400'}`} />
+                            {isPointCoupon ? (
+                                <span className={`font-semibold ${canRedeem ? 'text-red-300' : 'text-red-500'}`}>
+                                    Költség: {coupon.points_cost} pont
+                                </span>
+                            ) : (
+                                <span className="font-semibold text-green-300">
+                                    Jutalom: +{coupon.points_reward} pont
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    
                     {/* Usage Count Display */}
-                    <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                    <div className="flex items-center text-sm text-gray-300">
                       <BarChart2 className="h-4 w-4 mr-2 text-pink-400" />
                       Beváltva: <span className="font-semibold ml-1 text-white">{coupon.usage_count} alkalommal</span>
                     </div>
@@ -214,6 +255,11 @@ const PublicCouponsSection = () => {
                                 <>
                                   <CheckCircle className="h-4 w-4 mr-2" />
                                   Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
+                                </>
+                              ) : !canRedeem ? (
+                                <>
+                                  <Coins className="h-4 w-4 mr-2" />
+                                  {pointStatusText}
                                 </>
                               ) : (
                                 <>

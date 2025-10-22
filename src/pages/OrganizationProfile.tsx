@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner } from 'lucide-react';
+import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
@@ -14,6 +14,7 @@ import { usePublicCoupons } from '@/hooks/use-public-coupons';
 import { useAuth } from '@/hooks/use-auth';
 import RedemptionModal from '@/components/RedemptionModal';
 import FavoriteButton from '@/components/FavoriteButton';
+import { useLoyaltyPoints } from '@/hooks/use-loyalty-points'; // Import loyalty hook
 
 interface OrganizationProfileData {
   id: string;
@@ -37,6 +38,7 @@ const OrganizationProfile = () => {
   const organizationName = params.organizationName;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
+  const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
   
   const [organizationData, setOrganizationData] = useState<OrganizationContent | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -60,7 +62,6 @@ const OrganizationProfile = () => {
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
 
   // Filter coupons relevant to this organization
-  // We ensure organizationName is defined before filtering
   const organizationCoupons = organizationName 
     ? (allPublicCoupons as PublicCoupon[]).filter(c => c.organization_name === organizationName)
     : [];
@@ -149,6 +150,19 @@ const OrganizationProfile = () => {
       showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
       return;
     }
+    
+    // Check points cost (The actual check is done in redeemCoupon, but we check here for immediate UI feedback)
+    if (coupon.points_cost > 0) {
+        // We need the organization ID from the profile list to check points
+        const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
+        const organizationId = organizationRecord?.organization_id;
+        const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
+        
+        if (currentPoints < coupon.points_cost) {
+            showError(`Nincs elegendő hűségpontod (${currentPoints}/${coupon.points_cost}).`);
+            return;
+        }
+    }
 
     setIsRedeeming(true);
     try {
@@ -186,7 +200,7 @@ const OrganizationProfile = () => {
   // --- End Redemption Logic ---
 
 
-  if (isLoadingProfile || isLoadingCoupons) {
+  if (isLoadingProfile || isLoadingCoupons || isLoadingPoints) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
         <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mr-3" />
@@ -213,6 +227,11 @@ const OrganizationProfile = () => {
   if (!organizationData) return null;
 
   const { profile, events } = organizationData;
+  
+  // Get current user points for this organization
+  const organizationRecord = points.find(p => p.profile.organization_name === organizationName);
+  const currentPoints = organizationRecord ? getPointsForOrganization(organizationRecord.organization_id) : 0;
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white">
@@ -240,14 +259,22 @@ const OrganizationProfile = () => {
               </div>
             </div>
             
-            {/* Favorite Button */}
-            {isAuthenticated && (
-              <FavoriteButton 
-                organizationId={profile.id} 
-                organizationName={profile.organization_name} 
-                className="mt-4 md:mt-0"
-              />
-            )}
+            {/* Favorite Button and Points Display */}
+            <div className="flex items-center space-x-4 mt-4 md:mt-0">
+                {isAuthenticated && (
+                    <div className="flex items-center text-lg font-semibold text-purple-300 bg-purple-900/30 border border-purple-500/50 rounded-full px-4 py-2">
+                        <Coins className="h-5 w-5 mr-2" />
+                        {currentPoints} pont
+                    </div>
+                )}
+                {isAuthenticated && (
+                    <FavoriteButton 
+                        organizationId={profile.id} 
+                        organizationName={profile.organization_name} 
+                        className="mt-0"
+                    />
+                )}
+            </div>
           </div>
         </Card>
 
@@ -263,10 +290,26 @@ const OrganizationProfile = () => {
               {organizationCoupons.map(coupon => {
                 const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
                 const pending = isAuthenticated && isCouponPending(coupon.id);
-                const isDisabled = usedUp || pending || isRedeeming;
+                
+                // Loyalty logic
+                const isPointCoupon = coupon.points_cost > 0;
+                const isRewardCoupon = coupon.points_reward > 0;
+                let canRedeem = true;
+                let pointStatusText = '';
+                
+                if (isAuthenticated && isPointCoupon) {
+                    if (currentPoints < coupon.points_cost) {
+                        canRedeem = false;
+                        pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
+                    } else {
+                        pointStatusText = `Pontok levonása: ${coupon.points_cost}`;
+                    }
+                }
+                
+                const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
                 
                 return (
-                  <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
+                  <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
                     <CardHeader>
                       <CardTitle className="text-xl text-cyan-300">{coupon.title}</CardTitle>
                       <CardDescription className="text-gray-400">{coupon.coupon_code}</CardDescription>
@@ -274,8 +317,24 @@ const OrganizationProfile = () => {
                     <CardContent className="space-y-3 text-sm flex-grow">
                       <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
                       
+                      {/* Loyalty Status/Reward */}
+                      {(isPointCoupon || isRewardCoupon) && (
+                          <div className="flex items-center text-sm pt-2 border-t border-gray-700/50">
+                              <Coins className={`h-4 w-4 mr-2 ${isPointCoupon ? 'text-red-400' : 'text-green-400'}`} />
+                              {isPointCoupon ? (
+                                  <span className={`font-semibold ${canRedeem ? 'text-red-300' : 'text-red-500'}`}>
+                                      Költség: {coupon.points_cost} pont
+                                  </span>
+                              ) : (
+                                  <span className="font-semibold text-green-300">
+                                      Jutalom: +{coupon.points_reward} pont
+                                  </span>
+                              )}
+                          </div>
+                      )}
+                      
                       {/* Usage Count Display */}
-                      <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                      <div className="flex items-center text-sm text-gray-300">
                         <BarChart2 className="h-4 w-4 mr-2 text-pink-400" />
                         Beváltva: <span className="font-semibold ml-1 text-white">{coupon.usage_count} alkalommal</span>
                       </div>
@@ -326,6 +385,11 @@ const OrganizationProfile = () => {
                                   <>
                                     <CheckCircle className="h-4 w-4 mr-2" />
                                     Beváltva ({coupon.max_uses_per_user} / {coupon.max_uses_per_user})
+                                  </>
+                                ) : !canRedeem ? (
+                                  <>
+                                    <Coins className="h-4 w-4 mr-2" />
+                                    {pointStatusText}
                                   </>
                                 ) : (
                                   <>
