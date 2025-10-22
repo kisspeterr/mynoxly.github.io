@@ -13,9 +13,7 @@ import { Coupon } from '@/types/coupons'; // Import Coupon type
 
 // Extend Coupon type to include organization profile data
 interface PublicCoupon extends Coupon {
-  organization_profile: {
-    logo_url: string | null;
-  } | null;
+  logo_url: string | null;
 }
 
 const PublicCouponsSection = () => {
@@ -113,7 +111,7 @@ const PublicCouponsSection = () => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
               const pending = isAuthenticated && isCouponPending(coupon.id);
               const isDisabled = usedUp || pending || isRedeeming; // Disable if redeeming globally
-              const logoUrl = (coupon as PublicCoupon).organization_profile?.logo_url;
+              const logoUrl = (coupon as PublicCoupon).logo_url;
               
               return (
                 <Card 

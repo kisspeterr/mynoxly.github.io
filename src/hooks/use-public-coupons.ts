@@ -14,29 +14,45 @@ interface CouponUsage {
 
 // Extend Coupon type to include organization profile data
 interface PublicCoupon extends Coupon {
-  organization_profile: {
-    logo_url: string | null;
-  } | null;
+  logo_url: string | null; // Simplified: logo_url directly on coupon object
 }
 
 export const usePublicCoupons = () => {
   const { user, isAuthenticated } = useAuth();
   const [coupons, setCoupons] = useState<PublicCoupon[]>([]);
-  // Store ALL usages (pending and used) to manage button state
   const [allUsages, setAllUsages] = useState<CouponUsage[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
+
+  // Helper to fetch organization logos
+  const fetchOrganizationLogos = async (organizationNames: string[]) => {
+    if (organizationNames.length === 0) return {};
+    
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('organization_name, logo_url')
+      .in('organization_name', organizationNames);
+
+    if (error) {
+      console.error('Error fetching organization logos:', error);
+      return {};
+    }
+
+    return data.reduce((acc, profile) => {
+      if (profile.organization_name) {
+        acc[profile.organization_name] = profile.logo_url;
+      }
+      return acc;
+    }, {} as Record<string, string | null>);
+  };
 
   // Fetches all coupons and the current user's finalized usages
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch all coupons and join organization profile data
+      // 1. Fetch all coupons (without join)
       const { data: couponData, error: couponError } = await supabase
         .from('coupons')
-        .select(`
-          *,
-          organization_profile:organization_name (logo_url)
-        `) // Fetching all fields and joining logo_url
+        .select(`*`)
         .order('created_at', { ascending: false });
 
       if (couponError) {
@@ -45,14 +61,26 @@ export const usePublicCoupons = () => {
         setCoupons([]);
         return;
       }
-      setCoupons(couponData as PublicCoupon[]);
+      
+      const rawCoupons = couponData as Coupon[];
+      const organizationNames = Array.from(new Set(rawCoupons.map(c => c.organization_name)));
+      
+      // 2. Fetch organization logos separately
+      const logoMap = await fetchOrganizationLogos(organizationNames);
+      
+      const couponsWithLogos: PublicCoupon[] = rawCoupons.map(coupon => ({
+        ...coupon,
+        logo_url: logoMap[coupon.organization_name] || null,
+      }));
+      
+      setCoupons(couponsWithLogos);
 
-      // 2. Fetch current user's ALL usages if authenticated (pending and finalized)
+      // 3. Fetch current user's ALL usages if authenticated
       if (isAuthenticated && user) {
         const { data: usageData, error: usageError } = await supabase
           .from('coupon_usages')
           .select('id, coupon_id, is_used')
-          .eq('user_id', user.id); // RLS ensures only the user's data is returned
+          .eq('user_id', user.id);
 
         if (usageError) {
           console.error('Fetch user usages error:', usageError);
@@ -89,7 +117,6 @@ export const usePublicCoupons = () => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
     if (isAuthenticated && user) {
-      // We subscribe to all changes on coupon_usages table, but RLS ensures we only receive updates for the current user's rows.
       channel = supabase
         .channel(`user_usages_${user.id}`)
         .on(
@@ -98,10 +125,9 @@ export const usePublicCoupons = () => {
             event: '*', 
             schema: 'public', 
             table: 'coupon_usages',
-            filter: `user_id=eq.${user.id}` // Explicit filter for safety, though RLS should handle it
+            filter: `user_id=eq.${user.id}`
           },
           (payload) => {
-            // When a change happens (INSERT/UPDATE/DELETE), refresh the entire usage list
             refreshUsages();
           }
         )
@@ -113,41 +139,34 @@ export const usePublicCoupons = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [isAuthenticated, user?.id]); // Re-fetch and re-subscribe when auth state changes
+  }, [isAuthenticated, user?.id]);
 
-  // Helper function to check if a coupon is fully used by the current user
-  // This now checks against finalized usages (is_used: true)
   const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
-    if (maxUses === 0) return false; // Unlimited uses
+    if (maxUses === 0) return false;
     
     const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used).length;
     return count >= maxUses;
   };
   
-  // NEW Helper function to check if a coupon is currently PENDING redemption
   const isCouponPending = (couponId: string): boolean => {
-    // Check if there is any usage record that is NOT yet used (is_used: false)
     return allUsages.some(u => u.coupon_id === couponId && u.is_used === false);
   };
   
-  // NEW: Function to delete a pending usage record
   const deletePendingUsage = async (usageId: string) => {
     if (!isAuthenticated || !user) return { success: false };
     
     try {
-      // Delete the record, but only if it is NOT used (is_used: false)
       const { error } = await supabase
         .from('coupon_usages')
         .delete()
         .eq('id', usageId)
-        .eq('is_used', false); // Crucial safety check
+        .eq('is_used', false);
 
       if (error) {
         console.error('Error deleting pending usage:', error);
         return { success: false };
       }
       
-      // Realtime will handle the state update via refreshUsages
       return { success: true };
     } catch (error) {
       console.error('Unexpected error during pending usage deletion:', error);
@@ -162,19 +181,17 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
     
-    // 1. Check if already pending (prevents double-click/double-generation)
     if (isCouponPending(coupon.id)) {
         showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
         return { success: false };
     }
 
-    // 2. REAL-TIME USAGE CHECK (Finalized count)
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
       .eq('coupon_id', coupon.id)
-      .eq('is_used', true); // Only count finalized usages
+      .eq('is_used', true);
 
     if (countError) {
       showError('Hiba történt a beváltási korlát ellenőrzésekor.');
@@ -182,13 +199,11 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
 
-    // 3. Check max uses per user limit using the fresh count
     if (coupon.max_uses_per_user !== 0 && count !== null && count >= coupon.max_uses_per_user) {
       showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
       return { success: false };
     }
     
-    // 4. Generate unique redemption code
     let redemptionCode: string;
     let codeIsUnique = false;
     let attempts = 0;
@@ -211,7 +226,6 @@ export const usePublicCoupons = () => {
       return { success: false };
     }
 
-    // 5. Record usage intent (is_used = false initially)
     try {
       const { data, error } = await supabase
         .from('coupon_usages')
@@ -219,7 +233,7 @@ export const usePublicCoupons = () => {
           user_id: user.id, 
           coupon_id: coupon.id,
           redemption_code: redemptionCode,
-          is_used: false, // Mark as pending validation
+          is_used: false,
         })
         .select('id, redemption_code')
         .single();
@@ -230,7 +244,6 @@ export const usePublicCoupons = () => {
         return { success: false };
       }
       
-      // Success: return the unique usage ID and the short code
       return { success: true, usageId: data.id, redemptionCode: data.redemption_code };
 
     } catch (error) {
@@ -245,8 +258,8 @@ export const usePublicCoupons = () => {
     isLoading,
     redeemCoupon,
     isCouponUsedUp,
-    isCouponPending, // Export new check
-    refreshUsages, // Keep exported for manual refresh if needed
-    deletePendingUsage, // Export new delete function
+    isCouponPending,
+    refreshUsages,
+    deletePendingUsage,
   };
 };

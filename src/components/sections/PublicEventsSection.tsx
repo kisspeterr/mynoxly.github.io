@@ -9,9 +9,7 @@ import { Event } from '@/types/events';
 
 // Extend Event type to include organization profile data
 interface PublicEvent extends Event {
-  organization_profile: {
-    logo_url: string | null;
-  } | null;
+  logo_url: string | null;
 }
 
 const PublicEventsSection = () => {
@@ -43,7 +41,7 @@ const PublicEventsSection = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.map((event) => {
-              const logoUrl = (event as PublicEvent).organization_profile?.logo_url;
+              const logoUrl = (event as PublicEvent).logo_url;
               
               return (
                 <Card 
