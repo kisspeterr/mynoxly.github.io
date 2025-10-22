@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const HeroSection = () => {
+  // Stats array is no longer needed but kept for reference if needed later
   const stats = [
     { number: "500+", label: "Előregisztrált felhasználó" },
     { number: "30+", label: "Érdeklődő partner" },
@@ -86,18 +87,6 @@ const HeroSection = () => {
             <Building className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
             Partnerek
           </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-          {stats.map((stat, index) => (
-            <div key={index} className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-cyan-300 mb-2 animate-count">
-                {stat.number}
-              </div>
-              <div className="text-sm text-gray-400">{stat.label}</div>
-            </div>
-          ))}
         </div>
       </div>
     </section>
