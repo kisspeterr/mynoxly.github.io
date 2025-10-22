@@ -2,8 +2,8 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend"; // Using npm:resend package
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
-// NOTE: This email must be verified in Resend.
-const SENDER_EMAIL = 'noxlynightlife@gmail.com'; 
+// NOTE: Using a generic Resend-verified address for reliability.
+const SENDER_EMAIL = 'noreply@resend.dev'; 
 
 // Initialize Resend client
 const resend = new Resend(RESEND_API_KEY);
@@ -53,7 +53,7 @@ serve(async (req) => {
       .replace(/{{event_title}}/g, coupon_title) 
       .replace(/{{organization_name}}/g, organization_name);
 
-    console.log(`[RESEND] Attempting to send email to: ${user_email}`);
+    console.log(`[RESEND] Attempting to send email to: ${user_email} from ${SENDER_EMAIL}`);
 
     // Use the Resend client to send the email
     const { data, error } = await resend.emails.send({
