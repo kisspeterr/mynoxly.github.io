@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -139,6 +139,12 @@ const Navigation = () => {
               >
                 <Calendar className="h-4 w-4" /> Események
               </a>
+              <a
+                href="/#organizers-section"
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
+              >
+                <Building className="h-4 w-4" /> Partnerek
+              </a>
             </div>
           )}
 
@@ -175,6 +181,13 @@ const Navigation = () => {
                 onClick={() => navigateToSection('events-section')}
               >
                 <Calendar className="h-4 w-4 mr-2" /> Események
+              </a>
+              <a
+                href="/#organizers-section"
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                onClick={() => navigateToSection('organizers-section')}
+              >
+                <Building className="h-4 w-4 mr-2" /> Partnerek
               </a>
               
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
