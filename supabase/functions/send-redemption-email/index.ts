@@ -30,7 +30,7 @@ serve(async (req) => {
   try {
     const { 
       user_email, 
-      coupon_title, 
+      coupon_title, // Used for both coupon title and event title
       organization_name, 
       subject, 
       body 
@@ -46,6 +46,7 @@ serve(async (req) => {
     // Replace placeholders in the email body
     const finalBody = body
       .replace(/{{coupon_title}}/g, coupon_title)
+      .replace(/{{event_title}}/g, coupon_title) // Handle event title placeholder as well
       .replace(/{{organization_name}}/g, organization_name);
 
     const resendResponse = await fetch('https://api.resend.com/emails', {

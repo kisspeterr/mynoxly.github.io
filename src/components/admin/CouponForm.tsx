@@ -12,13 +12,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Switch } from '@/components/ui/switch'; // Import Switch
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useEmailTemplates } from '@/hooks/use-email-templates'; // Import template hook
 
 // Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
-  coupon_code: z.string().nullable().optional(), // Now optional, validated conditionally below
+  coupon_code: z.string().nullable().optional(),
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
   max_uses_per_user: z.coerce.number().int().min(1, 'Minimum 1 használat.'),
@@ -28,13 +30,11 @@ const couponSchema = z.object({
   points_reward: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
   points_cost: z.coerce.number().int().min(0, 'Minimum 0 pont.').default(0),
   
-  // NEW: Code Requirement
+  // Code Requirement
   is_code_required: z.boolean().default(true),
   
-  // NEW: Email fields
-  send_email_notification: z.boolean().default(false),
-  email_subject: z.string().nullable().optional().transform(e => e === "" ? null : e),
-  email_body: z.string().nullable().optional().transform(e => e === "" ? null : e),
+  // NEW: Template ID
+  email_template_id: z.string().nullable().optional().transform(e => e === "" || e === "null" ? null : e),
 }).refine(data => {
     // Custom validation: Cannot be both a reward and a cost coupon
     if (data.points_cost > 0 && data.points_reward > 0) {
@@ -53,15 +53,6 @@ const couponSchema = z.object({
 }, {
     message: "A kódos beváltáshoz legalább 4 karakter hosszú kuponkód szükséges.",
     path: ["coupon_code"],
-}).refine(data => {
-    // Conditional validation: If email notification is enabled, subject and body are required
-    if (data.send_email_notification) {
-        return data.email_subject && data.email_body;
-    }
-    return true;
-}, {
-    message: "Az email értesítéshez a tárgy és a törzs is kötelező.",
-    path: ["email_subject"],
 });
 
 type CouponFormData = z.infer<typeof couponSchema>;
@@ -74,24 +65,23 @@ interface CouponFormProps {
 }
 
 const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, initialData }) => {
+  const { templates, isLoading: isTemplatesLoading } = useEmailTemplates();
   
   // Prepare default values for editing
   const defaultValues: CouponFormData = {
     title: initialData?.title || '',
     description: initialData?.description || null,
-    coupon_code: initialData?.coupon_code || null, // Use null for empty code
+    coupon_code: initialData?.coupon_code || null,
     image_url: initialData?.image_url || null,
     max_uses_per_user: initialData?.max_uses_per_user || 1,
     total_max_uses: initialData?.total_max_uses || null,
     expiry_date: initialData?.expiry_date ? new Date(initialData.expiry_date) : null,
     points_reward: initialData?.points_reward || 0,
     points_cost: initialData?.points_cost || 0,
-    is_code_required: initialData?.is_code_required ?? true, // Default to true
+    is_code_required: initialData?.is_code_required ?? true,
     
-    // NEW Email fields
-    send_email_notification: initialData?.send_email_notification ?? false,
-    email_subject: initialData?.email_subject || null,
-    email_body: initialData?.email_body || null,
+    // NEW: Template ID
+    email_template_id: (initialData as any)?.email_template_id || null,
   };
 
   const { register, handleSubmit, formState: { errors }, setValue, watch } = useForm<CouponFormData>({
@@ -101,25 +91,44 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
 
   const expiryDate = watch('expiry_date');
   const isCodeRequired = watch('is_code_required');
-  const sendEmailNotification = watch('send_email_notification');
+  const emailTemplateId = watch('email_template_id');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: CouponFormData) => {
     // Ensure coupon_code is null if not required
     const finalCouponCode = data.is_code_required ? data.coupon_code : null;
     
-    // Ensure email fields are null if notification is disabled
-    const finalEmailSubject = data.send_email_notification ? data.email_subject : null;
-    const finalEmailBody = data.send_email_notification ? data.email_body : null;
-    
     const insertData: CouponInsert = {
         ...data,
         coupon_code: finalCouponCode,
-        email_subject: finalEmailSubject,
-        email_body: finalEmailBody,
+        
+        // Remove old email fields from insert data (they are no longer in CouponInsert type)
+        // We only pass the template ID
+        email_template_id: data.email_template_id,
+        
+        // Dummy values for old fields to satisfy TS if needed, but they should be removed from CouponInsert type
+        // Since I cannot modify CouponInsert type here, I must ensure the data passed matches the new DB schema.
+        // NOTE: The CouponInsert type needs updating in src/types/coupons.ts
     };
     
-    const result = await onSubmit(insertData);
+    // We must manually map the data to the new CouponInsert structure
+    const finalInsertData: CouponInsert = {
+        title: data.title,
+        description: data.description,
+        coupon_code: finalCouponCode,
+        image_url: data.image_url,
+        expiry_date: data.expiry_date,
+        max_uses_per_user: data.max_uses_per_user,
+        total_max_uses: data.total_max_uses,
+        points_reward: data.points_reward,
+        points_cost: data.points_cost,
+        is_code_required: data.is_code_required,
+        
+        // NEW FIELD
+        email_template_id: data.email_template_id,
+    };
+    
+    const result = await onSubmit(finalInsertData);
     if (result.success) {
       onClose();
     }
@@ -164,7 +173,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
           id="coupon_code"
           {...register('coupon_code')}
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-          disabled={isEditing && isCodeRequired} // Only disable if editing AND code is required
+          disabled={isEditing && isCodeRequired}
           placeholder={isCodeRequired ? "Pl. 1PLUSZ1" : "Nem szükséges kód"}
         />
         {errors.coupon_code && <p className="text-red-400 text-sm">{errors.coupon_code.message}</p>}
@@ -253,54 +262,30 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         </div>
       </div>
       
-      {/* Email Notification Section */}
-      <div className="pt-4 border-t border-gray-700/50 space-y-4">
-        <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-            <div className="flex items-center space-x-2">
-                <Mail className="h-5 w-5 text-pink-400" />
-                <Label htmlFor="send_email_notification" className="text-gray-300 font-semibold">
-                    Email értesítés küldése beváltáskor?
-                </Label>
-            </div>
-            <Switch
-                id="send_email_notification"
-                checked={sendEmailNotification}
-                onCheckedChange={(checked) => setValue('send_email_notification', checked, { shouldValidate: true })}
-                className="data-[state=checked]:bg-pink-600 data-[state=unchecked]:bg-gray-600"
-                {...register('send_email_notification')}
-            />
-        </div>
-        
-        {sendEmailNotification && (
-            <div className="space-y-4 p-4 border border-pink-500/30 rounded-lg">
-                <div className="p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300 flex items-start">
-                    <Info className="h-5 w-5 mr-2 flex-shrink-0 mt-1" />
-                    <p className="text-left">
-                        Használható változók: <code>{'{{coupon_title}}'}</code> (a kupon címe) és <code>{'{{organization_name}}'}</code> (a szervezet neve).
-                    </p>
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email_subject" className="text-gray-300">Email Tárgy *</Label>
-                    <Input 
-                      id="email_subject"
-                      type="text" 
-                      {...register('email_subject')}
-                      className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-                    />
-                    {errors.email_subject && <p className="text-red-400 text-sm">{errors.email_subject.message}</p>}
-                </div>
-                <div className="space-y-2">
-                    <Label htmlFor="email_body" className="text-gray-300">Email Törzs (HTML/Text) *</Label>
-                    <Textarea 
-                      id="email_body"
-                      rows={6}
-                      {...register('email_body')}
-                      className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 font-mono"
-                    />
-                    {errors.email_body && <p className="text-red-400 text-sm">{errors.email_body.message}</p>}
-                </div>
-            </div>
-        )}
+      {/* NEW: Email Template Selection */}
+      <div className="pt-4 border-t border-gray-700/50 space-y-2">
+        <Label htmlFor="email_template_id" className="text-gray-300 flex items-center">
+            <Mail className="h-4 w-4 mr-2 text-pink-400" /> Email Sablon (Beváltáskor)
+        </Label>
+        <Select 
+          onValueChange={(value) => setValue('email_template_id', value === 'null' ? null : value, { shouldValidate: true })}
+          value={emailTemplateId || 'null'}
+          disabled={isTemplatesLoading}
+        >
+          <SelectTrigger className="w-full bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50">
+            <SelectValue placeholder={isTemplatesLoading ? "Sablonok betöltése..." : "Válassz sablont (opcionális)"} />
+          </SelectTrigger>
+          <SelectContent className="bg-black/90 border-cyan-500/30 text-white">
+            <SelectItem value="null">Nincs email értesítés</SelectItem>
+            {templates.map(template => (
+              <SelectItem key={template.id} value={template.id}>
+                {template.template_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {errors.email_template_id && <p className="text-red-400 text-sm">{errors.email_template_id.message}</p>}
+        <p className="text-xs text-gray-500">A sablonok a "Sablonok" fülön kezelhetők.</p>
       </div>
 
       <div className="space-y-2">
@@ -333,7 +318,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
       <Button 
         type="submit" 
         className="w-full bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white"
-        disabled={isLoading}
+        disabled={isLoading || isTemplatesLoading}
       >
         <Save className="h-4 w-4 mr-2" />
         {isLoading ? 'Mentés...' : (isEditing ? 'Kupon frissítése' : 'Kupon létrehozása')}

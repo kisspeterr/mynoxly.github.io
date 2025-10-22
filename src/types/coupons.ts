@@ -15,10 +15,8 @@ export interface Coupon {
   is_active: boolean; // If false, coupon is hidden from public view
   is_archived: boolean; // If true, coupon is moved to archive tab
   
-  // NEW Email fields
-  send_email_notification: boolean;
-  email_subject: string | null;
-  email_body: string | null;
+  // NEW Email field
+  email_template_id: string | null;
 }
 
 export interface CouponInsert {
@@ -33,8 +31,6 @@ export interface CouponInsert {
   points_cost: number;
   is_code_required: boolean;
   
-  // NEW Email fields
-  send_email_notification: boolean;
-  email_subject: string | null;
-  email_body: string | null;
+  // NEW Email field
+  email_template_id: string | null;
 }
