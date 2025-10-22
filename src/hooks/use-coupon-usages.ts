@@ -33,7 +33,7 @@ export const useCouponUsages = () => {
 
     setIsLoading(true);
     try {
-      // Fetch all usages for coupons belonging to this organization
+      // Fetch all usages. RLS policy now ensures only usages related to the admin's organization's coupons are returned.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -57,15 +57,13 @@ export const useCouponUsages = () => {
         return;
       }
 
-      // Filter data client-side:
-      // 1. Ensure coupon data exists (join successful)
-      // 2. Ensure coupon belongs to the current organization
-      // 3. CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
+      // CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
+      // We still filter out records where the coupon join failed or redeemed_at is missing, 
+      // although RLS should prevent most irrelevant data.
       const filteredData = (data as CouponUsageRecord[]).filter(
         (usage) => 
           usage.coupon && 
-          usage.coupon.organization_name === organizationName &&
-          typeof usage.redeemed_at === 'string' // Must be a string for Date() constructor
+          typeof usage.redeemed_at === 'string'
       );
       
       setUsages(filteredData);
