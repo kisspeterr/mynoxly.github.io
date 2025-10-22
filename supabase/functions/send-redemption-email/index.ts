@@ -27,8 +27,7 @@ serve(async (req) => {
     return new Response('Email service not configured (Missing API Key)', { status: 500, headers: corsHeaders });
   }
   
-  // Log the key status (only first few chars for security)
-  console.log(`RESEND_API_KEY status: Loaded (starts with ${RESEND_API_KEY.substring(0, 4)}...)`);
+  console.log(`[START] Edge Function invoked.`);
 
   try {
     const { 
@@ -44,7 +43,7 @@ serve(async (req) => {
       return new Response('Missing required fields in request body', { status: 400, headers: corsHeaders });
     }
     
-    console.log(`Attempting to send email to: ${user_email} for ${coupon_title} (${organization_name})`);
+    console.log(`[RESEND] Attempting to send email to: ${user_email} for ${coupon_title} (${organization_name})`);
 
     // Replace placeholders in the email body
     const finalBody = body
@@ -68,14 +67,14 @@ serve(async (req) => {
 
     if (!resendResponse.ok) {
       const errorText = await resendResponse.text();
-      console.error('Resend API error:', resendResponse.status, errorText);
+      console.error('[RESEND ERROR] API call failed:', resendResponse.status, errorText);
       return new Response(JSON.stringify({ error: 'Failed to send email', details: errorText }), { 
         status: resendResponse.status, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
     
-    console.log('Email sent successfully via Resend.');
+    console.log('[RESEND] Email sent successfully via Resend.');
 
     return new Response(JSON.stringify({ message: 'Email sent successfully' }), {
       status: 200,
@@ -83,10 +82,12 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Edge function error:', error.message);
+    console.error('[FATAL ERROR] Edge function error:', error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  } finally {
+      console.log(`[END] Edge Function finished execution.`);
   }
 });
