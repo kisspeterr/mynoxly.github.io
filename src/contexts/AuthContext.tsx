@@ -63,25 +63,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
         setProfile(userProfile);
         
-        // CRITICAL: Ensure isLoading is set to false after the initial check
+        // Ensure isLoading is set to false after the initial check
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
             setIsLoading(false);
         }
       }
     );
 
-    // Also perform an immediate check for the initial session state
-    supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-            setSession(session);
-            setUser(session.user);
-            fetchProfile(session.user.id).then(setProfile);
-        }
-        setIsLoading(false);
-    }).catch(() => {
-        setIsLoading(false);
-    });
-
+    // NOTE: Removed redundant getSession() call, relying solely on onAuthStateChange 
+    // to handle INITIAL_SESSION event for stability.
 
     return () => {
       subscription.unsubscribe();
@@ -96,22 +86,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
   
-  // Auto sign out on browser/tab close
-  useEffect(() => {
-    const handleBeforeUnload = async () => {
-      if (user) {
-        // Note: This is an asynchronous call in a synchronous event handler.
-        // It might not always complete before the tab closes, but it's the best effort.
-        await supabase.auth.signOut();
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [user]);
+  // NOTE: Removed useEffect for 'beforeunload' to prevent accidental session deletion on refresh.
 
   const value = {
     session,
