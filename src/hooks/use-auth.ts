@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
 
-// 🔹 Profile tábla definíció
 interface Profile {
   id: string;
   first_name: string | null;
@@ -14,26 +13,25 @@ interface Profile {
   logo_url: string | null;
 }
 
-// 🔹 Auth állapot
 interface AuthState {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  isLoading: boolean;
+  isLoading: boolean; // Még töltjük a session/profile adatokat
+  isReady: boolean;   // Már biztosan tudjuk, mi az auth állapot!
 }
 
-// 🔹 Kezdőérték
 const initialAuthState: AuthState = {
   session: null,
   user: null,
   profile: null,
   isLoading: true,
+  isReady: false,
 };
 
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
 
-  // 🔹 Profil lekérdezése profile táblából
   const fetchProfile = async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
@@ -46,6 +44,7 @@ export const useAuth = () => {
         console.error('Error fetching profile:', error);
         return null;
       }
+
       return data as Profile;
     } catch (e) {
       console.error('Unexpected error during profile fetch:', e);
@@ -53,22 +52,28 @@ export const useAuth = () => {
     }
   };
 
-  // 🔹 Állapot frissítése
-  const updateAuthState = (session: Session | null, profile: Profile | null, loading: boolean = false) => {
+  const updateAuthState = (session: Session | null, profile: Profile | null, loading: boolean) => {
     setAuthState({
       session,
       user: session?.user || null,
       profile,
       isLoading: loading,
+      isReady: !loading, // Akkor lesz kész az auth állapot, ha már nem töltünk!
     });
   };
 
-  // ✅ Teljes auth-logika egy useEffect-ben
   useEffect(() => {
     let isMounted = true;
 
-    // 1️⃣ Inicializálás - Session + Profile lekérés
     const initialLoad = async () => {
+      // ⛔ Biztonsági timeout – ha Supabase vagy profil fetch beragad, ne logoljon örökké
+      const timeout = setTimeout(() => {
+        if (isMounted) {
+          console.warn('Auth timeout – forcing isReady = true to avoid freeze');
+          updateAuthState(null, null, false);
+        }
+      }, 1500);
+
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) console.error('Initial session error:', error);
@@ -79,6 +84,7 @@ export const useAuth = () => {
         }
 
         if (isMounted) {
+          clearTimeout(timeout);
           updateAuthState(session, profile, false);
         }
       } catch (err) {
@@ -91,12 +97,11 @@ export const useAuth = () => {
 
     initialLoad();
 
-    // 2️⃣ Auth események (login/logout/token refresh)
+    // 🔁 Auth változások (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         if (!isMounted) return;
-
-        setAuthState((prev) => ({ ...prev, isLoading: true }));
+        setAuthState(prev => ({ ...prev, isLoading: true, isReady: false }));
 
         let profile: Profile | null = null;
         if (session?.user) {
@@ -107,39 +112,12 @@ export const useAuth = () => {
       }
     );
 
-    // 3️⃣ Ha visszatérsz az oldalra / mobilról → session frissítés
-    const handleFocus = async () => {
-      if (!isMounted) return;
-
-      setAuthState(prev => ({ ...prev, isLoading: true }));
-
-      try {
-        const { data: { session }, error } = await supabase.auth.refreshSession();
-        if (error) console.error('Session refresh error:', error);
-
-        let profile = null;
-        if (session?.user) {
-          profile = await fetchProfile(session.user.id);
-        }
-
-        if (isMounted) updateAuthState(session, profile, false);
-      } catch (err) {
-        console.error('Focus refresh error:', err);
-        if (isMounted) updateAuthState(null, null, false);
-      }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
-    // 4️⃣ Takarítás memóriahibák ellen
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 
-  // 🔹 Kijelentkezés
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -148,12 +126,11 @@ export const useAuth = () => {
     }
   };
 
-  // 🔹 Visszatérő értékek
   return {
     ...authState,
-    signOut,
-    isAdmin: authState.profile?.role === 'admin',
     isAuthenticated: !!authState.user,
+    isAdmin: authState.profile?.role === 'admin',
+    signOut,
     fetchProfile,
   };
 };
