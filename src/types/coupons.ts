@@ -12,8 +12,13 @@ export interface Coupon {
   points_reward: number; // Points earned upon successful redemption
   points_cost: number;   // Points required to redeem
   is_code_required: boolean; // If true, requires admin validation code
-  is_active: boolean; // NEW: If false, coupon is hidden from public view
-  is_archived: boolean; // NEW: If true, coupon is moved to archive tab
+  is_active: boolean; // If false, coupon is hidden from public view
+  is_archived: boolean; // If true, coupon is moved to archive tab
+  
+  // NEW Email fields
+  send_email_notification: boolean;
+  email_subject: string | null;
+  email_body: string | null;
 }
 
 export interface CouponInsert {
@@ -27,4 +32,9 @@ export interface CouponInsert {
   points_reward: number;
   points_cost: number;
   is_code_required: boolean;
+  
+  // NEW Email fields
+  send_email_notification: boolean;
+  email_subject: string | null;
+  email_body: string | null;
 }
