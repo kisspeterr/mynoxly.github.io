@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
-import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,32 +11,20 @@ import { useRedemption } from '@/hooks/use-redemption';
 import { format } from 'date-fns';
 
 const RedemptionPage = () => {
-  const { isAuthenticated, isAdmin, isLoading: isAuthLoading } = useAuth();
+  // We rely on AdminRoute to ensure isAuthenticated and isAdmin are true here.
+  const { isLoading: isAuthLoading } = useAuth();
   const { isLoading, usageDetails, checkCode, finalizeRedemption, clearDetails } = useRedemption();
-  const navigate = useNavigate();
   const [codeInput, setCodeInput] = useState('');
 
-  useEffect(() => {
-    if (!isAuthLoading && !isAuthenticated) {
-      navigate('/login');
-    }
-  }, [isAuthenticated, isAuthLoading, navigate]);
+  // Note: No need for useEffect or explicit UnauthorizedAccess check here.
 
-  const handleCheck = (e: React.FormEvent) => {
-    e.preventDefault();
-    checkCode(codeInput);
-  };
-
+  // If AuthLoader is still running (which shouldn't happen if AdminRoute is used correctly, but for safety)
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <p className="text-cyan-400">Jogosultság ellenőrzése...</p>
+        <p className="text-cyan-400">Betöltés...</p>
       </div>
     );
-  }
-
-  if (isAuthenticated && !isAdmin) {
-    return <UnauthorizedAccess />;
   }
   
   const userName = usageDetails?.profile?.first_name || usageDetails?.profile?.last_name 
