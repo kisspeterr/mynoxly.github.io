@@ -189,7 +189,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
                   {startDate ? format(startDate, "PPP") : <span>Válassz dátumot</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-black/80 border-cyan-500/30 backdrop-blur-sm">
+              <PopoverContent className="w-auto p-0 bg-white border-cyan-500/30 backdrop-blur-sm text-black">
                 <Calendar
                   mode="single"
                   selected={startDate}
@@ -238,7 +238,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
                   {endDate ? format(endDate, "PPP") : <span>Válassz dátumot</span>}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-black/80 border-purple-500/30 backdrop-blur-sm">
+              <PopoverContent className="w-auto p-0 bg-white border-purple-500/30 backdrop-blur-sm text-black">
                 <Calendar
                   mode="single"
                   selected={endDate || undefined}

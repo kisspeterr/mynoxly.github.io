@@ -104,7 +104,7 @@ const UsageStatisticsPage: React.FC = () => {
                   {getDisplayDate()}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 bg-black/80 border-pink-500/30 backdrop-blur-sm">
+              <PopoverContent className="w-auto p-0 bg-white border-pink-500/30 backdrop-blur-sm text-black">
                 <Calendar
                   mode="single"
                   selected={selectedDate}
