@@ -27,7 +27,7 @@ const AdminDashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <p className="text-cyan-400">Jogosultság ellenőrzése...</p>
+        <p className="text-cyan-400">Betöltés...</p>
       </div>
     );
   }
