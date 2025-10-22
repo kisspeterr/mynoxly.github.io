@@ -22,14 +22,11 @@ const Navigation = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const scrollToSection = (id: string) => {
-    const section = document.getElementById(id);
-    if (section) {
-      section.scrollIntoView({ 
-        behavior: "smooth",
-        block: "start"
-      });
-    }
+  // Helper function to navigate to the home page with a hash anchor
+  const navigateToSection = (id: string) => {
+    // Use window.location.href to force a full navigation/reload if needed, 
+    // ensuring the browser handles the hash scrolling correctly, even if we are on a different route.
+    window.location.href = `/#${id}`;
     setIsOpen(false);
   };
 
@@ -109,25 +106,25 @@ const Navigation = () => {
           {!isMobile && (
             <div className="flex items-center space-x-8">
               <a
-                href="#coupons-section"
+                href="/#coupons-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <Gift className="h-4 w-4" /> Kuponok
               </a>
               <a
-                href="#events-section"
+                href="/#events-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <Calendar className="h-4 w-4" /> Események
               </a>
               <a
-                href="#benefits"
+                href="/#benefits"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
               >
                 Előnyök
               </a>
               <a
-                href="#testimonials"
+                href="/#testimonials"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300"
               >
                 Vélemények
@@ -156,30 +153,30 @@ const Navigation = () => {
           <div className="mt-4 pb-4 border-t border-cyan-500/20 pt-4">
             <div className="flex flex-col space-y-4">
               <a
-                href="#coupons-section"
+                href="/#coupons-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
-                onClick={() => scrollToSection('coupons-section')}
+                onClick={() => navigateToSection('coupons-section')}
               >
                 <Gift className="h-4 w-4 mr-2" /> Kuponok
               </a>
               <a
-                href="#events-section"
+                href="/#events-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
-                onClick={() => scrollToSection('events-section')}
+                onClick={() => navigateToSection('events-section')}
               >
                 <Calendar className="h-4 w-4 mr-2" /> Események
               </a>
               <a
-                href="#benefits"
+                href="/#benefits"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => scrollToSection('benefits')}
+                onClick={() => navigateToSection('benefits')}
               >
                 Előnyök
               </a>
               <a
-                href="#testimonials"
+                href="/#testimonials"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2"
-                onClick={() => scrollToSection('testimonials')}
+                onClick={() => navigateToSection('testimonials')}
               >
                 Vélemények
               </a>
@@ -205,7 +202,7 @@ const Navigation = () => {
               )}
               {!isAuthenticated && (
                 <button
-                  onClick={() => scrollToSection('waitlist')}
+                  onClick={() => navigateToSection('waitlist')}
                   className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
                 >
                   Csatlakozom
