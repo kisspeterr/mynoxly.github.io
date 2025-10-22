@@ -14,24 +14,24 @@ const FooterSection = () => {
               </span>
             </div>
             <p className="text-gray-400">
-              Városod éjszakai élete egy modern alkalmazásban. Hamarosan!
+              Városod éjszakai élete egy modern alkalmazásban. Hamarosan Pécsen!
             </p>
           </div>
           
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Kapcsolat</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">info@noxly.hu</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">+36 70 123 4567</a></li>
+              <li><a href="mailto:hello@noxly.hu" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">hello@noxly.hu</a></li>
+              <li><a href="tel:+36309876543" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">+36 30 987 6543</a></li>
             </ul>
           </div>
           
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Partnereknek</h3>
             <ul className="space-y-2">
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Partneri program</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Árak</a></li>
-              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Demo igénylés</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Partneri jelentkezés</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Média és sajtó</a></li>
+              <li><a href="#" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Admin bejelentkezés</a></li>
             </ul>
           </div>
           
@@ -53,7 +53,7 @@ const FooterSection = () => {
         
         <div className="border-t border-gray-700/50 mt-8 pt-8 text-center">
           <p className="text-gray-400">
-            © 2025 NOXLY - Városod éjszakai élete. Minden jog fenntartva. | Hamarosan Pécsen!
+            © 2025 NOXLY - Városod éjszakai élete. Minden jog fenntartva. | Indulás: Pécs
           </p>
         </div>
       </div>
