@@ -61,8 +61,6 @@ const FooterSection = () => {
                   <Handshake className="h-4 w-4 mr-2" /> Partner leszek
                 </a>
               </li>
-              <li><Link to="/" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Média és sajtó</Link></li>
-              <li><Link to="/login" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">Admin bejelentkezés</Link></li>
             </ul>
           </div>
           
