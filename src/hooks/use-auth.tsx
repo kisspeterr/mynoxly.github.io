@@ -52,32 +52,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // Failsafe timeout to prevent infinite loading
-    const loadingTimeout = setTimeout(() => {
-      console.warn("Auth loading timed out after 5 seconds. Forcing UI to render.");
-      if (isLoading) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      try {
+        setSession(session);
+        setUser(session?.user ?? null);
+
+        if (session?.user) {
+          const userProfile = await fetchProfile(session.user.id);
+          setProfile(userProfile);
+        } else {
+          setProfile(null);
+        }
+      } catch (error) {
+        console.error("Error in onAuthStateChange handler:", error);
+        showError("Hiba történt a bejelentkezési állapot feldolgozásakor.");
+        setProfile(null); 
+      } finally {
+        // This block guarantees that loading is set to false, even if errors occur.
         setIsLoading(false);
       }
-    }, 5000);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      clearTimeout(loadingTimeout); // Clear the failsafe timeout on successful event
-
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const userProfile = await fetchProfile(session.user.id);
-        setProfile(userProfile);
-      } else {
-        setProfile(null);
-      }
-      
-      setIsLoading(false);
     });
 
     return () => {
-      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
