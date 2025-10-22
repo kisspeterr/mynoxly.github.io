@@ -208,11 +208,8 @@ const OrganizationProfile = () => {
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
     
-    if (wasRedeemed) {
-      refreshUsages(); 
-    } else if (usageIdToClear) {
-      refreshUsages(); // Refresh to update button state
-    }
+    // Always refresh usages to update limits and point balances
+    refreshUsages();
   };
   
   // --- Interest Toggle Logic ---
@@ -341,16 +338,21 @@ const OrganizationProfile = () => {
                 const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
                 
                 // Determine button text based on status
-                let buttonText = 'Beváltás';
+                let buttonText = coupon.is_code_required ? 'Kód generálása' : 'Beváltás';
                 if (isRedeeming) {
-                    buttonText = 'Generálás...';
+                    buttonText = 'Feldolgozás...';
                 } else if (usedUp) {
                     buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
                 } else if (!canRedeem) {
                     buttonText = pointStatusText;
-                } else if (!coupon.is_code_required) {
-                    buttonText = 'Azonnali beváltás';
+                } else if (pending) {
+                    buttonText = 'Aktív kód';
                 }
+                
+                // Determine button style
+                const buttonClasses = coupon.is_code_required 
+                    ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
+                    : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600';
                 
                 return (
                   <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
@@ -430,7 +432,7 @@ const OrganizationProfile = () => {
                             ) : (
                               <Button 
                                 onClick={() => handleRedeemClick(coupon)}
-                                className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
+                                className={`w-full text-white ${buttonClasses}`}
                                 disabled={isDisabled}
                               >
                                 {isRedeeming ? (
@@ -446,6 +448,11 @@ const OrganizationProfile = () => {
                                 ) : !canRedeem ? (
                                   <>
                                     <Coins className="h-4 w-4 mr-2" />
+                                    {buttonText}
+                                  </>
+                                ) : coupon.is_code_required ? (
+                                  <>
+                                    <QrCode className="h-4 w-4 mr-2" />
                                     {buttonText}
                                   </>
                                 ) : (
@@ -572,7 +579,8 @@ const OrganizationProfile = () => {
       </div>
       <FooterSection />
       
-      {selectedCoupon && currentUsageId && currentRedemptionCode && (
+      {/* Only show modal if code is required and we have the details */}
+      {selectedCoupon && selectedCoupon.is_code_required && currentUsageId && currentRedemptionCode && (
         <RedemptionModal 
           coupon={selectedCoupon}
           usageId={currentUsageId}

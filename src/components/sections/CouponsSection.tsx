@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building, BarChart2, Coins } from 'lucide-react';
+import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building, BarChart2, Coins, QrCode } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,18 @@ const CouponsSection = () => {
       return;
     }
 
+    // Check points cost (The actual check is done in redeemCoupon, but we check here for immediate UI feedback)
+    if (coupon.points_cost > 0) {
+        const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
+        const organizationId = organizationRecord?.organization_id;
+        const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
+        
+        if (currentPoints < coupon.points_cost) {
+            showError(`Nincs elegendő hűségpontod (${currentPoints}/${coupon.points_cost}).`);
+            return;
+        }
+    }
+
     setIsRedeeming(true);
     try {
       // 1. Attempt to record usage and generate code/redeem immediately
@@ -87,13 +99,8 @@ const CouponsSection = () => {
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
     
-    if (wasRedeemed) {
-      refreshUsages(); 
-    } else if (usageIdToClear) {
-      // If the user closes the modal, the code remains active until it expires (3 mins), 
-      // and it counts towards the limit. We keep the usage record in the DB to count towards the limit.
-      refreshUsages();
-    }
+    // Always refresh usages to update limits and point balances
+    refreshUsages();
   };
 
   return (
@@ -148,16 +155,21 @@ const CouponsSection = () => {
               const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
               
               // Determine button text based on status
-              let buttonText = 'Beváltás';
+              let buttonText = coupon.is_code_required ? 'Kód generálása' : 'Beváltás';
               if (isRedeeming) {
-                  buttonText = 'Generálás...';
+                  buttonText = 'Feldolgozás...';
               } else if (usedUp) {
                   buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
               } else if (!canRedeem) {
                   buttonText = pointStatusText;
-              } else if (!coupon.is_code_required) {
-                  buttonText = 'Azonnali beváltás';
+              } else if (pending) {
+                  buttonText = 'Aktív kód';
               }
+              
+              // Determine button style
+              const buttonClasses = coupon.is_code_required 
+                ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
+                : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600';
               
               return (
                 <Card 
@@ -268,7 +280,7 @@ const CouponsSection = () => {
                           ) : (
                             <Button 
                               onClick={() => handleRedeemClick(coupon)}
-                              className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white"
+                              className={`w-full text-white ${buttonClasses}`}
                               disabled={isDisabled}
                             >
                               {isRedeeming ? (
@@ -276,14 +288,14 @@ const CouponsSection = () => {
                                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                   {buttonText}
                                 </>
-                              ) : usedUp ? (
+                              ) : usedUp || !canRedeem ? (
                                 <>
                                   <CheckCircle className="h-4 w-4 mr-2" />
                                   {buttonText}
                                 </>
-                              ) : !canRedeem ? (
+                              ) : coupon.is_code_required ? (
                                 <>
-                                  <Coins className="h-4 w-4 mr-2" />
+                                  <QrCode className="h-4 w-4 mr-2" />
                                   {buttonText}
                                 </>
                               ) : (
@@ -316,7 +328,8 @@ const CouponsSection = () => {
         )}
       </div>
       
-      {selectedCoupon && currentUsageId && currentRedemptionCode && (
+      {/* Only show modal if code is required and we have the details */}
+      {selectedCoupon && selectedCoupon.is_code_required && currentUsageId && currentRedemptionCode && (
         <RedemptionModal 
           coupon={selectedCoupon}
           usageId={currentUsageId}
