@@ -25,11 +25,7 @@ const AdminDashboard = () => {
   }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <p className="text-cyan-400">Betöltés...</p>
-      </div>
-    );
+    return null; // Várjuk meg a useEffect-et, vagy a navigációt.
   }
 
   if (isAuthenticated && !isAdmin) {
