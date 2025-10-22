@@ -1,5 +1,6 @@
+makeCropFromPercent).">
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-import ReactCrop, { Crop, centerCrop, make  CropFromPercent, percentCrop, PixelCrop } from 'react-image-crop';
+import ReactCrop, { Crop, centerCrop, makeCropFromPercent, percentCrop, PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
