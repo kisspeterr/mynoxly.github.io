@@ -4,7 +4,6 @@ import HeroSection from "@/components/sections/HeroSection";
 import MapSection from "@/components/sections/MapSection";
 import ComingSoonSection from "@/components/sections/ComingSoonSection";
 import TestimonialsSection from "@/components/sections/TestimonialsSection";
-import WaitlistSection from "@/components/sections/WaitlistSection";
 import FooterSection from "@/components/sections/FooterSection";
 import FloatingDemoButton from "@/components/FloatingDemoButton";
 import FloatingScrollArrow from "@/components/FloatingScrollArrow";
@@ -36,7 +35,7 @@ const Index = () => {
         <MapSection />
         <ComingSoonSection />
         <TestimonialsSection />
-        <WaitlistSection />
+        {/* WaitlistSection removed */}
       </div>
       <FooterSection />
       <FloatingDemoButton />
