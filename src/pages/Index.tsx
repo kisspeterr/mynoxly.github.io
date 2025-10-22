@@ -4,6 +4,7 @@ import FooterSection from '@/components/sections/FooterSection';
 import CouponsSection from '@/components/sections/CouponsSection';
 import EventsSection from '@/components/sections/EventsSection';
 import OrganizersSection from '@/components/sections/OrganizersSection';
+import FaqSection from '@/components/sections/FaqSection'; // Import new section
 import Navigation from '@/components/sections/Navigation';
 
 const IndexPage = () => {
@@ -15,6 +16,7 @@ const IndexPage = () => {
         <CouponsSection />
         <EventsSection />
         <OrganizersSection />
+        <FaqSection /> {/* Add FAQ section here */}
       </main>
       <FooterSection />
     </div>
