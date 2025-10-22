@@ -56,7 +56,7 @@ const EventsSection = () => {
         ) : events.length === 0 ? (
           <p className="text-gray-400 text-center mt-10">Jelenleg nincsenek meghirdetett események.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.map((event) => {
               const logoUrl = (event as PublicEvent).logo_url;
               const interested = isInterested(event.id);

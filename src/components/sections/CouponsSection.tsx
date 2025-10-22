@@ -120,7 +120,7 @@ const CouponsSection = () => {
         ) : coupons.length === 0 ? (
           <p className="text-gray-400 text-center mt-10">Jelenleg nincsenek aktív kuponok.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 justify-items-center">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {coupons.map((coupon) => {
               const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
               const pending = isAuthenticated && isCouponPending(coupon.id);
