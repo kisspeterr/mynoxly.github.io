@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
@@ -8,33 +8,35 @@ interface Profile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'user' | 'admin'; // Simplified roles
-  organization_name: string | null; // Added missing field
-  logo_url: string | null; // Added new field
+  role: 'user' | 'admin';
+  organization_name: string | null;
+  logo_url: string | null;
 }
 
-interface AuthState {
+interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
   isLoading: boolean;
+  isAdmin: boolean;
+  isAuthenticated: boolean;
+  signOut: () => Promise<void>;
+  fetchProfile: (userId: string) => Promise<Profile | null>;
 }
 
-const initialAuthState: AuthState = {
-  session: null,
-  user: null,
-  profile: null,
-  isLoading: true,
-};
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>(initialAuthState);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url') // Fetching all fields including logo_url
+        .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url')
         .eq('id', userId)
         .single();
 
@@ -47,119 +49,58 @@ export const useAuth = () => {
       console.error('Unexpected error during profile fetch:', e);
       return null;
     }
-  };
-
-  // This function handles setting the final state based on session/user/profile data
-  const updateAuthState = (session: Session | null, profile: Profile | null, loading: boolean = false) => {
-    setAuthState({
-      session,
-      user: session?.user || null,
-      profile,
-      isLoading: loading,
-    });
-  };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
-    
-    const initialLoad = async () => {
-      let session: Session | null = null;
-      let profile: Profile | null = null;
-      let user: User | null = null;
 
-      try {
-        // 1. Get Session (This also triggers a refresh if needed)
-        const { data: { session: fetchedSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Initial Supabase session fetch failed:", sessionError);
-        }
-        
-        session = fetchedSession;
-        user = session?.user || null;
+    const initializeSession = async () => {
+      // 1. Get initial session
+      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Error getting initial session:", sessionError);
+      }
 
-        // 2. Fetch Profile if session exists
-        if (user) {
-          profile = await fetchProfile(user.id);
+      if (isMounted) {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        // 2. Fetch profile if session exists
+        if (currentSession?.user) {
+          const userProfile = await fetchProfile(currentSession.user.id);
+          if (isMounted) setProfile(userProfile);
         }
         
-        if (isMounted) {
-          // Set final state: isAuthenticated, profile loaded, isLoading=false
-          updateAuthState(session, profile, false);
-        }
-
-      } catch (error) {
-        console.error("Unexpected error during initial auth load:", error);
-        if (isMounted) {
-          // If any unexpected error occurs, clear loading state
-          updateAuthState(null, null, false);
-        }
+        setIsLoading(false);
       }
     };
 
-    initialLoad();
+    initializeSession();
 
-    // 2. Real-time auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-      
-      // Start loading state for state changes (e.g., SIGNED_IN/OUT, TOKEN_REFRESHED)
-      // We only set loading true if we expect a profile fetch or a significant change
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-        setAuthState(prev => ({ ...prev, isLoading: true }));
+    // 3. Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (isMounted) {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (newSession?.user) {
+          const userProfile = await fetchProfile(newSession.user.id);
+          if (isMounted) setProfile(userProfile);
+        } else {
+          if (isMounted) setProfile(null);
+        }
+        
+        // Set loading to false after any auth change is processed
+        setIsLoading(false);
       }
-      
-      let profile: Profile | null = null;
-      if (session) {
-        profile = await fetchProfile(session.user.id);
-      }
-      
-      // Update state after profile fetch, setting isLoading=false
-      updateAuthState(session, profile, false);
     });
-    
-    // 3. Handle focus event for session refresh (Crucial for mobile/tab switching)
-    const handleFocus = async () => {
-        if (!isMounted) return;
-        
-        // Set loading state immediately to prevent UI flicker/hanging
-        setAuthState(prev => ({ ...prev, isLoading: true }));
-        
-        try {
-            // Explicitly refresh the session
-            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-            
-            let profile: Profile | null = null;
-            if (refreshedSession) {
-                profile = await fetchProfile(refreshedSession.user.id);
-            }
-            
-            if (isMounted) {
-                // Update state with the refreshed session and profile
-                updateAuthState(refreshedSession, profile, false);
-            }
-            
-            if (refreshError) {
-                console.error("Session refresh error on focus:", refreshError);
-            }
-        } catch (error) {
-            console.error("Unexpected error during focus refresh:", error);
-            if (isMounted) {
-                // Ensure loading state is cleared even on error
-                updateAuthState(null, null, false);
-            }
-        }
-    };
-
-    window.addEventListener('focus', handleFocus);
-
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
-      window.removeEventListener('focus', handleFocus);
     };
-  }, []); 
+  }, [fetchProfile]);
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
@@ -169,11 +110,24 @@ export const useAuth = () => {
     }
   };
 
-  return {
-    ...authState,
+  const value: AuthContextType = {
+    session,
+    user,
+    profile,
+    isLoading,
     signOut,
-    isAdmin: authState.profile?.role === 'admin', // Simplified check
-    isAuthenticated: !!authState.user,
-    fetchProfile, // Export fetchProfile for manual refresh after update
+    fetchProfile,
+    isAuthenticated: !!user,
+    isAdmin: profile?.role === 'admin',
   };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+export const useAuth = (): AuthContextType => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };

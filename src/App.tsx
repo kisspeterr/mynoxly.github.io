@@ -9,10 +9,37 @@ import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
-import OrganizationProfile from "./pages/OrganizationProfile"; // Import new page
-import AuthLoader from "./components/AuthLoader"; // Import AuthLoader
+import OrganizationProfile from "./pages/OrganizationProfile";
+import { AuthProvider, useAuth } from "./hooks/use-auth"; // Import AuthProvider and useAuth
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+// Inner component to access auth context
+const AppRoutes = () => {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mr-3" />
+        <p className="text-cyan-400">Hitelesítés...</p>
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/code" element={<RedemptionPage />} />
+      <Route path="/profile" element={<Profile />} />
+      <Route path="/organization/:organizationName" element={<OrganizationProfile />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -20,18 +47,9 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AuthLoader>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/code" element={<RedemptionPage />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> {/* New dynamic route */}
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthLoader>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
