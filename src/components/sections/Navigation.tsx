@@ -117,16 +117,16 @@ const Navigation = () => {
     >
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
+          {/* Logo (Left) */}
           <div className="flex items-center">
             <Link to="/" className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-purple-500 bg-clip-text text-transparent">
               NOXLY
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation (Center) */}
           {!isMobile && (
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
               <a
                 href="/#coupons-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
@@ -142,7 +142,7 @@ const Navigation = () => {
             </div>
           )}
 
-          {/* CTA Button / Auth Button */}
+          {/* CTA Button / Auth Button (Right) */}
           <div className="flex items-center space-x-4">
             <AuthButtons />
             
@@ -176,7 +176,6 @@ const Navigation = () => {
               >
                 <Calendar className="h-4 w-4 mr-2" /> Események
               </a>
-              {/* Removed Benefits and Testimonials links */}
               
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
               {isAuthenticated && (
