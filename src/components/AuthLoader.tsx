@@ -30,11 +30,9 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
       // 2. Maximális időtúllépés (1000ms)
       maxTimer = window.setTimeout(() => {
         if (isLoading) {
-            // Ha 1 másodperc után még mindig tölt, kényszerítsünk egy teljes frissítést.
-            console.warn("Auth loading timeout reached (1s). Forcing hard refresh.");
-            window.location.reload();
+            console.warn("Auth loading timeout reached (1s). Allowing content render.");
         }
-        // Ha a reload nem történik meg azonnal (pl. tesztkörnyezetben), akkor is befejezzük a loadert.
+        // Befejezzük a loadert, függetlenül attól, hogy a useAuth hook mit mond.
         setIsTimeoutReached(true);
         setShouldShowLoading(false); 
       }, MAX_LOADING_TIME_MS);
@@ -51,7 +49,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
     };
   }, [isLoading]); // Dependency added: isLoading
 
-  // Ha a useAuth hook még tölt, VAGY az időtúllépés még nem járt le, mutassuk a loadert.
+  // Ha a useAuth hook még tölt, ÉS a loadernek meg kell jelennie, ÉS az időtúllépés még nem járt le, mutassuk a loadert.
   if (isLoading && shouldShowLoading && !isTimeoutReached) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 p-4">

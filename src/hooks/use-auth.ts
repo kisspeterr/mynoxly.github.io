@@ -119,8 +119,9 @@ export const useAuth = () => {
     const handleFocus = async () => {
       if (!isMounted) return;
 
-      // Csak akkor állítjuk true-ra, ha már volt session, különben a felhasználó látja a villanást
-      if (authState.user) {
+      // Csak akkor állítjuk true-ra, ha van már felhasználó, hogy elkerüljük a villanást
+      const shouldShowLoader = !!authState.user;
+      if (shouldShowLoader) {
         setAuthState(prev => ({ ...prev, isLoading: true }));
       }
 
