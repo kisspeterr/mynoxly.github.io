@@ -27,8 +27,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,52 +52,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    // The onAuthStateChange listener is the single source of truth.
+    // It fires with an INITIAL_SESSION event on page load, and subsequent events for sign-in/out.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
 
-    const initializeSession = async () => {
-      // 1. Get initial session
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+      if (session?.user) {
+        const userProfile = await fetchProfile(session.user.id);
+        setProfile(userProfile);
+      } else {
+        setProfile(null);
+      }
       
-      if (sessionError) {
-        console.error("Error getting initial session:", sessionError);
-      }
-
-      if (isMounted) {
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        // 2. Fetch profile if session exists
-        if (currentSession?.user) {
-          const userProfile = await fetchProfile(currentSession.user.id);
-          if (isMounted) setProfile(userProfile);
-        }
-        
-        setIsLoading(false);
-      }
-    };
-
-    initializeSession();
-
-    // 3. Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (isMounted) {
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          const userProfile = await fetchProfile(newSession.user.id);
-          if (isMounted) setProfile(userProfile);
-        } else {
-          if (isMounted) setProfile(null);
-        }
-        
-        // Set loading to false after any auth change is processed
-        setIsLoading(false);
-      }
+      // This will be called after the initial session is handled, or after any auth change.
+      setIsLoading(false);
     });
 
+    // Cleanup subscription on unmount
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
