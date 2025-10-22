@@ -15,25 +15,8 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
     window.location.reload();
   };
   
-  // Automatic refresh after 1 second if stuck
-  useEffect(() => {
-    let timer: number | undefined;
-    
-    if (isLoading) {
-      // Set a timeout for 1 second (1000 ms)
-      timer = setTimeout(() => {
-        console.warn("Auth loading timed out after 1 second. Attempting automatic page reload.");
-        handleManualRefresh();
-      }, 1000) as unknown as number;
-    }
-
-    return () => {
-      if (timer !== undefined) {
-        clearTimeout(timer);
-      }
-    };
-  }, [isLoading]);
-
+  // Removed the aggressive 1-second automatic reload logic.
+  // The useAuth hook should handle session loading and state transition correctly.
 
   if (isLoading) {
     // Show a global loading screen while the initial session is being checked
@@ -48,7 +31,7 @@ const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
           className="border-purple-500 text-purple-300 hover:bg-purple-500/10"
         >
           <RefreshCw className="h-4 w-4 mr-2" />
-          Frissítés (Automatikus frissítés 1 mp után)
+          Frissítés (Ha beragadt)
         </Button>
       </div>
     );
