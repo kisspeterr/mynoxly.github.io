@@ -1,6 +1,7 @@
 import { Sparkles, Gift, Calendar, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 const HeroSection = () => {
   const scrollToCoupons = () => {
@@ -25,11 +26,47 @@ const HeroSection = () => {
   };
 
   return (
-    <section id="hero-section" className="pt-32 pb-20 px-6">
-      <div className="container mx-auto text-center">
+    <section id="hero-section" className="pt-32 pb-20 px-6 relative overflow-hidden">
+      
+      {/* Dynamic Neon Background Layer (Simulating Pécs Mosque Silhouette) */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-10" 
+          style={{ 
+            // Using a placeholder image URL that visually suggests a city landmark/silhouette
+            backgroundImage: `url('/api/placeholder/1920/1080')`,
+            backgroundPosition: 'center bottom',
+            backgroundSize: 'cover',
+            filter: 'grayscale(100%) blur(2px)'
+          }}
+        ></div>
+        
+        {/* Neon Outline Effect Container */}
+        <div className="absolute inset-0 flex items-end justify-center">
+          <div className="relative w-full max-w-4xl h-64 mb-10">
+            {/* Simulated Mosque Silhouette (using a simple shape for illustration) */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full h-full">
+              
+              {/* Neon Glow Effect (Outer) */}
+              <div className="absolute inset-0 border-4 border-cyan-400/50 rounded-t-[50%] shadow-[0_0_40px_rgba(52,211,255,0.8)] animate-pulse-slow"></div>
+              
+              {/* Neon Moving Light (Inner) - Simulating the light going around the outline */}
+              <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-full border-4 border-cyan-400 rounded-t-[50%] opacity-0 animate-neon-sweep"></div>
+              </div>
+              
+              {/* Text Overlay to ensure readability */}
+              <div className="absolute inset-0 bg-slate-950/50"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Content Layer (Z-10) */}
+      <div className="container mx-auto text-center relative z-10">
         <Badge className="mb-6 bg-purple-500/20 text-purple-300 border-purple-400/30 animate-bounce">
           <Sparkles className="h-4 w-4 mr-2" />
-          Exkluzív Kuponok Pécsen
+          Pécsi Egyetemisták Kedvence
         </Badge>
         
         <div className="flex justify-center mb-6">
@@ -46,11 +83,11 @@ const HeroSection = () => {
         </h1>
         
         <p className="text-xl md:text-3xl font-semibold text-white mb-4 max-w-4xl mx-auto">
-          Exkluzív kuponok, események és hűségpontok Pécsen.
+          Ahol az éjszaka kezdődik. Exkluzív kuponok, események és hűségpontok Pécsen.
         </p>
         
         <p className="text-lg text-gray-400 mb-8 max-w-3xl mx-auto">
-          Gyűjts pontokat a kedvenc helyeiden, és fedezd fel a város legjobb akcióit. Ne maradj le a NOXLY-val!
+          Spórolj a bulikon, gyűjts pontokat a kedvenc helyeiden, és fedezd fel a város legjobb akcióit. Ne maradj le a NOXLY-val!
         </p>
         
         {/* Responsive Button Group: Stacks on mobile, horizontal on larger screens */}
