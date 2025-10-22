@@ -52,9 +52,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    // The onAuthStateChange listener is the single source of truth.
-    // It fires with an INITIAL_SESSION event on page load, and subsequent events for sign-in/out.
+    // Failsafe timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      console.warn("Auth loading timed out after 5 seconds. Forcing UI to render.");
+      if (isLoading) {
+        setIsLoading(false);
+      }
+    }, 5000);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      clearTimeout(loadingTimeout); // Clear the failsafe timeout on successful event
+
       setSession(session);
       setUser(session?.user ?? null);
 
@@ -65,13 +73,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfile(null);
       }
       
-      // This will be called after the initial session is handled, or after any auth change.
-      // This is the only place we should set loading to false.
       setIsLoading(false);
     });
 
-    // Cleanup subscription on unmount
     return () => {
+      clearTimeout(loadingTimeout);
       subscription.unsubscribe();
     };
   }, [fetchProfile]);
