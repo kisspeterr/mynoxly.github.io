@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
+import { Resend } from "npm:resend"; // Using npm:resend package
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
 // NOTE: This email must be verified in Resend.
 const SENDER_EMAIL = 'noxlynightlife@gmail.com'; 
+
+// Initialize Resend client
+const resend = new Resend(RESEND_API_KEY);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,7 +18,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Manual authentication handling (since verify_jwt is false)
+  // Manual authentication check (required by the RPC caller)
   const authHeader = req.headers.get('Authorization');
   if (!authHeader) {
     console.error('Unauthorized access: Missing Authorization header.');
@@ -27,9 +30,10 @@ serve(async (req) => {
     return new Response('Email service not configured (Missing API Key)', { status: 500, headers: corsHeaders });
   }
   
-  console.log(`[START] Edge Function invoked.`);
+  console.log(`[START] Edge Function invoked using npm:resend.`);
 
   try {
+    // Payload structure from RPC:
     const { 
       user_email, 
       coupon_title, // Used for both coupon title and event title
@@ -39,44 +43,37 @@ serve(async (req) => {
     } = await req.json();
 
     if (!user_email || !coupon_title || !organization_name || !subject || !body) {
-      console.error('Missing required fields in request body:', { user_email, coupon_title, organization_name, subject, body });
+      console.error('Missing required fields in request body.');
       return new Response('Missing required fields in request body', { status: 400, headers: corsHeaders });
     }
     
-    console.log(`[RESEND] Attempting to send email to: ${user_email} for ${coupon_title} (${organization_name})`);
-
     // Replace placeholders in the email body
     const finalBody = body
       .replace(/{{coupon_title}}/g, coupon_title)
-      .replace(/{{event_title}}/g, coupon_title) // Handle event title placeholder as well
+      .replace(/{{event_title}}/g, coupon_title) 
       .replace(/{{organization_name}}/g, organization_name);
 
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: SENDER_EMAIL,
-        to: user_email,
-        subject: subject,
-        html: finalBody,
-      }),
+    console.log(`[RESEND] Attempting to send email to: ${user_email}`);
+
+    // Use the Resend client to send the email
+    const { data, error } = await resend.emails.send({
+      from: SENDER_EMAIL,
+      to: user_email,
+      subject: subject,
+      html: finalBody,
     });
 
-    if (!resendResponse.ok) {
-      const errorText = await resendResponse.text();
-      console.error('[RESEND ERROR] API call failed:', resendResponse.status, errorText);
-      return new Response(JSON.stringify({ error: 'Failed to send email', details: errorText }), { 
-        status: resendResponse.status, 
+    if (error) {
+      console.error('[RESEND ERROR] API call failed:', error);
+      return new Response(JSON.stringify({ error: 'Failed to send email', details: error }), { 
+        status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
     
-    console.log('[RESEND] Email sent successfully via Resend.');
+    console.log('[RESEND] Email sent successfully via Resend.', data);
 
-    return new Response(JSON.stringify({ message: 'Email sent successfully' }), {
+    return new Response(JSON.stringify({ message: 'Email sent successfully', data }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
