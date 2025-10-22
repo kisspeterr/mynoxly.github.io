@@ -33,7 +33,8 @@ interface OrganizationContent {
 }
 
 const OrganizationProfile = () => {
-  const { organizationName } = useParams<{ organizationName: string }>();
+  const params = useParams<{ organizationName: string }>();
+  const organizationName = params.organizationName;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   
@@ -59,8 +60,10 @@ const OrganizationProfile = () => {
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
 
   // Filter coupons relevant to this organization
-  // We cast the filtered list back to PublicCoupon[] for rendering
-  const organizationCoupons = (allPublicCoupons as PublicCoupon[]).filter(c => c.organization_name === organizationName);
+  // We ensure organizationName is defined before filtering
+  const organizationCoupons = organizationName 
+    ? (allPublicCoupons as PublicCoupon[]).filter(c => c.organization_name === organizationName)
+    : [];
   
   // --- Data Fetching ---
   const fetchOrganizationData = useCallback(async () => {
@@ -118,8 +121,14 @@ const OrganizationProfile = () => {
   }, [organizationName]);
 
   useEffect(() => {
-    fetchOrganizationData();
-  }, [fetchOrganizationData]);
+    // Only attempt to fetch if organizationName is present
+    if (organizationName) {
+      fetchOrganizationData();
+    } else {
+      setIsLoadingProfile(false);
+      setError('Hiányzó szervezet neve a URL-ben.');
+    }
+  }, [fetchOrganizationData, organizationName]);
   
   // --- Redemption Logic ---
   const handleRedeemClick = async (coupon: PublicCoupon) => {
