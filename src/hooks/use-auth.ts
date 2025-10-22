@@ -118,21 +118,36 @@ export const useAuth = () => {
       updateAuthState(session, profile, false);
     });
     
-    // 3. Handle focus event for session refresh (Supabase handles this internally, but this ensures our state reacts)
+    // 3. Handle focus event for session refresh (Crucial for mobile/tab switching)
     const handleFocus = async () => {
-        // Explicitly refresh session when the window gains focus
-        // This is crucial for mobile/tab switching scenarios
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && isMounted) {
-            // If we have a session, ensure we are not stuck in loading state
-            if (authState.isLoading) {
-                // Re-trigger profile fetch if we were stuck loading
-                const profile = await fetchProfile(session.user.id);
-                updateAuthState(session, profile, false);
+        if (!isMounted) return;
+        
+        // Set loading state immediately to prevent UI flicker/hanging
+        setAuthState(prev => ({ ...prev, isLoading: true }));
+        
+        try {
+            // Explicitly refresh the session
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+            
+            let profile: Profile | null = null;
+            if (refreshedSession) {
+                profile = await fetchProfile(refreshedSession.user.id);
             }
-        } else if (!session && isMounted) {
-            // If no session, ensure we are signed out
-            updateAuthState(null, null, false);
+            
+            if (isMounted) {
+                // Update state with the refreshed session and profile
+                updateAuthState(refreshedSession, profile, false);
+            }
+            
+            if (refreshError) {
+                console.error("Session refresh error on focus:", refreshError);
+            }
+        } catch (error) {
+            console.error("Unexpected error during focus refresh:", error);
+            if (isMounted) {
+                // Ensure loading state is cleared even on error
+                updateAuthState(null, null, false);
+            }
         }
     };
 
@@ -144,7 +159,7 @@ export const useAuth = () => {
       subscription.unsubscribe();
       window.removeEventListener('focus', handleFocus);
     };
-  }, []); // Removed authState from dependency array to prevent infinite loops
+  }, []); 
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
