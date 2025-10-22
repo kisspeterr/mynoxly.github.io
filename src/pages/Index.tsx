@@ -1,6 +1,5 @@
 import React from 'react';
 import HeroSection from '@/components/sections/HeroSection';
-import BenefitsSection from '@/components/sections/BenefitsSection';
 import FooterSection from '@/components/sections/FooterSection';
 import CouponsSection from '@/components/sections/CouponsSection';
 import EventsSection from '@/components/sections/EventsSection';
@@ -16,7 +15,6 @@ const IndexPage = () => {
         <CouponsSection />
         <EventsSection />
         <OrganizersSection />
-        <BenefitsSection />
       </main>
       <FooterSection />
     </div>
