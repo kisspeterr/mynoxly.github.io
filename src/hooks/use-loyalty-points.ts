@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from './use-auth';
 
 export interface LoyaltyPointRecord {
   id: string;

@@ -7,6 +7,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-// By removing the custom auth configuration, we revert to the default,
-// which is localStorage. This is more robust, especially in iframe environments.
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Use sessionStorage instead of localStorage. This means the session 
+    // will be cleared when the browser tab/window is closed.
+    storage: window.sessionStorage,
+    persistSession: true,
+  }
+});

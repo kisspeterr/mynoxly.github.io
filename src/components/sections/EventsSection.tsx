@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { usePublicEvents } from '@/hooks/use-public-events';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import new hook
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Event } from '@/types/events';

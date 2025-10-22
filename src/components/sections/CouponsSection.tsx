@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { usePublicCoupons } from '@/hooks/use-public-coupons';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/use-auth';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import RedemptionModal from '@/components/RedemptionModal';

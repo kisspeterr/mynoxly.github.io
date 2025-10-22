@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from './use-auth';
 
 export const useCoupons = () => {
   const { profile, isAuthenticated, isAdmin } = useAuth();
