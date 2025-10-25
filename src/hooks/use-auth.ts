@@ -13,7 +13,9 @@ interface Profile {
   role: 'user' | 'admin';
   organization_name: string | null;
   logo_url: string | null;
-  is_public: boolean | null; // NEW FIELD
+  is_public: boolean | null;
+  username: string; // NEW FIELD: Must be present
+  last_username_change: string | null; // NEW FIELD: Timestamp
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -21,7 +23,7 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public') // Include is_public
+      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public, username, last_username_change') // Include new fields
       .eq('id', userId)
       .single();
 

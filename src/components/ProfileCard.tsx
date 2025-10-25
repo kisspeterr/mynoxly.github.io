@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, Mail, Shield } from 'lucide-react';
+import { User, Mail, Shield, AtSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Profile {
@@ -8,6 +8,7 @@ interface Profile {
   last_name: string | null;
   avatar_url: string | null;
   role: 'user' | 'admin';
+  username: string; // NEW FIELD
 }
 
 interface ProfileCardProps {
@@ -43,6 +44,10 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, email }) => {
         </p>
       </CardHeader>
       <CardContent className="space-y-3 text-left border-t border-gray-700/50 pt-4">
+        <div className="flex items-center text-gray-300">
+          <AtSign className="h-5 w-5 mr-3 text-purple-400" />
+          <span className="font-medium">Felhasználónév:</span> <span className="ml-1 break-all text-white">@{profile.username}</span>
+        </div>
         <div className="flex items-center text-gray-300">
           <Mail className="h-5 w-5 mr-3 text-purple-400" />
           <span className="font-medium">Email:</span> <span className="ml-1 break-all">{email || 'Nincs megadva'}</span>

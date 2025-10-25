@@ -8,7 +8,8 @@ import ProfileCard from '@/components/ProfileCard';
 import UserCouponsList from '@/components/user/UserCouponsList';
 import UserFavoritesList from '@/components/user/UserFavoritesList';
 import UserLoyaltyPointsList from '@/components/user/UserLoyaltyPointsList';
-import UserInterestedEventsList from '@/components/user/UserInterestedEventsList'; // Import new list
+import UserInterestedEventsList from '@/components/user/UserInterestedEventsList';
+import UserSettingsForm from '@/components/user/UserSettingsForm'; // Import new form
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -65,9 +66,10 @@ const Profile = () => {
             </div>
           </div>
           
-          {/* Right Column: Loyalty, Favorites, Coupons (Full width on mobile, 2/3 on large) */}
+          {/* Right Column: Settings, Loyalty, Favorites, Coupons (Full width on mobile, 2/3 on large) */}
           <div className="lg:col-span-2 space-y-10">
-            <UserInterestedEventsList /> {/* NEW: Interested Events List */}
+            <UserSettingsForm /> {/* NEW: User Settings Form */}
+            <UserInterestedEventsList />
             <UserLoyaltyPointsList />
             <UserFavoritesList />
             <UserCouponsList />

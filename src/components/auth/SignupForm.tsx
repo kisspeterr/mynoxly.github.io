@@ -18,10 +18,17 @@ const passwordSchema = z.string()
   .regex(/[0-9]/, "Tartalmaznia kell legalább egy számot.")
   .regex(/[^A-Za-z0-9]/, "Tartalmaznia kell legalább egy speciális karaktert.");
 
+// Define username complexity rules
+const usernameSchema = z.string()
+  .min(3, 'A felhasználónévnek legalább 3 karakter hosszúnak kell lennie.')
+  .max(30, 'A felhasználónév maximum 30 karakter lehet.')
+  .regex(/^[a-zA-Z0-9_]+$/, 'A felhasználónév csak betűket, számokat és aláhúzást (_) tartalmazhat.');
+
 // Define the schema for form validation
 const signupSchema = z.object({
   first_name: z.string().min(2, 'A keresztnév kötelező.'),
   last_name: z.string().min(2, 'A vezetéknév kötelező.'),
+  username: usernameSchema, // NEW FIELD
   email: z.string().email('Érvénytelen email cím.'),
   password: passwordSchema,
   confirmPassword: z.string(),
@@ -40,6 +47,7 @@ const SignupForm: React.FC = () => {
     defaultValues: {
       first_name: '',
       last_name: '',
+      username: '', // Default value
       email: '',
       password: '',
       confirmPassword: '',
@@ -51,6 +59,24 @@ const SignupForm: React.FC = () => {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     try {
+      // 1. Check if username is already taken (manual check before signup)
+      const { count: usernameCount, error: checkError } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('username', data.username);
+        
+      if (checkError) {
+          console.error('Username check error:', checkError);
+          showError('Hiba történt a felhasználónév ellenőrzésekor.');
+          return;
+      }
+      
+      if (usernameCount && usernameCount > 0) {
+          showError('Ez a felhasználónév már foglalt. Kérjük, válassz másikat.');
+          return;
+      }
+      
+      // 2. Proceed with signup
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -58,6 +84,7 @@ const SignupForm: React.FC = () => {
           data: {
             first_name: data.first_name,
             last_name: data.last_name,
+            username: data.username, // Pass username to trigger function
           },
         },
       });
@@ -69,8 +96,6 @@ const SignupForm: React.FC = () => {
       }
 
       showSuccess('Sikeres regisztráció! Kérjük, ellenőrizd az email címedet a fiók aktiválásához.');
-      // Note: Supabase automatically redirects after successful signup if redirectTo is set in the client config, 
-      // but since we are using a custom form, we rely on the user checking their email.
       
     } catch (error) {
       showError('Váratlan hiba történt a regisztráció során.');
@@ -101,6 +126,21 @@ const SignupForm: React.FC = () => {
           />
           {errors.last_name && <p className="text-red-400 text-sm">{errors.last_name.message}</p>}
         </div>
+      </div>
+      
+      {/* NEW: Username Input */}
+      <div className="space-y-2">
+        <Label htmlFor="username" className="text-gray-300">Felhasználónév *</Label>
+        <div className="relative">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">@</span>
+            <Input 
+              id="username"
+              {...register('username')}
+              className="pl-6 bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              placeholder="felhasznalo_nev"
+            />
+        </div>
+        {errors.username && <p className="text-red-400 text-sm">{errors.username.message}</p>}
       </div>
 
       <div className="space-y-2">
