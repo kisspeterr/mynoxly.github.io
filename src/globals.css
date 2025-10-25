@@ -163,11 +163,3 @@
 .animate-shimmer {
   animation: shimmer 2s infinite;
 }
-
-/* Leaflet CSS */
-@import 'leaflet/dist/leaflet.css';
-
-/* Fix for default Leaflet marker icon path */
-.leaflet-default-icon-path {
-  background-image: url('leaflet/dist/images/marker-icon.png');
-}
