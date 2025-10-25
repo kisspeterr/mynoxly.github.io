@@ -90,10 +90,9 @@ export const useAuth = () => {
         console.error('Initial auth load failed:', err);
       } finally {
         // 3. CRITICAL: Mindig állítsuk be az isLoading-ot false-ra a végén.
-        // Mivel ez a hívás aszinkron, a setAuthState-t csak akkor hívjuk meg, ha a komponens még mountolva van.
-        // DE a session és profile adatok már rendelkezésre állnak.
-        if (isMounted) {
-          updateAuthState(session, profile, false);
+        // Eltávolítjuk az isMounted ellenőrzést innen, hogy garantáljuk a befejezést.
+        if (isMounted) { // Visszaállítva az isMounted ellenőrzést, de a hiba valószínűleg máshol van.
+            updateAuthState(session, profile, false);
         }
       }
     };

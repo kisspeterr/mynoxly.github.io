@@ -86,7 +86,9 @@ export const useCoupons = () => {
         .single();
 
       if (error) {
-        showError(`Hiba a kupon frissítésekor: ${error.message}`);
+        // RLS hiba esetén a Supabase gyakran "null" adatot ad vissza, de a hibaobjektumot is ellenőrizzük.
+        showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz.`);
+        console.error('Update coupon error:', error);
         return { success: false };
       }
 
@@ -109,8 +111,8 @@ export const useCoupons = () => {
         .select()
         .single();
 
-      if (error) {
-        showError(`Hiba a kupon ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}.`);
+      if (error || !data) {
+        showError(`Hiba a kupon ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}. Ellenőrizd a jogosultságokat.`);
         console.error('Toggle active status error:', error);
         return { success: false };
       }
@@ -134,8 +136,8 @@ export const useCoupons = () => {
         .select()
         .single();
 
-      if (error) {
-        showError('Hiba történt a kupon archiválásakor.');
+      if (error || !data) {
+        showError('Hiba történt a kupon archiválásakor. Ellenőrizd a jogosultságokat.');
         console.error('Archive coupon error:', error);
         return { success: false };
       }
@@ -162,7 +164,7 @@ export const useCoupons = () => {
         .eq('id', id);
 
       if (error) {
-        showError('Hiba történt a kupon törlésekor.');
+        showError('Hiba történt a kupon törlésekor. Ellenőrizd a jogosultságokat.');
         console.error('Delete coupon error:', error);
         return { success: false };
       }
