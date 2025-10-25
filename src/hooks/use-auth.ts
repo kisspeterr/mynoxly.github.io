@@ -53,26 +53,17 @@ export const useAuth = () => {
     }
   };
 
-  // 🔹 Állapot frissítése
-  const updateAuthState = (session: Session | null, profile: Profile | null, loading: boolean = false) => {
-    setAuthState({
-      session,
-      user: session?.user || null,
-      profile,
-      isLoading: loading,
-    });
-  };
-
   // ✅ Teljes auth-logika egy useEffect-ben
   useEffect(() => {
     let isMounted = true;
 
-    // 1️⃣ Inicializálás - Session lekérés (gyorsan)
+    // 1️⃣ Inicializálás - Session és Profil lekérés (szekvenciálisan)
     const initialLoad = async () => {
       let session: Session | null = null;
+      let profile: Profile | null = null;
       
       try {
-        // 1. Próbáljuk meg lekérni a sessiont a kliensből (localStorage/sessionStorage)
+        // 1. Próbáljuk meg lekérni a sessiont a kliensből
         const { data: sessionData, error } = await supabase.auth.getSession();
         session = sessionData.session;
         
@@ -80,31 +71,22 @@ export const useAuth = () => {
             console.error('Initial session error:', error);
         }
 
+        // 2. Ha van session, betöltjük a profilt
+        if (session?.user) {
+            profile = await fetchProfile(session.user.id);
+        }
+
       } catch (err) {
         console.error('Initial auth load failed:', err);
       } finally {
         if (isMounted) {
-            // 2. Gyorsan beállítjuk az állapotot isLoading=false-ra, még profil nélkül
-            // Ez a lépés a legfontosabb, hogy a UI ne blokkoljon
-            setAuthState(prev => ({
-                ...prev,
+            // 3. Csak a profil betöltése UTÁN állítjuk isLoading=false-ra
+            setAuthState({
                 session: session,
                 user: session?.user || null,
+                profile: profile,
                 isLoading: false, // Betöltés befejezve
-            }));
-            
-            // 3. Ha van session, aszinkron módon betöltjük a profilt
-            if (session?.user) {
-                fetchProfile(session.user.id).then(profile => {
-                    if (isMounted && profile) {
-                        // Frissítjük az állapotot a profillal
-                        setAuthState(prev => ({
-                            ...prev,
-                            profile: profile,
-                        }));
-                    }
-                });
-            }
+            });
         }
       }
     };
@@ -116,20 +98,24 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
-        // NE állítsuk vissza az isLoading-et true-ra, csak frissítsük a sessiont és a profilt
+        // Ideiglenesen beállítjuk a betöltést true-ra, ha bejelentkezés vagy frissítés történik,
+        // hogy ne jelenjen meg a UI a régi adatokkal, amíg a profil be nem töltődik.
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setAuthState(prev => ({ ...prev, isLoading: true }));
+        }
         
         let profile: Profile | null = null;
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
 
-        // Frissítjük az állapotot, de az isLoading marad false
+        // Frissítjük az állapotot, és befejezzük a betöltést
         setAuthState(prev => ({
             ...prev,
             session: session,
             user: session?.user || null,
             profile: profile,
-            isLoading: false, // Biztosítjuk, hogy false maradjon
+            isLoading: false, // Betöltés befejezve
         }));
       }
     );
