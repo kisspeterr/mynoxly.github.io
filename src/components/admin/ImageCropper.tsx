@@ -4,7 +4,7 @@ import { Area } from 'react-easy-crop/types';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Crop, ZoomIn, ZoomOut, CheckCircle, XCircle } from 'lucide-react';
+import { Crop, ZoomIn, ZoomOut, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { showError } from '@/utils/toast';
 
 interface ImageCropperProps {
