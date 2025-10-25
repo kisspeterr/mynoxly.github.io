@@ -53,40 +53,48 @@ export const useAuth = () => {
     }
   };
 
+  // 🔹 Állapot frissítése (segédfüggvény)
+  const updateAuthState = async (session: Session | null) => {
+    let user = session?.user || null;
+    let profile: Profile | null = null;
+
+    if (user) {
+      // 1. Profil betöltése, ha van felhasználó
+      profile = await fetchProfile(user.id);
+    }
+
+    // 2. Állapot frissítése
+    setAuthState({
+      session: session,
+      user: user,
+      profile: profile,
+      isLoading: false, // Csak itt állítjuk false-ra
+    });
+  };
+
   // ✅ Teljes auth-logika egy useEffect-ben
   useEffect(() => {
     let isMounted = true;
 
-    // 1️⃣ Inicializálás - Session és Profil lekérés (szekvenciálisan)
+    // 1️⃣ Kezdeti betöltés
     const initialLoad = async () => {
-      let session: Session | null = null;
-      let profile: Profile | null = null;
-      
       try {
-        // 1. Próbáljuk meg lekérni a sessiont a kliensből
         const { data: sessionData, error } = await supabase.auth.getSession();
-        session = sessionData.session;
         
         if (error) {
             console.error('Initial session error:', error);
         }
-
-        // 2. Ha van session, betöltjük a profilt
-        if (session?.user) {
-            profile = await fetchProfile(session.user.id);
+        
+        if (isMounted) {
+            // Frissítjük az állapotot a session és a profil adatokkal
+            await updateAuthState(sessionData.session);
         }
 
       } catch (err) {
         console.error('Initial auth load failed:', err);
-      } finally {
         if (isMounted) {
-            // 3. Csak a profil betöltése UTÁN állítjuk isLoading=false-ra
-            setAuthState({
-                session: session,
-                user: session?.user || null,
-                profile: profile,
-                isLoading: false, // Betöltés befejezve
-            });
+            // Hiba esetén is be kell fejezni a betöltést
+            setAuthState(prev => ({ ...prev, isLoading: false }));
         }
       }
     };
@@ -98,25 +106,14 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
-        // Ideiglenesen beállítjuk a betöltést true-ra, ha bejelentkezés vagy frissítés történik,
-        // hogy ne jelenjen meg a UI a régi adatokkal, amíg a profil be nem töltődik.
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Ha bejelentkezés vagy token frissítés történik, ideiglenesen beállítjuk a betöltést true-ra,
+        // hogy a UI ne villanjon fel a régi adatokkal, amíg az új profil be nem töltődik.
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
             setAuthState(prev => ({ ...prev, isLoading: true }));
         }
         
-        let profile: Profile | null = null;
-        if (session?.user) {
-          profile = await fetchProfile(session.user.id);
-        }
-
-        // Frissítjük az állapotot, és befejezzük a betöltést
-        setAuthState(prev => ({
-            ...prev,
-            session: session,
-            user: session?.user || null,
-            profile: profile,
-            isLoading: false, // Betöltés befejezve
-        }));
+        // Frissítjük az állapotot az új sessionnel és a hozzá tartozó profillal
+        await updateAuthState(session);
       }
     );
 
