@@ -4,7 +4,7 @@ import { useAuth, Profile } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, User, Shield, Building, Mail, RefreshCw, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Search, User, Shield, Building, Mail, RefreshCw, CheckCircle, XCircle, Users } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
