@@ -4,18 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Image, User, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
+import LogoUploader from './LogoUploader'; // Import the new component
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
-  const [isPublic, setIsPublic] = useState(profile?.is_public ?? true); // NEW STATE
+  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || ''); // Now managed by Uploader, but stored here
+  const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state when profile loads/changes
@@ -25,7 +26,7 @@ const ProfileSettingsPage: React.FC = () => {
       setLastName(profile.last_name || '');
       setOrganizationName(profile.organization_name || '');
       setLogoUrl(profile.logo_url || '');
-      setIsPublic(profile.is_public ?? true); // Sync NEW STATE
+      setIsPublic(profile.is_public ?? true);
     }
   }, [profile]);
 
@@ -39,8 +40,8 @@ const ProfileSettingsPage: React.FC = () => {
       first_name: firstName.trim() || null,
       last_name: lastName.trim() || null,
       organization_name: organizationName.trim() || null,
-      logo_url: logoUrl.trim() || null,
-      is_public: isPublic, // NEW FIELD
+      logo_url: logoUrl || null, // Use the URL set by the uploader or null
+      is_public: isPublic,
       updated_at: new Date().toISOString(),
     };
 
@@ -134,26 +135,17 @@ const ProfileSettingsPage: React.FC = () => {
             <p className="text-xs text-gray-500">Ez a név jelenik meg a kuponoknál és az eseményeknél.</p>
           </div>
 
+          {/* Logo Uploader Component */}
           <div className="space-y-2">
-            <Label htmlFor="logoUrl" className="text-gray-300 flex items-center">
-              <Image className="h-4 w-4 mr-2" /> Szervezet Logó URL (Kép)
-            </Label>
-            <Input 
-              id="logoUrl"
-              type="url" 
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://example.com/logo.png"
-              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+            <LogoUploader 
+              currentLogoUrl={logoUrl}
+              onUploadSuccess={setLogoUrl}
+              onRemove={() => setLogoUrl(null)}
             />
-            {logoUrl && (
-              <div className="mt-2">
-                <img src={logoUrl} alt="Logo Preview" className="h-16 w-16 object-contain rounded-lg border border-gray-700" />
-              </div>
-            )}
+            <p className="text-xs text-gray-500">A feltöltés után ne felejtsd el menteni a beállításokat!</p>
           </div>
           
-          {/* NEW: Public Visibility Switch */}
+          {/* Public Visibility Switch */}
           <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
             <div className="flex items-center space-x-2">
                 {isPublic ? (
