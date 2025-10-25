@@ -4,9 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, Image, User, MapPin } from 'lucide-react';
+import { Loader2, Save, Image, User, MapPin, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
+import { Switch } from '@/components/ui/switch';
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
@@ -14,6 +15,7 @@ const ProfileSettingsPage: React.FC = () => {
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
   const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
+  const [isPublic, setIsPublic] = useState(profile?.is_public ?? true); // NEW STATE
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state when profile loads/changes
@@ -23,6 +25,7 @@ const ProfileSettingsPage: React.FC = () => {
       setLastName(profile.last_name || '');
       setOrganizationName(profile.organization_name || '');
       setLogoUrl(profile.logo_url || '');
+      setIsPublic(profile.is_public ?? true); // Sync NEW STATE
     }
   }, [profile]);
 
@@ -37,6 +40,7 @@ const ProfileSettingsPage: React.FC = () => {
       last_name: lastName.trim() || null,
       organization_name: organizationName.trim() || null,
       logo_url: logoUrl.trim() || null,
+      is_public: isPublic, // NEW FIELD
       updated_at: new Date().toISOString(),
     };
 
@@ -147,6 +151,26 @@ const ProfileSettingsPage: React.FC = () => {
                 <img src={logoUrl} alt="Logo Preview" className="h-16 w-16 object-contain rounded-lg border border-gray-700" />
               </div>
             )}
+          </div>
+          
+          {/* NEW: Public Visibility Switch */}
+          <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
+            <div className="flex items-center space-x-2">
+                {isPublic ? (
+                    <Eye className="h-5 w-5 text-green-400" />
+                ) : (
+                    <EyeOff className="h-5 w-5 text-red-400" />
+                )}
+                <Label htmlFor="is_public" className="text-gray-300 font-semibold">
+                    Megjelenés a főoldalon (Partnerek)
+                </Label>
+            </div>
+            <Switch
+                id="is_public"
+                checked={isPublic}
+                onCheckedChange={setIsPublic}
+                className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-600"
+            />
           </div>
 
           <Button 
