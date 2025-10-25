@@ -61,7 +61,7 @@ const ProfileSettingsPage: React.FC = () => {
       });
 
       showSuccess('Profil sikeresen frissítve!');
-      // Re-fetch profile to update global state
+      // Re-fetch profile to update global state using the new refetch function
       await fetchProfile(user.id); 
 
     } catch (error) {

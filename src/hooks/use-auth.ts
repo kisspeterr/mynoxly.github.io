@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
+import { useQuery } from '@tanstack/react-query';
 
 // 🔹 Profile tábla definíció
 interface Profile {
@@ -14,126 +15,81 @@ interface Profile {
   logo_url: string | null;
 }
 
-// 🔹 Auth állapot
-interface AuthState {
-  session: Session | null;
-  user: User | null;
-  profile: Profile | null;
-  isLoading: boolean;
-}
+// 🔹 Profil lekérdezése profile táblából
+const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url')
+      .eq('id', userId)
+      .single();
 
-// 🔹 Kezdőérték
-const initialAuthState: AuthState = {
-  session: null,
-  user: null,
-  profile: null,
-  isLoading: true, // CRITICAL: Must be true initially
-};
-
-// 5 másodperces időtúllépés a kezdeti betöltésre
-const INITIAL_LOAD_TIMEOUT_MS = 5000;
-
-export const useAuth = () => {
-  const [authState, setAuthState] = useState<AuthState>(initialAuthState);
-
-  // 🔹 Profil lekérdezése profile táblából
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url')
-        .eq('id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-      return data as Profile;
-    } catch (e) {
-      console.error('Unexpected error during profile fetch:', e);
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching profile:', error);
       return null;
     }
-  };
+    return data as Profile;
+  } catch (e) {
+    console.error('Unexpected error during profile fetch:', e);
+    return null;
+  }
+};
 
-  // 🔹 Állapot frissítése (segédfüggvény)
-  const updateAuthState = async (session: Session | null) => {
-    let user = session?.user || null;
-    let profile: Profile | null = null;
+// 🔹 Session és Profil adatok lekérdezése
+interface AuthData {
+    session: Session | null;
+    user: User | null;
+    profile: Profile | null;
+}
 
-    if (user) {
-      // 1. Profil betöltése, ha van felhasználó
-      profile = await fetchProfile(user.id);
+const fetchAuthData = async (): Promise<AuthData> => {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+        console.error('Supabase getSession error:', sessionError);
+        // Ha a session hiba, akkor nincs felhasználó
+        return { session: null, user: null, profile: null };
     }
+    
+    const user = session?.user || null;
+    let profile: Profile | null = null;
+    
+    if (user) {
+        profile = await fetchProfile(user.id);
+    }
+    
+    return { session, user, profile };
+};
 
-    // 2. Állapot frissítése - MINDIG befejeződik
-    setAuthState({
-      session: session,
-      user: user,
-      profile: profile,
-      isLoading: false, // CRITICAL: It MUST be false here.
-    });
-  };
 
-  // ✅ Teljes auth-logika egy useEffect-ben
+export const useAuth = () => {
+  // React Query használata a kezdeti betöltéshez és újrapróbálkozáshoz
+  const { data, isLoading, refetch } = useQuery<AuthData>({
+    queryKey: ['authSession'],
+    queryFn: fetchAuthData,
+    staleTime: Infinity, // A session adatok csak auth eseményre frissülnek
+    retry: 3, // 3 újrapróbálkozás hiba esetén
+    retryDelay: 1000,
+  });
+  
+  // 🔹 Realtime Auth események figyelése
   useEffect(() => {
-    let isMounted = true;
-
-    // Promise, ami 5 másodperc után hibát dob
-    const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => {
-            reject(new Error('Auth session timeout'));
-        }, INITIAL_LOAD_TIMEOUT_MS);
-    });
-
-    // 1️⃣ Kezdeti betöltés
-    const initialLoad = async () => {
-      try {
-        // Versenyhelyzet: vagy a session jön be, vagy az időtúllépés
-        const sessionPromise = supabase.auth.getSession();
-        
-        const result = await Promise.race([sessionPromise, timeoutPromise]);
-        
-        // Ha az időtúllépés nyert, a kód ide nem jut el.
-        const sessionData = result as { data: { session: Session | null } };
-        
-        if (isMounted) {
-            await updateAuthState(sessionData.data.session);
-        }
-
-      } catch (err) {
-        console.error('Initial auth load failed or timed out:', err);
-        if (isMounted) {
-            // Hiba vagy időtúllépés esetén is be kell fejezni a betöltést
-            setAuthState(prev => ({ ...prev, isLoading: false }));
-        }
-      }
-    };
-
-    initialLoad();
-
-    // 2️⃣ Auth események (login/logout/token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!isMounted) return;
-
-        // Ha bejelentkezés vagy token frissítés történik, ideiglenesen beállítjuk a betöltést true-ra,
-        // hogy a UI ne villanjon fel a régi adatokkal, amíg az új profil be nem töltődik.
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-            setAuthState(prev => ({ ...prev, isLoading: true }));
+        // Ha bejelentkezés, kijelentkezés vagy token frissítés történik, 
+        // kényszerítjük a React Query cache frissítését.
+        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+            // A refetch hívás automatikusan beállítja az isLoading állapotot true-ra, 
+            // majd frissíti az adatokat.
+            refetch();
         }
-        
-        // Frissítjük az állapotot az új sessionnel és a hozzá tartozó profillal
-        await updateAuthState(session);
       }
     );
 
-    // 3️⃣ Takarítás memóriahibák ellen
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [refetch]);
   
   // 🔹 Kijelentkezés
   const signOut = async () => {
@@ -141,15 +97,34 @@ export const useAuth = () => {
     if (error) {
       showError('Hiba történt a kijelentkezés során.');
       console.error('Sign out error:', error);
+    } else {
+        // Kézi cache invalidálás kijelentkezés után
+        refetch();
     }
   };
+  
+  // 🔹 Profil frissítésének kényszerítése (pl. beállítások mentése után)
+  const forceProfileRefetch = useCallback(async (userId: string) => {
+      // Kézzel frissítjük a profilt, majd frissítjük a query cache-t
+      const newProfile = await fetchProfile(userId);
+      
+      // Mivel a queryKey 'authSession', a refetch frissíti az összes adatot.
+      // A legegyszerűbb, ha csak refetch-et hívunk, de ha azonnali frissítés kell, 
+      // akkor a queryClient.setQueryData-t kellene használni.
+      // Maradunk a refetch-nél, ami a legbiztonságosabb.
+      refetch();
+  }, [refetch]);
+
 
   // 🔹 Visszatérő értékek
   return {
-    ...authState,
+    session: data?.session || null,
+    user: data?.user || null,
+    profile: data?.profile || null,
+    isLoading: isLoading,
     signOut,
-    isAdmin: authState.profile?.role === 'admin',
-    isAuthenticated: !!authState.user,
-    fetchProfile,
+    isAdmin: data?.profile?.role === 'admin',
+    isAuthenticated: !!data?.user,
+    fetchProfile: forceProfileRefetch, // Exportáljuk a kényszerített frissítést
   };
 };
