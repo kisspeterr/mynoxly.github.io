@@ -10,7 +10,7 @@ import { LogIn, UserPlus } from 'lucide-react';
 function Login() {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('login');
+  const [activeTab, setActiveTab] = useState('signup'); // Changed default tab to 'signup'
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
