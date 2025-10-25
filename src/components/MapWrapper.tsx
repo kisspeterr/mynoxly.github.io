@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 // Dinamikusan importáljuk a térkép komponenseket
@@ -17,12 +17,23 @@ interface MapWrapperProps {
 }
 
 const MapWrapper: React.FC<MapWrapperProps> = (props) => {
+  const [isClient, setIsClient] = useState(false); // State to track client mount
+
+  useEffect(() => {
+    setIsClient(true); // Set to true once mounted on client
+  }, []);
+
   const fallback = (
     <div className="flex items-center justify-center h-80 bg-gray-900 rounded-lg">
       <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
       <p className="ml-3 text-gray-400">Térkép betöltése...</p>
     </div>
   );
+
+  if (!isClient) {
+    // Render fallback on initial (potentially problematic) render phase
+    return fallback;
+  }
 
   return (
     <Suspense fallback={fallback}>
