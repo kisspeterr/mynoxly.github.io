@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, eachDayOfInterval, eachMonthOfInterval } from 'date-fns';
+import { hu } from 'date-fns/locale'; // Import Hungarian locale for date formatting
 
 export type TimeRange = 'day' | 'week' | 'month' | 'year';
 
@@ -38,7 +39,6 @@ export const useUsageStatistics = () => {
     try {
       let start: string;
       let end: string;
-      let dateFormat: string;
       let groupFn: (d: Date) => string;
       let initialData: UsageStat[] = [];
 
@@ -47,45 +47,53 @@ export const useUsageStatistics = () => {
         case 'day':
           start = startOfDay(date).toISOString();
           end = endOfDay(date).toISOString();
-          dateFormat = 'HH:00';
-          groupFn = (d) => format(d, dateFormat);
+          groupFn = (d) => format(d, 'HH:00');
           // Initialize 24 hours
           for (let i = 0; i < 24; i++) {
             initialData.push({ label: i.toString().padStart(2, '0') + ':00', count: 0 });
           }
           break;
         case 'week':
-          start = startOfWeek(date, { weekStartsOn: 1 }).toISOString(); // Monday start
-          end = endOfWeek(date, { weekStartsOn: 1 }).toISOString();
-          dateFormat = 'EEE'; // Mon, Tue, etc.
-          groupFn = (d) => format(d, dateFormat);
-          // Initialize 7 days
-          const days = ['Hé', 'Ke', 'Sze', 'Csü', 'Pé', 'Szo', 'Va'];
-          initialData = days.map(day => ({ label: day, count: 0 }));
+          const startW = startOfWeek(date, { weekStartsOn: 1 }); // Monday start
+          const endW = endOfWeek(date, { weekStartsOn: 1 });
+          start = startW.toISOString();
+          end = endW.toISOString();
+          
+          // Group by day of the week (e.g., "Hé (08. 12.)")
+          groupFn = (d) => format(d, 'EEE (MM. dd.)', { locale: hu });
+          
+          // Initialize 7 days with descriptive labels
+          const daysInWeek = eachDayOfInterval({ start: startW, end: endW });
+          initialData = daysInWeek.map(d => ({ label: groupFn(d), count: 0 }));
           break;
         case 'month':
-          start = startOfMonth(date).toISOString();
-          end = endOfMonth(date).toISOString();
-          dateFormat = 'MM. dd.';
-          groupFn = (d) => format(d, dateFormat);
+          const startM = startOfMonth(date);
+          const endM = endOfMonth(date);
+          start = startM.toISOString();
+          end = endM.toISOString();
+          
+          // Group by day of the month (e.g., "08. 12.")
+          groupFn = (d) => format(d, 'MM. dd.');
           // We don't pre-initialize days for a month, we'll use the actual data points
           break;
         case 'year':
-          start = startOfYear(date).toISOString();
-          end = endOfYear(date).toISOString();
-          dateFormat = 'yyyy. MM.';
-          groupFn = (d) => format(d, dateFormat);
-          // Initialize 12 months
-          for (let i = 0; i < 12; i++) {
-            initialData.push({ label: format(new Date(date.getFullYear(), i, 1), 'yyyy. MM.'), count: 0 });
-          }
+          const startY = startOfYear(date);
+          const endY = endOfYear(date);
+          start = startY.toISOString();
+          end = endY.toISOString();
+          
+          // Group by month name (e.g., "Január 2024")
+          groupFn = (d) => format(d, 'yyyy. MMMM', { locale: hu });
+          
+          // Initialize 12 months with Hungarian month names
+          const monthsInYear = eachMonthOfInterval({ start: startY, end: endY });
+          initialData = monthsInYear.map(d => ({ label: groupFn(d), count: 0 }));
           break;
         default:
           throw new Error('Invalid time range');
       }
 
       // 2. Build the base query for successfully used coupons
-      // RLS ensures only usages related to the admin's organization's coupons are returned.
       let query = supabase
         .from('coupon_usages')
         .select(`
@@ -118,7 +126,6 @@ export const useUsageStatistics = () => {
 
       // 3. Filter and process data client-side (CRITICAL: Filter by organization name)
       const organizationUsages = data.filter(
-        // We rely on RLS, but ensure the joined coupon data exists and matches the organization name (safety check)
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       
@@ -137,7 +144,7 @@ export const useUsageStatistics = () => {
       }
 
       // 5. Group by time range and filter by email (only for 'day' range)
-      const hourlyCounts: Record<string, number> = {};
+      const aggregatedCounts: Record<string, number> = {};
       
       for (const usage of organizationUsages) {
         const redeemedAt = new Date(usage.redeemed_at);
@@ -161,34 +168,23 @@ export const useUsageStatistics = () => {
         }
 
         // Aggregate counts
-        hourlyCounts[groupKey] = (hourlyCounts[groupKey] || 0) + 1;
+        aggregatedCounts[groupKey] = (aggregatedCounts[groupKey] || 0) + 1;
       }
 
       // 6. Format stats array
       let finalStats: UsageStat[];
       
-      if (timeRange === 'day' || timeRange === 'year') {
+      if (timeRange === 'day' || timeRange === 'week' || timeRange === 'year') {
         // Use pre-initialized array and fill counts
         finalStats = initialData.map(stat => ({
           ...stat,
-          count: hourlyCounts[stat.label] || 0,
+          count: aggregatedCounts[stat.label] || 0,
         }));
-      } else if (timeRange === 'week') {
-        // Map counts to the fixed day labels
-        finalStats = initialData.map((stat, index) => {
-            // Find the corresponding day key (e.g., 'Mon')
-            const dayKey = stat.label;
-            // Find the actual count from the aggregated data
-            const count = Object.keys(hourlyCounts).find(key => key.includes(dayKey)) 
-                ? hourlyCounts[dayKey] 
-                : 0;
-            return { label: stat.label, count };
-        });
-      } else { // month
+      } else { // month (day-by-day breakdown)
         // Sort unique keys and map to stats
-        finalStats = Object.keys(hourlyCounts)
+        finalStats = Object.keys(aggregatedCounts)
             .sort()
-            .map(label => ({ label, count: hourlyCounts[label] }));
+            .map(label => ({ label, count: aggregatedCounts[label] }));
       }
 
       setStats(finalStats);
