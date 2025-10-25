@@ -67,13 +67,12 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
 
-    // 1️⃣ Inicializálás - Session + Profile lekérés
+    // 1️⃣ Inicializálás - Session lekérés (gyorsan)
     const initialLoad = async () => {
       let session: Session | null = null;
-      let profile: Profile | null = null;
       
       try {
-        // 1. Próbáljuk meg lekérni a sessiont a kliensből (localStorage)
+        // 1. Próbáljuk meg lekérni a sessiont a kliensből (localStorage/sessionStorage)
         const { data: sessionData, error } = await supabase.auth.getSession();
         session = sessionData.session;
         
@@ -81,18 +80,26 @@ export const useAuth = () => {
             console.error('Initial session error:', error);
         }
 
-        // 2. Ha van session, töltsük be a profilt
-        if (session?.user) {
-          profile = await fetchProfile(session.user.id);
-        }
-
       } catch (err) {
         console.error('Initial auth load failed:', err);
       } finally {
-        // 3. CRITICAL: Mindig állítsuk be az isLoading-ot false-ra a végén.
-        // Eltávolítjuk az isMounted ellenőrzést innen, hogy garantáljuk a befejezést.
-        if (isMounted) { // Visszaállítva az isMounted ellenőrzést, de a hiba valószínűleg máshol van.
-            updateAuthState(session, profile, false);
+        if (isMounted) {
+            // 2. Gyorsan beállítjuk az állapotot isLoading=false-ra, még profil nélkül
+            updateAuthState(session, null, false);
+            
+            // 3. Ha van session, aszinkron módon betöltjük a profilt
+            if (session?.user) {
+                fetchProfile(session.user.id).then(profile => {
+                    if (isMounted && profile) {
+                        // Frissítjük az állapotot a profillal, de már nem állítjuk be a loadert
+                        setAuthState(prev => ({
+                            ...prev,
+                            profile: profile,
+                            // isLoading már false
+                        }));
+                    }
+                });
+            }
         }
       }
     };
