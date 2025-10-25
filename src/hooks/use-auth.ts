@@ -3,10 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
 import { useQuery } from '@tanstack/react-query';
-import { OrganizationLocation } from '@/types/location'; // Import OrganizationLocation type
 
 // 🔹 Profile tábla definíció
-interface Profile extends OrganizationLocation { // Extend with location fields
+interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
@@ -14,7 +13,7 @@ interface Profile extends OrganizationLocation { // Extend with location fields
   role: 'user' | 'admin';
   organization_name: string | null;
   logo_url: string | null;
-  is_public: boolean | null;
+  is_public: boolean | null; // NEW FIELD
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -22,7 +21,7 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public, latitude, longitude, formatted_address, city, country, street, postal_code') // Include all new fields
+      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public') // Include is_public
       .eq('id', userId)
       .single();
 

@@ -4,33 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, User, MapPin, Eye, EyeOff, Globe } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
-import LogoUploader from './LogoUploader';
-import LocationPickerMap from './LocationPickerMap';
-import { OrganizationLocation } from '@/types/location'; // Import OrganizationLocation type
+import LogoUploader from './LogoUploader'; // Import the new component
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
+  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || ''); // Now managed by Uploader, but stored here
   const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
   const [isSaving, setIsSaving] = useState(false);
-  
-  // NEW: State for location data
-  const [location, setLocation] = useState<OrganizationLocation>({
-    latitude: profile?.latitude || null,
-    longitude: profile?.longitude || null,
-    formatted_address: profile?.formatted_address || null,
-    city: profile?.city || null,
-    country: profile?.country || null,
-    street: profile?.street || null,
-    postal_code: profile?.postal_code || null,
-  });
 
   // Sync state when profile loads/changes
   React.useEffect(() => {
@@ -40,15 +27,6 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(profile.organization_name || '');
       setLogoUrl(profile.logo_url || '');
       setIsPublic(profile.is_public ?? true);
-      setLocation({
-        latitude: profile.latitude || null,
-        longitude: profile.longitude || null,
-        formatted_address: profile.formatted_address || null,
-        city: profile.city || null,
-        country: profile.country || null,
-        street: profile.street || null,
-        postal_code: profile.postal_code || null,
-      });
     }
   }, [profile]);
 
@@ -62,18 +40,9 @@ const ProfileSettingsPage: React.FC = () => {
       first_name: firstName.trim() || null,
       last_name: lastName.trim() || null,
       organization_name: organizationName.trim() || null,
-      logo_url: logoUrl || null,
+      logo_url: logoUrl || null, // Use the URL set by the uploader or null
       is_public: isPublic,
       updated_at: new Date().toISOString(),
-      
-      // NEW: Location fields
-      latitude: location.latitude,
-      longitude: location.longitude,
-      formatted_address: location.formatted_address,
-      city: location.city,
-      country: location.country,
-      street: location.street,
-      postal_code: location.postal_code,
     };
 
     try {
@@ -174,27 +143,6 @@ const ProfileSettingsPage: React.FC = () => {
               onRemove={() => setLogoUrl(null)}
             />
             <p className="text-xs text-gray-500">A feltöltés után ne felejtsd el menteni a beállításokat!</p>
-          </div>
-          
-          {/* Location Picker Section */}
-          <div className="pt-4 border-t border-gray-700/50 space-y-4">
-            <h3 className="text-lg font-semibold text-cyan-300 flex items-center gap-2">
-                <Globe className="h-5 w-5" /> Szervezet Helyszíne (HQ)
-            </h3>
-            <LocationPickerMap 
-                initialLocation={location}
-                onLocationChange={setLocation}
-            />
-            
-            {/* Display structured address details for confirmation */}
-            {location.formatted_address && (
-                <div className="text-sm text-gray-400 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 space-y-1">
-                    <p className="font-semibold text-white">Rögzített cím adatok:</p>
-                    <p>Cím: {location.formatted_address}</p>
-                    <p>Város: {location.city || 'Nincs'}</p>
-                    <p>Irányítószám: {location.postal_code || 'Nincs'}</p>
-                </div>
-            )}
           </div>
           
           {/* Public Visibility Switch */}
