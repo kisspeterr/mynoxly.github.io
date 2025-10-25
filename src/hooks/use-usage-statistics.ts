@@ -116,7 +116,7 @@ export const useUsageStatistics = () => {
         return;
       }
 
-      // 3. Filter and process data client-side (RLS should handle most of this, but we double-check the join)
+      // 3. Filter and process data client-side (CRITICAL: Filter by organization name)
       const organizationUsages = data.filter(
         // We rely on RLS, but ensure the joined coupon data exists and matches the organization name (safety check)
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName

@@ -27,11 +27,13 @@ export const useCoupons = () => {
 
     setIsLoading(true);
     try {
-      // RLS ensures only coupons for the current organization are returned
-      // Admins see all coupons regardless of active/archived status
+      // CRITICAL: Explicitly filter by organization_name. 
+      // RLS ensures the user can only see their own organization's data anyway, 
+      // but this client-side filter guarantees we only request and display the relevant subset.
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
+        .eq('organization_name', organizationName) // <-- NEW EXPLICIT FILTER
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -50,10 +52,6 @@ export const useCoupons = () => {
   useEffect(() => {
     if (organizationName) {
       fetchCoupons();
-    } else if (!isLoading && isAuthenticated && isAdmin) {
-        // Ha admin, de nincs szervezet név, akkor is be kell fejezni a betöltést (üres listával)
-        setCoupons([]);
-        setIsLoading(false);
     }
   }, [organizationName, isAuthenticated, isAdmin]);
 
