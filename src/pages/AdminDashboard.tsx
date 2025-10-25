@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isAdmin, isLoading, signOut, profile, activeOrganizationProfile, activeMembership } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -36,8 +36,8 @@ const AdminDashboard = () => {
     );
   }
 
-  // Check if the user is the main admin OR has any accepted membership
-  const hasAdminAccess = isAdmin || activeMembership;
+  // Check if the user is the main admin (owner) OR has any accepted membership
+  const hasAdminAccess = isAdmin || allMemberships.length > 0;
 
   if (isAuthenticated && !hasAdminAccess) {
     return <UnauthorizedAccess />;

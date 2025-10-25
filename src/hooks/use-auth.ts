@@ -130,12 +130,15 @@ export const useAuth = () => {
   // 🔹 Kezdeti aktív szervezet beállítása (első tagság vagy a fő admin profilja)
   useEffect(() => {
     if (data && !activeOrganizationId) {
-        if (data.profile?.role === 'admin' && data.profile.organization_name) {
-            // Ha a felhasználó a régi admin (tulajdonos) és van szervezet neve, 
-            // akkor ezt állítjuk be aktívnak (feltételezve, hogy tagja is a szervezetnek).
-            setActiveOrganizationId(data.profile.id);
+        // 1. Próbáljuk meg beállítani a fő admin profilját, ha az létezik és van szervezet neve
+        const mainAdminProfile = data.profile?.role === 'admin' && data.profile.organization_name 
+            ? data.profile 
+            : null;
+            
+        if (mainAdminProfile) {
+            setActiveOrganizationId(mainAdminProfile.id);
         } else if (data.allMemberships.length > 0) {
-            // Különben az első elfogadott tagságot állítjuk be aktívnak.
+            // 2. Különben az első elfogadott tagságot állítjuk be aktívnak.
             setActiveOrganizationId(data.allMemberships[0].organization_id);
         }
     }
@@ -191,13 +194,23 @@ export const useAuth = () => {
   
   // 🔹 Aktív szervezet váltása
   const switchActiveOrganization = useCallback((organizationId: string) => {
-      if (data?.allMemberships.some(m => m.organization_id === organizationId) || data?.profile?.id === organizationId) {
+      // Check if the organizationId is either the user's own profile ID (if they are admin) 
+      // OR if it matches one of their accepted memberships.
+      const isOwnAdminProfile = data?.profile?.role === 'admin' && data?.profile?.id === organizationId;
+      const isAcceptedMember = data?.allMemberships.some(m => m.organization_id === organizationId);
+      
+      if (isOwnAdminProfile || isAcceptedMember) {
           setActiveOrganizationId(organizationId);
-          showSuccess(`Aktív szervezet váltva: ${data?.allMemberships.find(m => m.organization_id === organizationId)?.organization_profile?.organization_name || 'Saját profil'}`);
+          
+          const orgName = isOwnAdminProfile 
+              ? data.profile.organization_name 
+              : data?.allMemberships.find(m => m.organization_id === organizationId)?.organization_profile?.organization_name;
+              
+          showSuccess(`Aktív szervezet váltva: ${orgName || 'Ismeretlen szervezet'}`);
       } else {
           showError('Érvénytelen szervezet azonosító.');
       }
-  }, [data?.allMemberships, data?.profile?.id]);
+  }, [data?.allMemberships, data?.profile]);
 
 
   // 🔹 Visszatérő értékek
