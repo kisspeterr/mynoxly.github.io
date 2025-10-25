@@ -4,36 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, User, MapPin, Eye, EyeOff, Globe } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
-import LogoUploader from './LogoUploader';
-import LocationPicker from './LocationPicker'; // Import LocationPicker
-
-interface GeocodingResult {
-    formatted_address: string;
-    city: string | null;
-    country: string | null;
-    street: string | null;
-    postal_code: string | null;
-}
+import LogoUploader from './LogoUploader'; // Import the new component
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
+  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || ''); // Now managed by Uploader, but stored here
   const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
-  
-  // Location states
-  const [latitude, setLatitude] = useState<number | null>(profile?.latitude || null);
-  const [longitude, setLongitude] = useState<number | null>(profile?.longitude || null);
-  const [formattedAddress, setFormattedAddress] = useState(profile?.formatted_address || '');
-  
   const [isSaving, setIsSaving] = useState(false);
-  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Sync state when profile loads/changes
   React.useEffect(() => {
@@ -43,65 +27,8 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(profile.organization_name || '');
       setLogoUrl(profile.logo_url || '');
       setIsPublic(profile.is_public ?? true);
-      setLatitude(profile.latitude || null);
-      setLongitude(profile.longitude || null);
-      setFormattedAddress(profile.formatted_address || '');
     }
   }, [profile]);
-  
-  // --- Geocoding Logic ---
-  const handleLocationChange = async (lat: number, lng: number) => {
-    setLatitude(lat);
-    setLongitude(lng);
-    
-    setIsGeocoding(true);
-    setFormattedAddress('Cím keresése...');
-    
-    try {
-        // 1. Get JWT token for Edge Function authentication
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-            showError('Nincs aktív munkamenet. Kérjük, jelentkezz be újra.');
-            setIsGeocoding(false);
-            return;
-        }
-        
-        // 2. Call the Edge Function
-        const edgeFunctionUrl = `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/geocode-address`;
-        
-        const response = await fetch(
-            edgeFunctionUrl,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ lat, lng }),
-            }
-        );
-
-        if (!response.ok) {
-            showError('Hiba történt a cím geokódolása során.');
-            setFormattedAddress(`Koordináták: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-            return;
-        }
-
-        const result: GeocodingResult = await response.json();
-        
-        setFormattedAddress(result.formatted_address);
-        // Store detailed address components (city, street, postal_code) for saving
-        // We don't update the state for these, we pass them directly to handleSave
-        
-    } catch (e) {
-        showError('Váratlan hiba a geokódolás során.');
-        setFormattedAddress(`Koordináták: ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-        console.error('Geocoding error:', e);
-    } finally {
-        setIsGeocoding(false);
-    }
-  };
-  // --- End Geocoding Logic ---
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,62 +36,13 @@ const ProfileSettingsPage: React.FC = () => {
 
     setIsSaving(true);
     
-    // Re-geocode the current coordinates one last time to ensure we have the latest address details
-    let finalAddressDetails: Partial<Profile> = {};
-    if (latitude !== null && longitude !== null) {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                const edgeFunctionUrl = `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/geocode-address`;
-                const response = await fetch(edgeFunctionUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-                    body: JSON.stringify({ lat: latitude, lng: longitude }),
-                });
-                
-                if (response.ok) {
-                    const result: GeocodingResult = await response.json();
-                    finalAddressDetails = {
-                        latitude,
-                        longitude,
-                        formatted_address: result.formatted_address,
-                        city: result.city,
-                        country: result.country,
-                        street: result.street,
-                        postal_code: result.postal_code,
-                    };
-                } else {
-                    // Fallback if geocoding fails during save
-                    finalAddressDetails = {
-                        latitude,
-                        longitude,
-                        formatted_address: formattedAddress, // Use the last known formatted address
-                        city: null, country: null, street: null, postal_code: null,
-                    };
-                }
-            }
-        } catch (e) {
-            console.error('Final geocoding failed:', e);
-        }
-    } else {
-        // Clear location data if coordinates are null
-        finalAddressDetails = {
-            latitude: null,
-            longitude: null,
-            formatted_address: null,
-            city: null, country: null, street: null, postal_code: null,
-        };
-    }
-
-
     const updates = {
       first_name: firstName.trim() || null,
       last_name: lastName.trim() || null,
       organization_name: organizationName.trim() || null,
-      logo_url: logoUrl || null,
+      logo_url: logoUrl || null, // Use the URL set by the uploader or null
       is_public: isPublic,
       updated_at: new Date().toISOString(),
-      ...finalAddressDetails, // Add location data
     };
 
     try {
@@ -265,29 +143,6 @@ const ProfileSettingsPage: React.FC = () => {
               onRemove={() => setLogoUrl(null)}
             />
             <p className="text-xs text-gray-500">A feltöltés után ne felejtsd el menteni a beállításokat!</p>
-          </div>
-          
-          {/* Location Picker Section */}
-          <div className="space-y-4 pt-4 border-t border-gray-700/50">
-            <h3 className="text-lg font-semibold text-cyan-300 flex items-center gap-2">
-                <Globe className="h-5 w-5" /> Szervezet Székhelye
-            </h3>
-            
-            <LocationPicker 
-                initialLat={latitude}
-                initialLng={longitude}
-                onLocationChange={handleLocationChange}
-            />
-            
-            <div className="space-y-2">
-                <Label className="text-gray-300">Kiválasztott cím</Label>
-                <Input 
-                    value={isGeocoding ? 'Cím keresése...' : formattedAddress || 'Kattints a térképre vagy húzd a jelölőt a hely kiválasztásához.'}
-                    readOnly
-                    className={`bg-gray-800/50 border-gray-700 text-white ${isGeocoding ? 'animate-pulse' : ''}`}
-                />
-                <p className="text-xs text-gray-500">A térképen kattintva vagy a jelölőt húzva állíthatod be a pontos helyet.</p>
-            </div>
           </div>
           
           {/* Public Visibility Switch */}
