@@ -4,10 +4,11 @@ import { useAuth, Profile } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, User, Shield, Building, Mail, RefreshCw, CheckCircle, XCircle, Users } from 'lucide-react';
+import { Loader2, Search, User, Shield, Building, Mail, RefreshCw, CheckCircle, XCircle, Users, AtSign } from 'lucide-react';
 import { showError, showSuccess } from '@/utils/toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge'; // Import Badge
 
 // Extended Profile type for Superadmin view
 interface SuperadminProfile extends Profile {
@@ -29,14 +30,8 @@ const SuperadminUsersPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // Fetch all profiles and join auth.users for email
-            const { data, error } = await supabase
-                .from('profiles')
-                .select(`
-                    *,
-                    user:id (email)
-                `)
-                .order('created_at', { ascending: false });
+            // Use the new secure RPC function to fetch all profiles and emails
+            const { data, error } = await supabase.rpc('get_all_user_profiles_for_superadmin');
 
             if (error) {
                 showError('Hiba történt a felhasználók betöltésekor.');
@@ -45,12 +40,8 @@ const SuperadminUsersPage: React.FC = () => {
                 return;
             }
             
-            const processedUsers: SuperadminProfile[] = (data as any[]).map(p => ({
-                ...p,
-                email: p.user?.email || 'N/A',
-            }));
-            
-            setUsers(processedUsers);
+            // The RPC returns the data already joined and filtered by superadmin status
+            setUsers(data as SuperadminProfile[]);
 
         } finally {
             setIsLoading(false);
