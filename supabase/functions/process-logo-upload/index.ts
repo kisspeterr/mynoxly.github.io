@@ -37,10 +37,16 @@ serve(async (req) => {
     const { base64Data, mimeType, oldLogoPath } = await req.json();
 
     if (!base64Data || !mimeType) {
-      return new Response('Missing file data', { status: 400, headers: corsHeaders });
+      return new Response(JSON.stringify({ error: 'Missing file data' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const fileBuffer = decode(base64Data);
+    let fileBuffer: Uint8Array;
+    try {
+        fileBuffer = decode(base64Data);
+    } catch (e) {
+        console.error('Base64 Decode Error:', e);
+        return new Response(JSON.stringify({ error: 'Invalid Base64 data provided.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
     
     // 1. Final size check (should be under 200KB due to client-side processing)
     if (fileBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
