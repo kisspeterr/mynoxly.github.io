@@ -39,7 +39,8 @@ const ProfileSettingsPage: React.FC = () => {
     const updates = {
       first_name: firstName.trim() || null,
       last_name: lastName.trim() || null,
-      organization_name: organizationName.trim() || null,
+      // Ensure organizationName is null if empty string, as DB constraint allows NULL
+      organization_name: organizationName.trim() || null, 
       logo_url: logoUrl || null, // Use the URL set by the uploader or null
       is_public: isPublic,
       updated_at: new Date().toISOString(),
@@ -52,8 +53,12 @@ const ProfileSettingsPage: React.FC = () => {
         .eq('id', user.id);
 
       if (error) {
-        showError(`Hiba a profil frissítésekor: ${error.message}`);
-        console.error('Profile update error:', error);
+        if (error.code === '23505' && error.message.includes('unique_organization_name')) {
+            showError('Hiba: Ez a szervezet név már foglalt. Kérjük, válassz másikat.');
+        } else {
+            showError(`Hiba a profil frissítésekor: ${error.message}`);
+            console.error('Profile update error:', error);
+        }
         return;
       }
 
