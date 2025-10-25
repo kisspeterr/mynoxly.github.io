@@ -30,7 +30,11 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
   // Sync currentLogoUrl with previewUrl when it changes externally
   React.useEffect(() => {
-    setPreviewUrl(currentLogoUrl);
+    if (currentLogoUrl) {
+        setPreviewUrl(currentLogoUrl);
+    } else if (currentLogoUrl === null) {
+        setPreviewUrl(null);
+    }
   }, [currentLogoUrl]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -110,20 +114,24 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
         }
       );
 
-      // Check if the network request itself failed (e.g., CORS, network down)
-      if (!response.ok && response.status === 0) {
-          throw new Error(`Network or CORS error. Status: ${response.status}`);
-      }
-
-      const result = await response.json();
-
+      // 3. Check response status
       if (!response.ok) {
-        showError(`Feltöltési hiba: ${result.error || `Szerverhiba (${response.status}).`}`);
-        console.error('Edge Function Error:', result.error || `Status: ${response.status}`);
+        let errorDetail = `Szerverhiba (${response.status}).`;
+        try {
+            const errorBody = await response.json();
+            errorDetail = errorBody.error || errorDetail;
+        } catch (e) {
+            // If response body is not JSON (e.g., plain text or empty)
+            errorDetail = await response.text() || errorDetail;
+        }
+        
+        showError(`Feltöltési hiba: ${errorDetail}`);
+        console.error('Edge Function Error:', errorDetail);
         return;
       }
 
-      // 3. Success
+      // 4. Success
+      const result = await response.json();
       onUploadSuccess(result.publicUrl);
       setFile(null); // Clear original file state
       setCroppedFile(null); // Clear cropped file state
