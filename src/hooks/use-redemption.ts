@@ -7,6 +7,7 @@ interface ProfileDetails {
   first_name: string | null;
   last_name: string | null;
   organization_name: string | null;
+  username: string; // NEW
 }
 
 interface UsageDetails {
@@ -52,22 +53,35 @@ export const useRedemption = () => {
   const REDEMPTION_TIMEOUT_MINUTES = 3;
 
   const fetchUserProfileAndEmail = async (userId: string) => {
-    // 1. Fetch Profile (Name and Organization)
+    // 1. Fetch Profile (Name, Username, and Organization)
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('first_name, last_name, organization_name')
+      .select('first_name, last_name, organization_name, username') // Include username
       .eq('id', userId)
       .single();
 
     if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found
       console.error('Error fetching profile:', profileError);
     }
-
-    // 2. Fetch User Email (This is the tricky part, as auth.users is protected)
-    let userEmail = `User ID: ${userId.slice(0, 8)}...`;
     
+    // 2. Fetch User Email (This is the tricky part, as auth.users is protected)
+    // We use the RPC function created for statistics to get email securely
+    let userEmail = `ID: ${userId.slice(0, 8)}...`;
+    let username = profileData?.username || userEmail;
+    
+    try {
+        const { data: usersData } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: [userId] });
+        if (usersData && usersData.length > 0) {
+            userEmail = usersData[0].email;
+            username = usersData[0].username;
+        }
+    } catch (e) {
+        console.warn('Could not fetch user email/username via RPC:', e);
+    }
+
     return {
       profile: profileData as ProfileDetails || null,
+      username: username,
       user_email: userEmail,
     };
   };
@@ -119,12 +133,12 @@ export const useRedemption = () => {
       }
       
       // 3. Fetch user profile and email separately
-      const { profile, user_email } = await fetchUserProfileAndEmail(usage.user_id);
+      const { profile: fetchedProfile, user_email, username } = await fetchUserProfileAndEmail(usage.user_id);
 
       // 4. Code is valid and pending usage
       setUsageDetails({
         ...(usage as Omit<UsageDetails, 'profile' | 'user_email'>),
-        profile,
+        profile: fetchedProfile,
         user_email,
       });
       showSuccess('Kód érvényesítve! Kérjük, véglegesítsd a beváltást.');

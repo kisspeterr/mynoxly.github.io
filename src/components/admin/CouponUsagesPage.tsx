@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useCouponUsages } from '@/hooks/use-coupon-usages';
-import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw, AtSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -57,8 +57,8 @@ const CouponUsagesPage = () => {
               </CardHeader>
               <CardContent className="space-y-2 text-left text-sm">
                 <div className="flex items-center text-gray-300">
-                  <User className="h-4 w-4 mr-2 text-purple-400" />
-                  Felhasználó ID: <span className="font-mono ml-1 text-cyan-300">{usage.user_id.slice(0, 8)}...</span>
+                  <AtSign className="h-4 w-4 mr-2 text-purple-400" />
+                  Felhasználó: <span className="font-mono ml-1 text-cyan-300">@{usage.profile?.username || usage.user_id.slice(0, 8) + '...'}</span>
                 </div>
                 <div className="flex items-center text-gray-300">
                   <Clock className="h-4 w-4 mr-2 text-purple-400" />

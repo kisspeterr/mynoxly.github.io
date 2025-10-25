@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useUsageStatistics, UsageStat, TimeRange } from '@/hooks/use-usage-statistics';
-import { Calendar as CalendarIcon, Loader2, Search, Tag, User, Clock, BarChart3 } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Search, Tag, User, Clock, BarChart3, AtSign } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -114,13 +114,13 @@ const UsageStatisticsPage: React.FC = () => {
               </PopoverContent>
             </Popover>
             
-            {/* Email Filter (Only visible for 'day' range) */}
+            {/* Email/Username Filter (Only visible for 'day' range) */}
             {timeRange === 'day' && (
               <div className="md:col-span-2 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input 
                   type="text"
-                  placeholder="Szűrés felhasználó email címre..."
+                  placeholder="Szűrés felhasználónévre vagy email címre..."
                   value={emailFilter}
                   onChange={(e) => setEmailFilter(e.target.value)}
                   className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
@@ -175,8 +175,8 @@ const UsageStatisticsPage: React.FC = () => {
                             {usage.coupon_title}
                           </p>
                           <p className="text-sm text-gray-400 flex items-center">
-                            <User className="h-4 w-4 mr-2 text-purple-400" />
-                            {usage.user_email}
+                            <AtSign className="h-4 w-4 mr-2 text-purple-400" />
+                            {usage.username}
                           </p>
                         </div>
                         <div className="text-right text-sm text-gray-400 flex items-center">

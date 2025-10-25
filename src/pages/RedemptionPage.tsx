@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home, AtSign } from 'lucide-react';
 import { useRedemption } from '@/hooks/use-redemption';
 import { format } from 'date-fns';
 
@@ -43,6 +43,8 @@ const RedemptionPage = () => {
   const userName = usageDetails?.profile?.first_name || usageDetails?.profile?.last_name 
     ? `${usageDetails.profile.first_name || ''} ${usageDetails.profile.last_name || ''}`.trim()
     : 'Névtelen felhasználó';
+    
+  const usernameDisplay = usageDetails?.profile?.username ? `@${usageDetails.profile.username}` : 'Nincs felhasználónév';
 
   return (
     <AuthLayout>
@@ -98,7 +100,11 @@ const RedemptionPage = () => {
               </div>
               <div className="flex items-center text-gray-300">
                 <User className="h-4 w-4 mr-2 text-purple-400" />
-                Felhasználó: <span className="ml-1 font-medium">{userName} ({usageDetails.user_email})</span>
+                Felhasználó neve: <span className="ml-1 font-medium">{userName}</span>
+              </div>
+              <div className="flex items-center text-gray-300">
+                <AtSign className="h-4 w-4 mr-2 text-purple-400" />
+                Felhasználónév: <span className="ml-1 font-medium text-white">{usernameDisplay}</span>
               </div>
               <div className="flex items-center text-gray-300">
                 <Clock className="h-4 w-4 mr-2 text-purple-400" />

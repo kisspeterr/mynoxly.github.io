@@ -16,7 +16,7 @@ export interface DetailedUsage {
   id: string;
   redeemed_at: string;
   coupon_title: string;
-  user_email: string;
+  username: string; // CHANGED: Use username instead of user_email
 }
 
 export const useUsageStatistics = () => {
@@ -129,21 +129,23 @@ export const useUsageStatistics = () => {
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       
-      // 4. Fetch user emails for detailed view (ONLY for 'day' range)
+      // 4. Fetch user profiles (username and email) for detailed view (ONLY for 'day' range)
       const processedDetails: DetailedUsage[] = [];
-      let emailMap: Record<string, string> = {};
+      let profileMap: Record<string, { username: string, email: string }> = {};
 
       if (timeRange === 'day') {
         const userIds = Array.from(new Set(organizationUsages.map(u => u.user_id)));
-        const { data: usersData } = await supabase.rpc('get_user_emails_by_ids', { user_ids: userIds });
         
-        emailMap = (usersData || []).reduce((acc, user) => {
-          acc[user.id] = user.email;
+        // Use the new RPC function
+        const { data: usersData } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+        
+        profileMap = (usersData || []).reduce((acc, user) => {
+          acc[user.id] = { username: user.username, email: user.email };
           return acc;
-        }, {} as Record<string, string>);
+        }, {} as Record<string, { username: string, email: string }>);
       }
 
-      // 5. Group by time range and filter by email (only for 'day' range)
+      // 5. Group by time range and filter by email/username (only for 'day' range)
       const aggregatedCounts: Record<string, number> = {};
       
       for (const usage of organizationUsages) {
@@ -152,18 +154,23 @@ export const useUsageStatistics = () => {
         
         // Detailed view processing (only for 'day' range)
         if (timeRange === 'day') {
-            const userEmail = emailMap[usage.user_id] || `ID: ${usage.user_id.slice(0, 8)}...`;
+            const userProfile = profileMap[usage.user_id];
+            const usernameDisplay = userProfile?.username ? `@${userProfile.username}` : `ID: ${usage.user_id.slice(0, 8)}...`;
+            const userEmail = userProfile?.email || '';
             
-            // Apply email filter
-            if (userEmailFilter && !userEmail.toLowerCase().includes(userEmailFilter.toLowerCase())) {
-                continue;
+            // Apply filter (now checks both username and email)
+            if (userEmailFilter) {
+                const filterLower = userEmailFilter.toLowerCase();
+                if (!usernameDisplay.toLowerCase().includes(filterLower) && !userEmail.toLowerCase().includes(filterLower)) {
+                    continue;
+                }
             }
             
             processedDetails.push({
                 id: usage.id,
                 redeemed_at: usage.redeemed_at,
                 coupon_title: usage.coupon?.title || 'Ismeretlen kupon',
-                user_email: userEmail,
+                username: usernameDisplay, // Store username
             });
         }
 
