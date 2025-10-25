@@ -21,6 +21,12 @@ const Profile = () => {
       navigate('/login');
     }
   }, [isAuthenticated, isLoading, navigate]);
+  
+  const handleSignOut = async () => {
+      await signOut();
+      // Navigate to home page after sign out attempt, which should redirect to login if successful
+      navigate('/'); 
+  };
 
   if (isLoading) {
     return (
@@ -60,7 +66,7 @@ const Profile = () => {
                 <Home className="h-4 w-4 mr-2" />
                 Főoldal
               </Button>
-              <Button onClick={signOut} variant="destructive">
+              <Button onClick={handleSignOut} variant="destructive">
                 <LogOut className="h-4 w-4 mr-2" />
                 Kijelentkezés
               </Button>

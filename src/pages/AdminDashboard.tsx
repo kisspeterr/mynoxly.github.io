@@ -39,6 +39,12 @@ const AdminDashboard = () => {
       navigate('/superadmin/dashboard');
     }
   }, [isAuthenticated, isSuperadmin, isLoading, navigate]);
+  
+  const handleSignOut = async () => {
+      await signOut();
+      // Navigate to home page after sign out attempt, which should redirect to login if successful
+      navigate('/'); 
+  };
 
   if (isLoading) {
     return (
@@ -122,7 +128,7 @@ const AdminDashboard = () => {
                 Beváltás
               </Link>
             </Button>
-            <Button onClick={signOut} variant="destructive">
+            <Button onClick={handleSignOut} variant="destructive">
               <LogOut className="h-4 w-4 mr-2" />
               Kijelentkezés
             </Button>
@@ -161,7 +167,7 @@ const AdminDashboard = () => {
                     Statisztikák
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={signOut} className="text-red-400 flex items-center">
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-400 flex items-center">
                   <LogOut className="h-4 w-4 mr-2" />
                   Kijelentkezés
                 </DropdownMenuItem>
