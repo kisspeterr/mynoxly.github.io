@@ -178,7 +178,7 @@ const CouponsSection = () => {
                 >
                   <CardHeader className="pb-4">
                     {coupon.image_url && (
-                      <div className="h-40 w-full overflow-hidden rounded-lg mb-4">
+                      <div className="h-40 w-full overflow-hidden rounded-t-xl">
                         <img 
                           src={coupon.image_url} 
                           alt={coupon.title} 
