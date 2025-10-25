@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError, showSuccess } from '@/utils/toast';
@@ -123,10 +123,12 @@ export const useAuth = () => {
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   
   // 🔹 Aktív tagság meghatározása
-  const activeMembership = data?.allMemberships.find(m => m.organization_id === activeOrganizationId) || null;
+  const activeMembership = useMemo(() => {
+      return data?.allMemberships.find(m => m.organization_id === activeOrganizationId) || null;
+  }, [data?.allMemberships, activeOrganizationId]);
   
   // 🔹 Aktív szervezet profiljának meghatározása (a profiles táblából)
-  const activeOrganizationProfile = (() => {
+  const activeOrganizationProfile = useMemo(() => {
       if (!activeOrganizationId || !data?.profile) return null;
       
       // 1. Check if the active ID is the user's own admin profile ID
@@ -148,12 +150,12 @@ export const useAuth = () => {
               organization_name: membership.organization_profile.organization_name,
               logo_url: membership.organization_profile.logo_url,
               id: membership.organization_id,
-              is_public: (membership.organization_profile as any).is_public ?? true, // Use 'any' temporarily if TS complains, but we updated the fetch to include it
+              is_public: (membership.organization_profile as any).is_public ?? true, 
           };
       }
       
       return null;
-  })();
+  }, [activeOrganizationId, data?.profile, data?.allMemberships]);
   
   // 🔹 Kezdeti aktív szervezet beállítása (első tagság vagy a fő admin profilja)
   useEffect(() => {
