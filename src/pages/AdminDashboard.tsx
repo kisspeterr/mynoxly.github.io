@@ -170,9 +170,11 @@ const AdminDashboard = () => {
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
           <p className="text-lg md:text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
           
-          <div className="mb-6">
-            <OrganizationSelector />
-          </div>
+          {isOrganizationActive && (
+            <div className="mb-6">
+              <OrganizationSelector />
+            </div>
+          )}
           
           {!isOrganizationActive ? (
             <div className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30">
