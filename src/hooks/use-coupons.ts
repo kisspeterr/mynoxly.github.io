@@ -47,16 +47,15 @@ export const useCoupons = () => {
     }
   };
 
-  // Automatically fetch coupons when organizationName changes (i.e., when active organization changes)
+  // Automatically fetch coupons when activeOrganizationProfile changes
   useEffect(() => {
-    if (organizationName) {
+    if (activeOrganizationProfile) {
       fetchCoupons();
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [organizationName, isAuthenticated]);
-
+  }, [activeOrganizationProfile, isAuthenticated]); // Watch the entire profile object
 
   const createCoupon = async (couponData: CouponInsert) => {
     if (!organizationName || !checkPermission('coupon_manager')) {

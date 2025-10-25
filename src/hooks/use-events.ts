@@ -49,6 +49,16 @@ export const useEvents = () => {
     }
   };
 
+  // Automatically fetch events when activeOrganizationProfile changes
+  useEffect(() => {
+    if (activeOrganizationProfile) {
+      fetchEvents();
+    } else {
+        setEvents([]);
+        setIsLoading(false);
+    }
+  }, [activeOrganizationProfile, isAuthenticated]); // Watch the entire profile object
+
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
       showError('Nincs jogosultságod esemény létrehozásához, vagy hiányzik a szervezet neve.');
