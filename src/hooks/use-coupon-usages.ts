@@ -22,18 +22,47 @@ interface CouponUsageRecord {
   } | null;
 }
 
+// Helper to fetch user profiles (username, email, first_name, last_name) securely via RPC
+const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string, { username: string, first_name: string | null, last_name: string | null }>> => {
+    if (userIds.length === 0) return {};
+    
+    const { data: usersData, error } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+    
+    if (error) {
+        console.error('Error fetching user profiles via RPC:', error);
+        return {};
+    }
+    
+    return (usersData || []).reduce((acc, user) => {
+        acc[user.id] = {
+            username: user.username,
+            first_name: user.first_name || null,
+            last_name: user.last_name || null,
+        };
+        return acc;
+    }, {} as Record<string, { username: string, first_name: string | null, last_name: string | null }>);
+};
+
+
 export const useCouponUsages = () => {
-  const { user, profile, isAuthenticated, isAdmin } = useAuth();
+  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
   const [usages, setUsages] = useState<CouponUsageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const organizationName = profile?.organization_name;
+  const organizationName = activeOrganizationProfile?.organization_name;
 
   const fetchUsages = async () => {
-    if (!isAuthenticated || !isAdmin || !organizationName) {
+    if (!isAuthenticated || !organizationName) {
       setUsages([]);
       setIsLoading(false);
       return;
+    }
+    
+    // Check if the user has any permission to view usages
+    if (!checkPermission('viewer') && !checkPermission('redemption_agent') && !checkPermission('coupon_manager') && !checkPermission('event_manager')) {
+        setUsages([]);
+        setIsLoading(false);
+        return;
     }
 
     setIsLoading(true);
@@ -98,7 +127,7 @@ export const useCouponUsages = () => {
   useEffect(() => {
     if (organizationName) {
       fetchUsages();
-    } else if (!isLoading && isAuthenticated && isAdmin) {
+    } else if (!isLoading && isAuthenticated) {
         setUsages([]);
         setIsLoading(false);
     }
@@ -130,7 +159,7 @@ export const useCouponUsages = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [organizationName, isAuthenticated, isAdmin]);
+  }, [organizationName, isAuthenticated]);
 
   return {
     usages,

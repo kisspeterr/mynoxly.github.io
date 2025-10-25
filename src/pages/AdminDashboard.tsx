@@ -11,11 +11,12 @@ import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
 import ProfileSettingsPage from '@/components/admin/ProfileSettingsPage';
 import UsageStatisticsPage from '@/components/admin/UsageStatisticsPage'; // Import Statistics Page
 import OrganizationMembersPage from '@/components/admin/OrganizationMembersPage'; // NEW IMPORT
+import OrganizationSelector from '@/components/OrganizationSelector'; // NEW IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isAdmin, isLoading, signOut, profile } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, signOut, profile, activeOrganizationProfile, activeMembership } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -35,20 +36,20 @@ const AdminDashboard = () => {
     );
   }
 
-  if (isAuthenticated && !isAdmin) {
-    // Ha nem fő admin, de van tagsága, akkor is engedjük be, de a jogosultságok korlátozzák a látott tartalmat.
-    // Ha nincs tagsága, akkor az UnauthorizedAccess-t mutatjuk.
-    if (!profile?.organization_name) {
-        return <UnauthorizedAccess />;
-    }
+  // Check if the user is the main admin OR has any accepted membership
+  const hasAdminAccess = isAdmin || activeMembership;
+
+  if (isAuthenticated && !hasAdminAccess) {
+    return <UnauthorizedAccess />;
   }
   
-  // If not loading, and authenticated, and admin: render dashboard
   if (!isAuthenticated) {
-      // Should be caught by useEffect redirect, but return null as fallback
       return null;
   }
   
+  // Determine if the user has an active organization selected (needed for most tabs)
+  const isOrganizationActive = !!activeOrganizationProfile;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
       <div className="container mx-auto max-w-7xl">
@@ -129,52 +130,63 @@ const AdminDashboard = () => {
         </div>
 
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
-          <p className="text-lg md:text-xl text-gray-300 mb-2">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
-          <p className="text-md text-gray-400 mb-6 md:mb-8">Szervezet: <span className="font-semibold text-cyan-300">{profile?.organization_name || 'Nincs beállítva'}</span></p>
+          <p className="text-lg md:text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            {/* Tabs List - Full width on mobile (6 tabs now) */}
-            <TabsList className="grid w-full grid-cols-6 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
-              <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
-                <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
-              </TabsTrigger>
-              <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base">
-                <Calendar className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Események</span>
-              </TabsTrigger>
-              <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
-                <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
-              </TabsTrigger>
-              <TabsTrigger value="statistics" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                <BarChart className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Statisztikák</span>
-              </TabsTrigger>
-              <TabsTrigger value="members" className="data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 py-2 text-sm md:text-base">
-                <Users className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Tagok</span>
-              </TabsTrigger>
-              <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
-              </TabsTrigger>
-            </TabsList>
-            <div className="mt-6">
-              <TabsContent value="coupons">
-                <CouponsPage />
-              </TabsContent>
-              <TabsContent value="events">
-                <EventsPage />
-              </TabsContent>
-              <TabsContent value="usages">
-                <CouponUsagesPage />
-              </TabsContent>
-              <TabsContent value="statistics">
-                <UsageStatisticsPage />
-              </TabsContent>
-              <TabsContent value="members">
-                <OrganizationMembersPage />
-              </TabsContent>
-              <TabsContent value="settings">
-                <ProfileSettingsPage />
-              </TabsContent>
+          <div className="mb-6">
+            <OrganizationSelector />
+          </div>
+          
+          {!isOrganizationActive ? (
+            <div className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30">
+                <Shield className="h-10 w-10 text-red-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-red-300">Nincs aktív szervezet</h3>
+                <p className="text-gray-400 mt-2">Kérjük, válassz egy szervezetet a fenti listából a dashboard funkciók eléréséhez.</p>
             </div>
-          </Tabs>
+          ) : (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              {/* Tabs List - Full width on mobile (6 tabs now) */}
+              <TabsList className="grid w-full grid-cols-6 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
+                <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
+                  <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
+                </TabsTrigger>
+                <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base">
+                  <Calendar className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Események</span>
+                </TabsTrigger>
+                <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
+                  <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
+                </TabsTrigger>
+                <TabsTrigger value="statistics" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
+                  <BarChart className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Statisztikák</span>
+                </TabsTrigger>
+                <TabsTrigger value="members" className="data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 py-2 text-sm md:text-base">
+                  <Users className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Tagok</span>
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
+                  <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
+                </TabsTrigger>
+              </TabsList>
+              <div className="mt-6">
+                <TabsContent value="coupons">
+                  <CouponsPage />
+                </TabsContent>
+                <TabsContent value="events">
+                  <EventsPage />
+                </TabsContent>
+                <TabsContent value="usages">
+                  <CouponUsagesPage />
+                </TabsContent>
+                <TabsContent value="statistics">
+                  <UsageStatisticsPage />
+                </TabsContent>
+                <TabsContent value="members">
+                  <OrganizationMembersPage />
+                </TabsContent>
+                <TabsContent value="settings">
+                  <ProfileSettingsPage />
+                </TabsContent>
+              </div>
+            </Tabs>
+          )}
         </div>
       </div>
     </div>

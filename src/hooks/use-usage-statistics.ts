@@ -20,19 +20,26 @@ export interface DetailedUsage {
 }
 
 export const useUsageStatistics = () => {
-  const { profile, isAuthenticated, isAdmin } = useAuth();
+  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
   const [stats, setStats] = useState<UsageStat[]>([]);
   const [detailedUsages, setDetailedUsages] = useState<DetailedUsage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const organizationName = profile?.organization_name;
+  const organizationName = activeOrganizationProfile?.organization_name;
 
   const fetchStatistics = useCallback(async (date: Date, timeRange: TimeRange, userEmailFilter: string = '') => {
-    if (!isAuthenticated || !isAdmin || !organizationName) {
+    if (!isAuthenticated || !organizationName) {
       setStats([]);
       setDetailedUsages([]);
       setIsLoading(false);
       return;
+    }
+    
+    if (!checkPermission('viewer')) {
+        setStats([]);
+        setDetailedUsages([]);
+        setIsLoading(false);
+        return;
     }
 
     setIsLoading(true);
@@ -203,7 +210,7 @@ export const useUsageStatistics = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, isAdmin, organizationName]);
+  }, [isAuthenticated, organizationName, checkPermission]);
 
   return {
     stats,

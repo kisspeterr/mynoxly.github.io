@@ -5,17 +5,24 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
 export const useEvents = () => {
-  const { profile, isAuthenticated, isAdmin } = useAuth();
+  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const organizationName = profile?.organization_name;
+  const organizationName = activeOrganizationProfile?.organization_name;
 
   const fetchEvents = async () => {
-    if (!isAuthenticated || !isAdmin || !organizationName) {
+    if (!isAuthenticated || !organizationName) {
       setEvents([]);
       setIsLoading(false);
       return;
+    }
+    
+    // Check if the user has any permission to view events (event_manager or viewer)
+    if (!checkPermission('event_manager') && !checkPermission('viewer')) {
+        setEvents([]);
+        setIsLoading(false);
+        return;
     }
 
     setIsLoading(true);
@@ -43,8 +50,8 @@ export const useEvents = () => {
   };
 
   const createEvent = async (eventData: EventInsert) => {
-    if (!organizationName) {
-      showError('Hiányzik a szervezet neve a profilból.');
+    if (!organizationName || !checkPermission('event_manager')) {
+      showError('Nincs jogosultságod esemény létrehozásához, vagy hiányzik a szervezet neve.');
       return { success: false };
     }
 
@@ -74,6 +81,10 @@ export const useEvents = () => {
   };
   
   const updateEvent = async (id: string, eventData: Partial<EventInsert>) => {
+    if (!organizationName || !checkPermission('event_manager')) {
+        showError('Nincs jogosultságod esemény frissítéséhez.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -101,6 +112,10 @@ export const useEvents = () => {
   };
 
   const deleteEvent = async (id: string) => {
+    if (!organizationName || !checkPermission('event_manager')) {
+        showError('Nincs jogosultságod esemény törléséhez.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
       const { error } = await supabase

@@ -36,7 +36,7 @@ const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string,
     return (usersData || []).reduce((acc, user) => {
         acc[user.id] = {
             username: user.username,
-            first_name: user.first_name || null, // Assuming RPC returns these fields or we fetch them separately if needed
+            first_name: user.first_name || null,
             last_name: user.last_name || null,
         };
         return acc;
@@ -45,18 +45,19 @@ const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string,
 
 
 export const useOrganizationMembers = () => {
-  const { profile, isAuthenticated, isAdmin, user } = useAuth();
+  const { activeOrganizationId, activeOrganizationProfile, isAuthenticated, isAdmin, user, checkPermission } = useAuth();
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const organizationId = profile?.id;
-  const organizationName = profile?.organization_name;
+  const organizationId = activeOrganizationId;
+  const organizationName = activeOrganizationProfile?.organization_name;
 
   // --- Admin Functions ---
 
   const fetchMembers = useCallback(async () => {
-    if (!isAuthenticated || !isAdmin || !organizationId) {
+    // Only fetch if the user has permission to manage members AND an organization is active
+    if (!isAuthenticated || !organizationId || !checkPermission('coupon_manager')) { // Using coupon_manager as a proxy for admin rights here, but ideally we'd check for 'admin' role or a specific 'member_manager' role. For now, we rely on the RLS policy which checks for 'admin' role in profiles table.
       setMembers([]);
       return;
     }
@@ -109,11 +110,11 @@ export const useOrganizationMembers = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, isAdmin, organizationId, user?.id]);
+  }, [isAuthenticated, organizationId, user?.id, checkPermission]);
   
   const inviteMember = async (username: string, roles: MemberRole[]) => {
-    if (!organizationId || !organizationName) {
-        showError('Hiányzik a szervezet azonosítója.');
+    if (!organizationId || !organizationName || !checkPermission('coupon_manager')) { // Only managers can invite
+        showError('Nincs jogosultságod tagok meghívásához.');
         return { success: false };
     }
     
@@ -160,6 +161,10 @@ export const useOrganizationMembers = () => {
   };
   
   const updateMemberRoles = async (memberId: string, roles: MemberRole[]) => {
+    if (!organizationId || !checkPermission('coupon_manager')) { // Only managers can update roles
+        showError('Nincs jogosultságod a jogosultságok frissítéséhez.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
         const { error } = await supabase
@@ -182,6 +187,10 @@ export const useOrganizationMembers = () => {
   };
   
   const removeMember = async (memberId: string) => {
+    if (!organizationId || !checkPermission('coupon_manager')) { // Only managers can remove members
+        showError('Nincs jogosultságod tagok eltávolításához.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
         const { error } = await supabase
@@ -285,15 +294,17 @@ export const useOrganizationMembers = () => {
 
   // --- Initialization and Realtime ---
   useEffect(() => {
-    if (isAdmin && organizationId) {
+    if (organizationId) {
         fetchMembers();
-    } else if (isAuthenticated) {
+    }
+    
+    if (isAuthenticated) {
         fetchInvitations();
     }
     
     // Realtime subscription for admin view (members list)
     let adminChannel: ReturnType<typeof supabase.channel> | null = null;
-    if (isAdmin && organizationId) {
+    if (organizationId) {
         adminChannel = supabase
             .channel(`org_members_${organizationId}`)
             .on(
@@ -335,7 +346,7 @@ export const useOrganizationMembers = () => {
       if (adminChannel) supabase.removeChannel(adminChannel);
       if (userChannel) supabase.removeChannel(userChannel);
     };
-  }, [isAdmin, organizationId, isAuthenticated, user?.id]); // Dependencies updated
+  }, [organizationId, isAuthenticated, user?.id]); // Dependencies updated
 
   return {
     members,

@@ -116,9 +116,10 @@ interface MemberCardProps {
     onUpdateRoles: (memberId: string, roles: MemberRole[]) => Promise<{ success: boolean }>;
     onRemove: (memberId: string) => Promise<{ success: boolean }>;
     isLoading: boolean;
+    canManage: boolean; // NEW PROP
 }
 
-const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove, isLoading }) => {
+const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove, isLoading, canManage }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentRoles, setCurrentRoles] = useState<MemberRole[]>(member.roles);
     const [isSaving, setIsSaving] = useState(false);
@@ -179,7 +180,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
                         <Settings className="h-4 w-4" /> Jogosultságok:
                     </h4>
                     
-                    {isEditing ? (
+                    {isEditing && canManage ? (
                         <div className="space-y-2 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
                             {ROLE_OPTIONS.map(role => (
                                 <div key={role.value} className="flex items-center space-x-3">
@@ -203,60 +204,62 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
                     )}
                 </div>
                 
-                <div className="flex space-x-2 pt-4">
-                    {member.status === 'accepted' && (
-                        <>
-                            {isEditing ? (
-                                <Button 
-                                    onClick={handleSaveRoles}
-                                    className="flex-grow bg-green-600 hover:bg-green-700"
-                                    disabled={isSaving || isLoading}
-                                >
-                                    {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
-                                    Mentés
+                {canManage && (
+                    <div className="flex space-x-2 pt-4">
+                        {member.status === 'accepted' && (
+                            <>
+                                {isEditing ? (
+                                    <Button 
+                                        onClick={handleSaveRoles}
+                                        className="flex-grow bg-green-600 hover:bg-green-700"
+                                        disabled={isSaving || isLoading}
+                                    >
+                                        {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
+                                        Mentés
+                                    </Button>
+                                ) : (
+                                    <Button 
+                                        onClick={() => { setCurrentRoles(member.roles); setIsEditing(true); }}
+                                        variant="outline"
+                                        className="flex-grow border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
+                                        disabled={isLoading}
+                                    >
+                                        <Settings className="h-4 w-4 mr-2" />
+                                        Jogosultságok szerkesztése
+                                    </Button>
+                                )}
+                            </>
+                        )}
+                        
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="destructive" size="icon" className="h-10 w-10 flex-shrink-0" disabled={isLoading}>
+                                    <Trash2 className="h-5 w-5" />
                                 </Button>
-                            ) : (
-                                <Button 
-                                    onClick={() => { setCurrentRoles(member.roles); setIsEditing(true); }}
-                                    variant="outline"
-                                    className="flex-grow border-purple-500/50 text-purple-300 hover:bg-purple-500/10"
-                                    disabled={isLoading}
-                                >
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Jogosultságok szerkesztése
-                                </Button>
-                            )}
-                        </>
-                    )}
-                    
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="destructive" size="icon" className="h-10 w-10 flex-shrink-0" disabled={isLoading}>
-                                <Trash2 className="h-5 w-5" />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
-                            <DialogHeader>
-                                <DialogTitle className="text-red-400">Tag eltávolítása</DialogTitle>
-                                <DialogDescription className="text-gray-300">
-                                    Biztosan el szeretnéd távolítani a(z) @{member.profile?.username || 'ismeretlen'} felhasználót a szervezetből?
-                                </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
-                                </DialogClose>
-                                <Button 
-                                    variant="destructive" 
-                                    onClick={() => onRemove(member.id)}
-                                    disabled={isLoading}
-                                >
-                                    Eltávolítás megerősítése
-                                </Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                            </DialogTrigger>
+                            <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
+                                <DialogHeader>
+                                    <DialogTitle className="text-red-400">Tag eltávolítása</DialogTitle>
+                                    <DialogDescription className="text-gray-300">
+                                        Biztosan el szeretnéd távolítani a(z) @{member.profile?.username || 'ismeretlen'} felhasználót a szervezetből?
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                                    </DialogClose>
+                                    <Button 
+                                        variant="destructive" 
+                                        onClick={() => onRemove(member.id)}
+                                        disabled={isLoading}
+                                    >
+                                        Eltávolítás megerősítése
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );
@@ -264,11 +267,18 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
 
 const OrganizationMembersPage: React.FC = () => {
     const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers } = useOrganizationMembers();
-    const { profile } = useAuth();
+    const { activeOrganizationProfile, checkPermission } = useAuth();
     const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
+    
+    // Only the owner/main admin can manage members (using coupon_manager as proxy for now)
+    const canManageMembers = checkPermission('coupon_manager'); 
 
     const activeMembers = members.filter(m => m.status === 'accepted');
     const pendingMembers = members.filter(m => m.status === 'pending');
+    
+    if (!activeOrganizationProfile) {
+        return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
+    }
 
     return (
         <div>
@@ -287,27 +297,29 @@ const OrganizationMembersPage: React.FC = () => {
                     >
                         <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
                     </Button>
-                    <Dialog open={isInviteFormOpen} onOpenChange={setIsInviteFormOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="bg-cyan-600 hover:bg-cyan-700">
-                                <UserPlus className="h-4 w-4 mr-2" />
-                                Tag meghívása
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md">
-                            <DialogHeader>
-                                <DialogTitle className="text-cyan-300">Tag meghívása</DialogTitle>
-                                <DialogDescription className="text-gray-400">
-                                    Hívj meg egy felhasználót a {profile?.organization_name} adminisztrációs csapatába.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <InviteForm 
-                                onInvite={inviteMember} 
-                                onClose={() => setIsInviteFormOpen(false)} 
-                                isLoading={isLoading}
-                            />
-                        </DialogContent>
-                    </Dialog>
+                    {canManageMembers && (
+                        <Dialog open={isInviteFormOpen} onOpenChange={setIsInviteFormOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-cyan-600 hover:bg-cyan-700">
+                                    <UserPlus className="h-4 w-4 mr-2" />
+                                    Tag meghívása
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md">
+                                <DialogHeader>
+                                    <DialogTitle className="text-cyan-300">Tag meghívása</DialogTitle>
+                                    <DialogDescription className="text-gray-400">
+                                        Hívj meg egy felhasználót a {activeOrganizationProfile.organization_name} adminisztrációs csapatába.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <InviteForm 
+                                    onInvite={inviteMember} 
+                                    onClose={() => setIsInviteFormOpen(false)} 
+                                    isLoading={isLoading}
+                                />
+                            </DialogContent>
+                        </Dialog>
+                    )}
                 </div>
             </div>
             
@@ -324,6 +336,7 @@ const OrganizationMembersPage: React.FC = () => {
                             onUpdateRoles={updateMemberRoles}
                             onRemove={removeMember}
                             isLoading={isLoading}
+                            canManage={canManageMembers}
                         />
                     ))}
                 </div>
@@ -342,6 +355,7 @@ const OrganizationMembersPage: React.FC = () => {
                             onUpdateRoles={updateMemberRoles}
                             onRemove={removeMember}
                             isLoading={isLoading}
+                            canManage={canManageMembers}
                         />
                     ))}
                 </div>

@@ -9,69 +9,92 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
 import LogoUploader from './LogoUploader'; // Import the new component
+import { MemberRole } from '@/types/organization';
 
 const ProfileSettingsPage: React.FC = () => {
-  const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
-  const [firstName, setFirstName] = useState(profile?.first_name || '');
-  const [lastName, setLastName] = useState(profile?.last_name || '');
-  const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || ''); // Now managed by Uploader, but stored here
-  const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
+  const { 
+    user, 
+    isLoading: isAuthLoading, 
+    fetchProfile, 
+    activeOrganizationProfile, 
+    activeOrganizationId,
+    checkPermission
+  } = useAuth();
+  
+  // State for the currently active organization's settings
+  const [organizationName, setOrganizationName] = useState(activeOrganizationProfile?.organization_name || '');
+  const [logoUrl, setLogoUrl] = useState(activeOrganizationProfile?.logo_url || '');
+  const [isPublic, setIsPublic] = useState(activeOrganizationProfile?.is_public ?? true);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Sync state when profile loads/changes
+  
+  // Sync state when active organization profile loads/changes
   React.useEffect(() => {
-    if (profile) {
-      setFirstName(profile.first_name || '');
-      setLastName(profile.last_name || '');
-      setOrganizationName(profile.organization_name || '');
-      setLogoUrl(profile.logo_url || '');
-      setIsPublic(profile.is_public ?? true);
+    if (activeOrganizationProfile) {
+      setOrganizationName(activeOrganizationProfile.organization_name || '');
+      setLogoUrl(activeOrganizationProfile.logo_url || '');
+      setIsPublic(activeOrganizationProfile.is_public ?? true);
     }
-  }, [profile]);
+  }, [activeOrganizationProfile]);
+  
+  // Check if the user is the owner (main admin) of the active organization
+  // NOTE: For simplicity, we allow anyone with coupon_manager rights to edit settings, 
+  // but the RLS on profiles table should restrict this to the owner (role='admin').
+  const canManageSettings = checkPermission('coupon_manager'); 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || isSaving) return;
+    if (!user || isSaving || !activeOrganizationId || !canManageSettings) return;
 
     setIsSaving(true);
     
+    const trimmedOrgName = organizationName.trim();
+    
     const updates = {
-      first_name: firstName.trim() || null,
-      last_name: lastName.trim() || null,
-      // Ensure organizationName is null if empty string, as DB constraint allows NULL
-      organization_name: organizationName.trim() || null, 
-      logo_url: logoUrl || null, // Use the URL set by the uploader or null
+      // Organization fields
+      organization_name: trimmedOrgName || null, 
+      logo_url: logoUrl || null,
       is_public: isPublic,
       updated_at: new Date().toISOString(),
     };
 
     try {
-      const { error } = await supabase
+      // 1. Update the active organization's profile record
+      const { error: profileError } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', user.id);
+        .eq('id', activeOrganizationId);
 
-      if (error) {
-        if (error.code === '23505' && error.message.includes('unique_organization_name')) {
+      if (profileError) {
+        if (profileError.code === '23505' && profileError.message.includes('unique_organization_name')) {
             showError('Hiba: Ez a szervezet név már foglalt. Kérjük, válassz másikat.');
         } else {
-            showError(`Hiba a profil frissítésekor: ${error.message}`);
-            console.error('Profile update error:', error);
+            showError(`Hiba a szervezet profil frissítésekor: ${profileError.message}`);
+            console.error('Organization profile update error:', profileError);
         }
         return;
       }
+      
+      // 2. CRITICAL: Ensure the owner is a member of their own organization (if organization_name is set)
+      if (trimmedOrgName) {
+          const ownerRoles: MemberRole[] = ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'];
+          const { error: memberError } = await supabase
+              .from('organization_members')
+              .upsert({
+                  organization_id: activeOrganizationId,
+                  user_id: user.id,
+                  status: 'accepted',
+                  roles: ownerRoles,
+              }, { onConflict: 'organization_id, user_id' });
+              
+          if (memberError) {
+              console.error('Error ensuring owner membership:', memberError);
+              showError('Hiba történt a tulajdonosi tagság beállításakor.');
+              return;
+          }
+      }
 
-      // Also update auth metadata for first/last name consistency (optional but good practice)
-      await supabase.auth.updateUser({
-        data: {
-          first_name: updates.first_name,
-          last_name: updates.last_name,
-        }
-      });
-
-      showSuccess('Profil sikeresen frissítve!');
-      // Re-fetch profile to update global state using the new refetch function
+      showSuccess('Szervezet profil sikeresen frissítve!');
+      // Re-fetch profile to update global state (this will refresh activeOrganizationProfile and allMemberships)
       await fetchProfile(user.id); 
 
     } catch (error) {
@@ -90,41 +113,27 @@ const ProfileSettingsPage: React.FC = () => {
       </div>
     );
   }
+  
+  if (!activeOrganizationProfile || !activeOrganizationId) {
+      return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a beállítások eléréséhez.</p>;
+  }
+  
+  if (!canManageSettings) {
+      return <p className="text-red-400">Nincs jogosultságod a szervezet beállításainak módosításához.</p>;
+  }
 
   return (
     <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white">
       <CardHeader>
         <CardTitle className="text-2xl text-purple-300 flex items-center gap-2">
           <User className="h-6 w-6" />
-          Admin Profil Beállítások
+          Szervezet Beállítások ({activeOrganizationProfile.organization_name})
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSave} className="space-y-6">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="firstName" className="text-gray-300">Keresztnév</Label>
-              <Input 
-                id="firstName"
-                type="text" 
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName" className="text-gray-300">Vezetéknév</Label>
-              <Input 
-                id="lastName"
-                type="text" 
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-              />
-            </div>
-          </div>
-
+          {/* Organization Name */}
           <div className="space-y-2">
             <Label htmlFor="organizationName" className="text-gray-300 flex items-center">
               <MapPin className="h-4 w-4 mr-2" /> Szervezet neve *
@@ -136,6 +145,7 @@ const ProfileSettingsPage: React.FC = () => {
               onChange={(e) => setOrganizationName(e.target.value)}
               required
               className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              disabled={isSaving}
             />
             <p className="text-xs text-gray-500">Ez a név jelenik meg a kuponoknál és az eseményeknél.</p>
           </div>
@@ -167,6 +177,7 @@ const ProfileSettingsPage: React.FC = () => {
                 checked={isPublic}
                 onCheckedChange={setIsPublic}
                 className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-red-600"
+                disabled={isSaving}
             />
           </div>
 

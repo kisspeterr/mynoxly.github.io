@@ -5,21 +5,22 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
 export const useCoupons = () => {
-  const { profile, isAuthenticated, isAdmin } = useAuth();
+  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const organizationName = profile?.organization_name;
+  const organizationName = activeOrganizationProfile?.organization_name;
 
   // Function to fetch coupons (used internally and exported for manual refresh)
   const fetchCoupons = async () => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!isAuthenticated || !organizationName) {
       setCoupons([]);
+      setIsLoading(false);
       return;
     }
     
-    if (!organizationName) {
-        // Ha nincs szervezet név, nem tudunk lekérdezni, de nem hiba, csak üres lista.
+    // Check if the user has any permission to view coupons (coupon_manager or viewer)
+    if (!checkPermission('coupon_manager') && !checkPermission('viewer')) {
         setCoupons([]);
         setIsLoading(false);
         return;
@@ -28,12 +29,10 @@ export const useCoupons = () => {
     setIsLoading(true);
     try {
       // CRITICAL: Explicitly filter by organization_name. 
-      // RLS ensures the user can only see their own organization's data anyway, 
-      // but this client-side filter guarantees we only request and display the relevant subset.
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', organizationName) // <-- NEW EXPLICIT FILTER
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -48,17 +47,20 @@ export const useCoupons = () => {
     }
   };
 
-  // Automatically fetch coupons when organizationName changes (i.e., when profile loads)
+  // Automatically fetch coupons when organizationName changes (i.e., when active organization changes)
   useEffect(() => {
     if (organizationName) {
       fetchCoupons();
+    } else {
+        setCoupons([]);
+        setIsLoading(false);
     }
-  }, [organizationName, isAuthenticated, isAdmin]);
+  }, [organizationName, isAuthenticated]);
 
 
   const createCoupon = async (couponData: CouponInsert) => {
-    if (!organizationName) {
-      showError('Hiányzik a szervezet neve a profilból. Kérjük, állítsd be a Beállítások oldalon.');
+    if (!organizationName || !checkPermission('coupon_manager')) {
+      showError('Nincs jogosultságod kupon létrehozásához, vagy hiányzik a szervezet neve.');
       return { success: false };
     }
 
@@ -85,8 +87,8 @@ export const useCoupons = () => {
   };
   
   const updateCoupon = async (id: string, couponData: Partial<CouponInsert>) => {
-    if (!organizationName) {
-        showError('Hiányzik a szervezet neve a profilból.');
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod kupon frissítéséhez.');
         return { success: false };
     }
     setIsLoading(true);
@@ -99,7 +101,6 @@ export const useCoupons = () => {
         .single();
 
       if (error || !data) {
-        // Ha az RLS blokkolja, a data null lehet, vagy hiba jön vissza.
         showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz, vagy a szervezet neve hiányzik.`);
         console.error('Update coupon error:', error);
         return { success: false };
@@ -114,8 +115,8 @@ export const useCoupons = () => {
   };
   
   const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
-    if (!organizationName) {
-        showError('Hiányzik a szervezet neve a profilból.');
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon állapotának módosításához.');
         return { success: false };
     }
     setIsLoading(true);
@@ -143,8 +144,8 @@ export const useCoupons = () => {
   };
   
   const archiveCoupon = async (id: string) => {
-    if (!organizationName) {
-        showError('Hiányzik a szervezet neve a profilból.');
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon archiválásához.');
         return { success: false };
     }
     setIsLoading(true);
@@ -176,8 +177,8 @@ export const useCoupons = () => {
       showError('Csak archivált kuponokat lehet véglegesen törölni.');
       return { success: false };
     }
-    if (!organizationName) {
-        showError('Hiányzik a szervezet neve a profilból.');
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon törléséhez.');
         return { success: false };
     }
     

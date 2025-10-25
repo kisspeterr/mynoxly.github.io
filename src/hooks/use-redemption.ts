@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from './use-auth'; // Import useAuth
 
 interface ProfileDetails {
   first_name: string | null;
@@ -48,9 +49,12 @@ const rewardLoyaltyPoints = async (userId: string, organizationId: string, point
 
 
 export const useRedemption = () => {
+  const { activeOrganizationProfile, checkPermission } = useAuth(); // Use active organization context
   const [isLoading, setIsLoading] = useState(false);
   const [usageDetails, setUsageDetails] = useState<UsageDetails | null>(null);
   const REDEMPTION_TIMEOUT_MINUTES = 3;
+  
+  const activeOrganizationName = activeOrganizationProfile?.organization_name;
 
   const fetchUserProfileAndEmail = async (userId: string) => {
     // 1. Fetch Profile (Name, Username, and Organization)
@@ -87,6 +91,11 @@ export const useRedemption = () => {
   };
 
   const checkCode = async (code: string) => {
+    if (!checkPermission('redemption_agent') || !activeOrganizationName) {
+        showError('Nincs jogosultságod a beváltáshoz, vagy nincs aktív szervezet kiválasztva.');
+        return;
+    }
+    
     setIsLoading(true);
     setUsageDetails(null);
 
@@ -114,6 +123,12 @@ export const useRedemption = () => {
       if (error || !usage) {
         showError('Érvénytelen beváltási kód.');
         return;
+      }
+      
+      // 1b. Check if the coupon belongs to the active organization
+      if (usage.coupon.organization_name !== activeOrganizationName) {
+          showError('Ez a kupon nem a jelenleg kiválasztott szervezethez tartozik.');
+          return;
       }
 
       if (usage.is_used) {
@@ -153,6 +168,11 @@ export const useRedemption = () => {
 
   const finalizeRedemption = async () => {
     if (!usageDetails) return;
+    
+    if (!checkPermission('redemption_agent') || usageDetails.coupon.organization_name !== activeOrganizationName) {
+        showError('Nincs jogosultságod a beváltás véglegesítéséhez.');
+        return false;
+    }
 
     setIsLoading(true);
     try {
