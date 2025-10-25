@@ -44,6 +44,7 @@ export const useAuth = () => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
+        // Nem dobunk hibát, csak null-t adunk vissza
         return null;
       }
       return data as Profile;
@@ -63,12 +64,12 @@ export const useAuth = () => {
       profile = await fetchProfile(user.id);
     }
 
-    // 2. Állapot frissítése
+    // 2. Állapot frissítése - MINDIG befejeződik
     setAuthState({
       session: session,
       user: user,
       profile: profile,
-      isLoading: false, // Csak itt állítjuk false-ra
+      isLoading: false, // CRITICAL: It MUST be false here.
     });
   };
 
@@ -79,11 +80,7 @@ export const useAuth = () => {
     // 1️⃣ Kezdeti betöltés
     const initialLoad = async () => {
       try {
-        const { data: sessionData, error } = await supabase.auth.getSession();
-        
-        if (error) {
-            console.error('Initial session error:', error);
-        }
+        const { data: sessionData } = await supabase.auth.getSession();
         
         if (isMounted) {
             // Frissítjük az állapotot a session és a profil adatokkal
