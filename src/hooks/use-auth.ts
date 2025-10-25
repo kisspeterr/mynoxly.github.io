@@ -61,7 +61,7 @@ const fetchAllAcceptedMemberships = async (userId: string): Promise<Organization
             .from('organization_members')
             .select(`
                 id, organization_id, roles, status,
-                organization_profile:organization_id (organization_name, logo_url)
+                organization_profile:organization_id (organization_name, logo_url, is_public)
             `)
             .eq('user_id', userId)
             .eq('status', 'accepted');
@@ -71,6 +71,7 @@ const fetchAllAcceptedMemberships = async (userId: string): Promise<Organization
             return [];
         }
         
+        // Ensure is_public is fetched for delegated profiles
         return data as OrganizationMembership[];
     } catch (e) {
         console.error('Unexpected error during membership fetch:', e);
@@ -142,21 +143,12 @@ export const useAuth = () => {
       // 2. Check if the active ID is a delegated membership
       const membership = data.allMemberships.find(m => m.organization_id === activeOrganizationId);
       if (membership && membership.organization_profile) {
-          // We need to fetch the full profile data for the delegated organization
-          // Since we only get name/logo from the join, we need to fetch the full profile if needed.
-          // For now, we rely on the joined data, but we need to ensure it includes 'id' and 'is_public' if possible.
-          // NOTE: The join only fetches organization_name and logo_url. We need to fetch the full profile if we need more data (like is_public).
-          
-          // Let's fetch the full profile for the selected organization ID if it's not the user's own profile
-          // To avoid making an extra query here, we will rely on the fact that the admin pages only need organization_name and id.
-          
-          // We need to ensure the structure matches what the admin pages expect (which is currently the Profile interface structure)
+          // We rely on the JOIN in fetchAllAcceptedMemberships to bring back organization_name, logo_url, and is_public
           return {
               organization_name: membership.organization_profile.organization_name,
               logo_url: membership.organization_profile.logo_url,
               id: membership.organization_id,
-              // We assume is_public is true for delegated profiles unless we fetch it explicitly
-              is_public: true, 
+              is_public: (membership.organization_profile as any).is_public ?? true, // Use 'any' temporarily if TS complains, but we updated the fetch to include it
           };
       }
       
