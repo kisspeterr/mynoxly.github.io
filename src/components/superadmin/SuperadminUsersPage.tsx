@@ -8,12 +8,19 @@ import { Loader2, Search, User, Shield, Building, Mail, RefreshCw, CheckCircle, 
 import { showError, showSuccess } from '@/utils/toast';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge'; // Import Badge
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 
 // Extended Profile type for Superadmin view
 interface SuperadminProfile extends Profile {
     email: string;
 }
+
+const ROLE_OPTIONS = [
+    { value: 'user', label: 'Felhasználó' },
+    { value: 'admin', label: 'Adminisztrátor (Szervezet Tulajdonos)' },
+    { value: 'superadmin', label: 'Superadmin' },
+];
 
 const SuperadminUsersPage: React.FC = () => {
     const { isSuperadmin, user: currentUser, fetchProfile } = useAuth();
@@ -24,13 +31,13 @@ const SuperadminUsersPage: React.FC = () => {
     const [isOrgFormOpen, setIsOrgFormOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<SuperadminProfile | null>(null);
     const [newOrgName, setNewOrgName] = useState('');
+    const [newRole, setNewRole] = useState<'user' | 'admin' | 'superadmin'>('user'); // State for new role
 
     const fetchUsers = useCallback(async () => {
         if (!isSuperadmin) return;
 
         setIsLoading(true);
         try {
-            // Use the new secure RPC function to fetch all profiles and emails
             const { data, error } = await supabase.rpc('get_all_user_profiles_for_superadmin');
 
             if (error) {
@@ -40,7 +47,6 @@ const SuperadminUsersPage: React.FC = () => {
                 return;
             }
             
-            // The RPC returns the data already joined and filtered by superadmin status
             setUsers(data as SuperadminProfile[]);
 
         } finally {
@@ -61,6 +67,7 @@ const SuperadminUsersPage: React.FC = () => {
     const handleSetOrganization = (user: SuperadminProfile) => {
         setSelectedUser(user);
         setNewOrgName(user.organization_name || '');
+        setNewRole(user.role); // Initialize role state
         setIsOrgFormOpen(true);
     };
     
@@ -69,7 +76,17 @@ const SuperadminUsersPage: React.FC = () => {
         if (!selectedUser || isUpdating) return;
         
         const trimmedOrgName = newOrgName.trim() || null;
-        const newRole = trimmedOrgName ? 'admin' : 'user';
+        
+        // Determine final role based on input:
+        // 1. If a new organization name is set, the role MUST be 'admin'.
+        // 2. If no organization name is set, use the selected role (user/superadmin).
+        const finalRole = trimmedOrgName ? 'admin' : newRole;
+        
+        // Prevent Superadmin from removing their own Superadmin status
+        if (selectedUser.id === currentUser?.id && finalRole !== 'superadmin' && selectedUser.role === 'superadmin') {
+            showError('Nem távolíthatod el a saját Superadmin jogosultságodat.');
+            return;
+        }
         
         setIsUpdating(true);
         try {
@@ -77,7 +94,7 @@ const SuperadminUsersPage: React.FC = () => {
             const { error: profileError } = await supabase
                 .from('profiles')
                 .update({ 
-                    role: newRole,
+                    role: finalRole,
                     organization_name: trimmedOrgName,
                     updated_at: new Date().toISOString(),
                 })
@@ -92,8 +109,9 @@ const SuperadminUsersPage: React.FC = () => {
                 return;
             }
             
-            // 2. Update organization_members table (ensure owner is member)
+            // 2. Update organization_members table (ensure owner is member or remove memberships)
             if (trimmedOrgName) {
+                // If setting as admin/owner, ensure they are a member of their own organization
                 const ownerRoles = ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'];
                 const { error: memberError } = await supabase
                     .from('organization_members')
@@ -110,8 +128,7 @@ const SuperadminUsersPage: React.FC = () => {
                     return;
                 }
             } else {
-                // If organization is removed, remove all associated memberships (except the owner's, which is handled by profile update)
-                // NOTE: RLS prevents deleting other users' data, but Superadmin RLS should allow this.
+                // If organization is removed, remove all associated memberships (delegated members)
                 const { error: deleteMembersError } = await supabase
                     .from('organization_members')
                     .delete()
@@ -186,6 +203,7 @@ const SuperadminUsersPage: React.FC = () => {
                                         <User className="h-4 w-4 mr-2 text-purple-400" />
                                         @{user.username}
                                         {user.role === 'superadmin' && <Badge className="ml-2 bg-red-600/50 text-red-300">SUPERADMIN</Badge>}
+                                        {user.role === 'admin' && <Badge className="ml-2 bg-purple-600/50 text-purple-300">ADMIN</Badge>}
                                     </p>
                                     <p className="text-sm text-gray-400 flex items-center">
                                         <Mail className="h-4 w-4 mr-2 text-purple-400" />
@@ -206,7 +224,7 @@ const SuperadminUsersPage: React.FC = () => {
                                     disabled={isUpdating}
                                 >
                                     <Shield className="h-4 w-4 mr-2" />
-                                    {user.organization_name ? 'Szervezet szerkesztése' : 'Tulajdonos beállítása'}
+                                    Szerepkör & Szervezet
                                 </Button>
                             </CardContent>
                         </Card>
@@ -214,28 +232,61 @@ const SuperadminUsersPage: React.FC = () => {
                 </div>
             )}
             
-            {/* Organization Management Modal */}
+            {/* Organization and Role Management Modal */}
             {selectedUser && (
                 <Dialog open={isOrgFormOpen} onOpenChange={setIsOrgFormOpen}>
                     <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-md">
                         <DialogHeader>
-                            <DialogTitle className="text-red-400">Szervezeti Tulajdonos Beállítása</DialogTitle>
+                            <DialogTitle className="text-red-400">Szerepkör & Szervezet Kezelése</DialogTitle>
                             <DialogDescription className="text-gray-400">
-                                Szervezet beállítása/módosítása a(z) @{selectedUser.username} felhasználóhoz.
+                                Szerepkör és szervezeti tulajdonjog beállítása a(z) @{selectedUser.username} felhasználóhoz.
                             </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleUpdateOrganization} className="space-y-4">
+                            
+                            {/* Global Role Selector */}
                             <div className="space-y-2">
-                                <Label htmlFor="orgName" className="text-gray-300">Szervezet neve (Tulajdonos)</Label>
+                                <Label htmlFor="role" className="text-gray-300">Globális Szerepkör</Label>
+                                <Select 
+                                    value={newRole} 
+                                    onValueChange={(value: 'user' | 'admin' | 'superadmin') => setNewRole(value)}
+                                    disabled={isUpdating || !!newOrgName.trim()} // Disable if organization name is set
+                                >
+                                    <SelectTrigger className="w-full bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50">
+                                        <SelectValue placeholder="Válassz szerepkört" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-black/90 border-red-500/30 text-white">
+                                        {ROLE_OPTIONS.map(option => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {!!newOrgName.trim() && <p className="text-xs text-yellow-400">Ha szervezet nevet adsz meg, a szerepkör automatikusan 'Adminisztrátor' lesz.</p>}
+                            </div>
+                            
+                            {/* Organization Name Input */}
+                            <div className="space-y-2">
+                                <Label htmlFor="orgName" className="text-gray-300">Szervezet neve (Admin Tulajdonos)</Label>
                                 <Input 
                                     id="orgName"
                                     type="text" 
                                     value={newOrgName}
-                                    onChange={(e) => setNewOrgName(e.target.value)}
+                                    onChange={(e) => {
+                                        setNewOrgName(e.target.value);
+                                        // If organization name is set, force role to admin
+                                        if (e.target.value.trim()) {
+                                            setNewRole('admin');
+                                        } else if (selectedUser.role === 'admin') {
+                                            // If organization name is cleared, revert to user role unless it was superadmin
+                                            setNewRole('user');
+                                        }
+                                    }}
                                     className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
                                     placeholder="Pl. Pécsi Kocsma"
                                 />
-                                <p className="text-xs text-gray-500">Ha üresen hagyod, a felhasználó elveszíti az admin/tulajdonos szerepkört.</p>
+                                <p className="text-xs text-gray-500">Ha megadsz egy nevet, a felhasználó lesz a szervezet tulajdonosa (Admin).</p>
                             </div>
                             
                             <DialogFooter>
