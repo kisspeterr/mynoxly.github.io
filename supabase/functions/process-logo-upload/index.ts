@@ -8,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Max file size: 200 KB
+// Max file size for the OUTPUT file
 const MAX_FILE_SIZE_BYTES = 200 * 1024; 
 const TARGET_SIZE = 300; // 300x300 px
 
@@ -44,18 +44,11 @@ serve(async (req) => {
 
     const fileBuffer = decode(base64Data);
 
-    if (fileBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
-        return new Response(JSON.stringify({ error: `File size exceeds 200KB limit. Current size: ${Math.ceil(fileBuffer.byteLength / 1024)} KB` }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-    }
-
-    // 1. Process and Resize Image
+    // 1. Process and Resize Image (This is the automatic size reduction step)
     const image = new Image();
     image.load(fileBuffer);
     
-    // Resize to 300x300 (maintaining aspect ratio and cropping if necessary, or just resizing)
+    // Resize to 300x300
     image.resize(TARGET_SIZE, TARGET_SIZE);
     
     // Encode as JPEG with 80% quality
@@ -63,11 +56,20 @@ serve(async (req) => {
     const newMimeType = 'image/jpeg';
     const fileExt = 'jpg';
 
-    // 2. Define new file path
+    // 2. Check output size after processing
+    if (processedBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
+        // This is highly unlikely after resizing to 300x300, but serves as a final safety check.
+        return new Response(JSON.stringify({ error: `Feldolgozás után is túl nagy a fájl mérete (${Math.ceil(processedBuffer.byteLength / 1024)} KB). Kérjük, próbálj meg kisebb felbontású képet feltölteni.` }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+    }
+
+    // 3. Define new file path
     const filePath = `${userId}/${Date.now()}.${fileExt}`;
     const bucketName = 'logos';
 
-    // 3. Upload new file
+    // 4. Upload new file
     const { error: uploadError } = await supabaseClient.storage
       .from(bucketName)
       .upload(filePath, processedBuffer, {
@@ -84,7 +86,7 @@ serve(async (req) => {
       });
     }
 
-    // 4. Delete old file if path is provided
+    // 5. Delete old file if path is provided
     if (oldLogoPath) {
         // Extract the path within the bucket (e.g., 'user_id/timestamp.jpg')
         const urlParts = oldLogoPath.split('/');
@@ -97,12 +99,11 @@ serve(async (req) => {
 
             if (deleteError) {
                 console.warn('Warning: Failed to delete old logo:', deleteError);
-                // We don't fail the request if deletion fails, just log a warning
             }
         }
     }
 
-    // 5. Get public URL and return
+    // 6. Get public URL and return
     const { data: publicUrlData } = supabaseClient.storage
       .from(bucketName)
       .getPublicUrl(filePath);
