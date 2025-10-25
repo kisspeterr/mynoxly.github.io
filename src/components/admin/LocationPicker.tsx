@@ -52,7 +52,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng,
     );
   }
 
-  // Render the dynamically loaded component
+  // CRITICAL FIX: Use the component as JSX: <LeafletMapComponent ... />
   return (
     <LeafletMapComponent 
       initialLat={lat}
