@@ -10,6 +10,7 @@ import UserFavoritesList from '@/components/user/UserFavoritesList';
 import UserLoyaltyPointsList from '@/components/user/UserLoyaltyPointsList';
 import UserInterestedEventsList from '@/components/user/UserInterestedEventsList';
 import UserSettingsForm from '@/components/user/UserSettingsForm'; // Import new form
+import UserInvitationsList from '@/components/user/UserInvitationsList'; // NEW IMPORT
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -69,6 +70,7 @@ const Profile = () => {
           {/* Right Column: Settings, Loyalty, Favorites, Coupons (Full width on mobile, 2/3 on large) */}
           <div className="lg:col-span-2 space-y-10">
             <UserSettingsForm /> {/* NEW: User Settings Form */}
+            <UserInvitationsList /> {/* NEW: Invitations List */}
             <UserInterestedEventsList />
             <UserLoyaltyPointsList />
             <UserFavoritesList />

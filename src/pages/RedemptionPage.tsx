@@ -12,10 +12,12 @@ import { useRedemption } from '@/hooks/use-redemption';
 import { format } from 'date-fns';
 
 const RedemptionPage = () => {
-  const { isAuthenticated, isAdmin, isLoading: isAuthLoading } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading: isAuthLoading, checkPermission } = useAuth();
   const { isLoading, usageDetails, checkCode, finalizeRedemption, clearDetails } = useRedemption();
   const navigate = useNavigate();
   const [codeInput, setCodeInput] = useState('');
+  
+  const canRedeem = checkPermission('redemption_agent');
 
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
@@ -36,7 +38,7 @@ const RedemptionPage = () => {
     );
   }
 
-  if (isAuthenticated && !isAdmin) {
+  if (isAuthenticated && !canRedeem) {
     return <UnauthorizedAccess />;
   }
   

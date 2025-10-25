@@ -5,9 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import UsageCountdown from './UsageCountdown'; // Import the new component
+import { useAuth } from '@/hooks/use-auth'; // Import useAuth
+import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 
 const CouponUsagesPage = () => {
   const { usages, isLoading, fetchUsages, organizationName } = useCouponUsages();
+  const { checkPermission } = useAuth();
+  
+  const canViewUsages = checkPermission('viewer') || checkPermission('redemption_agent') || checkPermission('coupon_manager') || checkPermission('event_manager');
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -16,6 +21,10 @@ const CouponUsagesPage = () => {
     }
     return format(date, 'yyyy. MM. dd. HH:mm:ss');
   };
+  
+  if (!canViewUsages) {
+      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a beváltások megtekintéséhez.</p>;
+  }
 
   return (
     <div>

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import EventForm from './EventForm';
 import { format } from 'date-fns';
 import { Event, EventInsert } from '@/types/events';
+import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 
 interface EventEditDialogProps {
   event: Event;
@@ -61,7 +62,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
 };
 
 
-const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean }> = ({ event, onDelete, onUpdate, isLoading }) => {
+const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean, canManage: boolean }> = ({ event, onDelete, onUpdate, isLoading, canManage }) => {
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
 
   return (
@@ -77,35 +78,37 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
       )}
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
-        <div className="flex space-x-2">
-          <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
-              <DialogHeader>
-                <DialogTitle className="text-red-400">Esemény törlése</DialogTitle>
-                <DialogDescription className="text-gray-300">
-                  Biztosan törölni szeretnéd a "{event.title}" eseményt? Ez a művelet nem visszavonható.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
-                </DialogClose>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => onDelete(event.id)}
-                >
-                  Törlés megerősítése
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        {canManage && (
+            <div className="flex space-x-2">
+              <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
+                  <DialogHeader>
+                    <DialogTitle className="text-red-400">Esemény törlése</DialogTitle>
+                    <DialogDescription className="text-gray-300">
+                      Biztosan törölni szeretnéd a "{event.title}" eseményt? Ez a művelet nem visszavonható.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                    </DialogClose>
+                    <Button 
+                      variant="destructive" 
+                      onClick={() => onDelete(event.id)}
+                    >
+                      Törlés megerősítése
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-3 flex-grow">
         <CardDescription className="text-gray-400">{event.description || 'Nincs leírás.'}</CardDescription>
@@ -139,7 +142,10 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
 
 const EventsPage = () => {
   const { events, isLoading, fetchEvents, createEvent, updateEvent, deleteEvent, organizationName } = useEvents();
+  const { checkPermission } = useAuth(); // Use checkPermission
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  const canManageEvents = checkPermission('event_manager');
 
   useEffect(() => {
     // Fetch events whenever the organizationName changes (i.e., when profile loads)
@@ -164,27 +170,29 @@ const EventsPage = () => {
           <Calendar className="h-6 w-6" />
           Esemény Kezelés
         </h2>
-        <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-purple-600 hover:bg-purple-700">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Új Esemény
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-purple-300">Új Esemény Létrehozása</DialogTitle>
-              <DialogDescription className="text-gray-400">
-                Hozd létre az új eseményt a {organizationName} számára.
-              </DialogDescription>
-            </DialogHeader>
-            <EventForm 
-              onSubmit={createEvent} 
-              onClose={() => setIsFormOpen(false)} 
-              isLoading={isLoading}
-            />
-          </DialogContent>
-        </Dialog>
+        {canManageEvents && (
+            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-purple-600 hover:bg-purple-700">
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Új Esemény
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-purple-300">Új Esemény Létrehozása</DialogTitle>
+                  <DialogDescription className="text-gray-400">
+                    Hozd létre az új eseményt a {organizationName} számára.
+                  </DialogDescription>
+                </DialogHeader>
+                <EventForm 
+                  onSubmit={createEvent} 
+                  onClose={() => setIsFormOpen(false)} 
+                  isLoading={isLoading}
+                />
+              </DialogContent>
+            </Dialog>
+        )}
       </div>
 
       {events.length === 0 && !isLoading ? (
@@ -198,6 +206,7 @@ const EventsPage = () => {
               onDelete={deleteEvent} 
               onUpdate={updateEvent}
               isLoading={isLoading}
+              canManage={canManageEvents}
             />
           ))}
         </div>

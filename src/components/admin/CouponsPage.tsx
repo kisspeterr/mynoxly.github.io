@@ -8,6 +8,7 @@ import CouponForm from './CouponForm';
 import { format } from 'date-fns';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 
 interface CouponEditDialogProps {
   coupon: Coupon;
@@ -73,9 +74,10 @@ interface CouponCardProps {
   onDelete: (id: string, isArchived: boolean) => Promise<{ success: boolean }>;
   onUpdate: (id: string, data: Partial<CouponInsert>) => Promise<{ success: boolean }>;
   isLoading: boolean;
+  canManage: boolean; // NEW PROP
 }
 
-const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchive, onDelete, onUpdate, isLoading }) => {
+const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchive, onDelete, onUpdate, isLoading, canManage }) => {
   const expiryDate = coupon.expiry_date ? format(new Date(coupon.expiry_date), 'yyyy. MM. dd.') : 'Nincs beállítva';
   const isArchived = coupon.is_archived;
   const isActive = coupon.is_active;
@@ -117,85 +119,87 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
         </div>
         
         {/* Actions */}
-        <div className="flex space-x-2 pt-4 border-t border-gray-700/50">
-          <CouponEditDialog coupon={coupon} onUpdate={onUpdate} isLoading={isLoading} />
-          
-          {/* Toggle Active/Deactivate Button (Only if not archived) */}
-          {!isArchived && (
-            <Button 
-              variant={isActive ? 'destructive' : 'default'} 
-              size="icon" 
-              onClick={() => onToggleActive(coupon.id, isActive)}
-              disabled={isLoading}
-              className={`h-8 w-8 ${isActive ? 'bg-red-600/50 hover:bg-red-600/70' : 'bg-green-600/50 hover:bg-green-600/70'}`}
-            >
-              {isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
-            </Button>
-          )}
-          
-          {/* Archive Button (Only if not archived) */}
-          {!isArchived && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 border-gray-500/50 text-gray-400 hover:bg-gray-500/10">
-                  <Archive className="h-4 w-4" />
+        {canManage && (
+            <div className="flex space-x-2 pt-4 border-t border-gray-700/50">
+              <CouponEditDialog coupon={coupon} onUpdate={onUpdate} isLoading={isLoading} />
+              
+              {/* Toggle Active/Deactivate Button (Only if not archived) */}
+              {!isArchived && (
+                <Button 
+                  variant={isActive ? 'destructive' : 'default'} 
+                  size="icon" 
+                  onClick={() => onToggleActive(coupon.id, isActive)}
+                  disabled={isLoading}
+                  className={`h-8 w-8 ${isActive ? 'bg-red-600/50 hover:bg-red-600/70' : 'bg-green-600/50 hover:bg-green-600/70'}`}
+                >
+                  {isActive ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-black/80 border-gray-500/30 backdrop-blur-sm max-w-sm">
-                <DialogHeader>
-                  <DialogTitle className="text-gray-400">Kupon archiválása</DialogTitle>
-                  <DialogDescription className="text-gray-300">
-                    Biztosan archiválni szeretnéd a "{coupon.title}" kupont? Ez inaktiválja és elrejti a nyilvános nézetből.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
-                  </DialogClose>
-                  <Button 
-                    variant="default" 
-                    onClick={() => onArchive(coupon.id)}
-                    disabled={isLoading}
-                    className="bg-gray-600 hover:bg-gray-700"
-                  >
-                    Archiválás megerősítése
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-          
-          {/* Permanent Delete Button (Only if archived) */}
-          {isArchived && (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="destructive" size="icon" className="h-8 w-8">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
-                <DialogHeader>
-                  <DialogTitle className="text-red-400">Végleges törlés</DialogTitle>
-                  <DialogDescription className="text-gray-300">
-                    Biztosan VÉGLEGESEN törölni szeretnéd a "{coupon.title}" archivált kupont? Ez a művelet nem visszavonható.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
-                  </DialogClose>
-                  <Button 
-                    variant="destructive" 
-                    onClick={() => onDelete(coupon.id, true)}
-                    disabled={isLoading}
-                  >
-                    Végleges Törlés
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+              )}
+              
+              {/* Archive Button (Only if not archived) */}
+              {!isArchived && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-8 w-8 border-gray-500/50 text-gray-400 hover:bg-gray-500/10">
+                      <Archive className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-black/80 border-gray-500/30 backdrop-blur-sm max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-gray-400">Kupon archiválása</DialogTitle>
+                      <DialogDescription className="text-gray-300">
+                        Biztosan archiválni szeretnéd a "{coupon.title}" kupont? Ez inaktiválja és elrejti a nyilvános nézetből.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                      </DialogClose>
+                      <Button 
+                        variant="default" 
+                        onClick={() => onArchive(coupon.id)}
+                        disabled={isLoading}
+                        className="bg-gray-600 hover:bg-gray-700"
+                      >
+                        Archiválás megerősítése
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+              
+              {/* Permanent Delete Button (Only if archived) */}
+              {isArchived && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive" size="icon" className="h-8 w-8">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-red-400">Végleges törlés</DialogTitle>
+                      <DialogDescription className="text-gray-300">
+                        Biztosan VÉGLEGESEN törölni szeretnéd a "{coupon.title}" archivált kupont? Ez a művelet nem visszavonható.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                      </DialogClose>
+                      <Button 
+                        variant="destructive" 
+                        onClick={() => onDelete(coupon.id, true)}
+                        disabled={isLoading}
+                      >
+                        Végleges Törlés
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -203,7 +207,10 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
 
 const CouponsPage = () => {
   const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, toggleActiveStatus, archiveCoupon, deleteCoupon, organizationName } = useCoupons();
+  const { checkPermission } = useAuth(); // Use checkPermission
   const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  const canManageCoupons = checkPermission('coupon_manager');
 
   const activeAndInactiveCoupons = coupons.filter(c => !c.is_archived);
   const archivedCoupons = coupons.filter(c => c.is_archived);
@@ -234,27 +241,29 @@ const CouponsPage = () => {
             >
                 <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-cyan-600 hover:bg-cyan-700">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Új Kupon
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-cyan-300">Új Kupon Létrehozása</DialogTitle>
-                  <DialogDescription className="text-gray-400">
-                    Hozd létre az új akciót a {organizationName} számára.
-                  </DialogDescription>
-                </DialogHeader>
-                <CouponForm 
-                  onSubmit={createCoupon} 
-                  onClose={() => setIsFormOpen(false)} 
-                  isLoading={isLoading}
-                />
-              </DialogContent>
-            </Dialog>
+            {canManageCoupons && (
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-cyan-600 hover:bg-cyan-700">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Új Kupon
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-cyan-300">Új Kupon Létrehozása</DialogTitle>
+                      <DialogDescription className="text-gray-400">
+                        Hozd létre az új akciót a {organizationName} számára.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <CouponForm 
+                      onSubmit={createCoupon} 
+                      onClose={() => setIsFormOpen(false)} 
+                      isLoading={isLoading}
+                    />
+                  </DialogContent>
+                </Dialog>
+            )}
         </div>
       </div>
 
@@ -280,6 +289,7 @@ const CouponsPage = () => {
               onArchive={archiveCoupon}
               onToggleActive={toggleActiveStatus}
               isLoading={isLoading}
+              canManage={canManageCoupons}
             />
           ))}
         </div>
@@ -302,6 +312,7 @@ const CouponsPage = () => {
               onArchive={archiveCoupon}
               onToggleActive={toggleActiveStatus}
               isLoading={isLoading}
+              canManage={canManageCoupons}
             />
           ))}
         </div>

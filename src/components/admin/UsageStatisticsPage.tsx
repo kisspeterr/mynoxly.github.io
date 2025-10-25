@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 
 const timeRangeLabels: Record<TimeRange, string> = {
   day: 'Nap',
@@ -20,14 +21,19 @@ const timeRangeLabels: Record<TimeRange, string> = {
 
 const UsageStatisticsPage: React.FC = () => {
   const { stats, detailedUsages, isLoading, fetchStatistics } = useUsageStatistics();
+  const { checkPermission } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [emailFilter, setEmailFilter] = useState('');
+  
+  const canViewStatistics = checkPermission('viewer');
 
   // Fetch data whenever date, timeRange, or filter changes
   useEffect(() => {
-    fetchStatistics(selectedDate, timeRange, emailFilter);
-  }, [selectedDate, timeRange, emailFilter, fetchStatistics]);
+    if (canViewStatistics) {
+        fetchStatistics(selectedDate, timeRange, emailFilter);
+    }
+  }, [selectedDate, timeRange, emailFilter, fetchStatistics, canViewStatistics]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -55,6 +61,10 @@ const UsageStatisticsPage: React.FC = () => {
         return format(selectedDate, "yyyy. MM. dd.");
     }
   };
+  
+  if (!canViewStatistics) {
+      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a statisztikák megtekintéséhez.</p>;
+  }
 
   return (
     <div>

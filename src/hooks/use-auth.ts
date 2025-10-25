@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { showError } from '@/utils/toast';
 import { useQuery } from '@tanstack/react-query';
+import { MemberRole } from '@/types/organization'; // Import MemberRole
 
 // 🔹 Profile tábla definíció
 interface Profile {
@@ -17,6 +18,13 @@ interface Profile {
   username: string; // NEW FIELD: Must be present
   last_username_change: string | null; // NEW FIELD: Timestamp
   username_change_count: number; // NEW FIELD: Change count
+}
+
+// 🔹 Szervezeti tagság adatok
+interface OrganizationMembership {
+    organization_id: string;
+    roles: MemberRole[];
+    status: 'pending' | 'accepted';
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -39,11 +47,36 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   }
 };
 
+// 🔹 Szervezeti tagság lekérdezése
+const fetchMembership = async (userId: string): Promise<OrganizationMembership | null> => {
+    try {
+        // Csak az elfogadott tagságot keressük
+        const { data, error } = await supabase
+            .from('organization_members')
+            .select('organization_id, roles, status')
+            .eq('user_id', userId)
+            .eq('status', 'accepted')
+            .single();
+            
+        if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching membership:', error);
+            return null;
+        }
+        
+        return data as OrganizationMembership;
+    } catch (e) {
+        console.error('Unexpected error during membership fetch:', e);
+        return null;
+    }
+};
+
+
 // 🔹 Session és Profil adatok lekérdezése
 interface AuthData {
     session: Session | null;
     user: User | null;
     profile: Profile | null;
+    membership: OrganizationMembership | null; // NEW
 }
 
 const fetchAuthData = async (): Promise<AuthData> => {
@@ -51,18 +84,23 @@ const fetchAuthData = async (): Promise<AuthData> => {
     
     if (sessionError) {
         console.error('Supabase getSession error:', sessionError);
-        // Ha a session hiba, akkor nincs felhasználó
-        return { session: null, user: null, profile: null };
+        return { session: null, user: null, profile: null, membership: null };
     }
     
     const user = session?.user || null;
     let profile: Profile | null = null;
+    let membership: OrganizationMembership | null = null;
     
     if (user) {
         profile = await fetchProfile(user.id);
+        
+        // Ha a felhasználó nem fő admin, lekérdezzük a tagságát is
+        if (profile?.role !== 'admin') {
+            membership = await fetchMembership(user.id);
+        }
     }
     
-    return { session, user, profile };
+    return { session, user, profile, membership };
 };
 
 
@@ -83,8 +121,6 @@ export const useAuth = () => {
         // Ha bejelentkezés, kijelentkezés vagy token frissítés történik, 
         // kényszerítjük a React Query cache frissítését.
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-            // A refetch hívás automatikusan beállítja az isLoading állapotot true-ra, 
-            // majd frissíti az adatokat.
             refetch();
         }
       }
@@ -102,22 +138,30 @@ export const useAuth = () => {
       showError('Hiba történt a kijelentkezés során.');
       console.error('Sign out error:', error);
     } else {
-        // Kézi cache invalidálás kijelentkezés után
         refetch();
     }
   };
   
   // 🔹 Profil frissítésének kényszerítése (pl. beállítások mentése után)
   const forceProfileRefetch = useCallback(async (userId: string) => {
-      // Kézzel frissítjük a profilt, majd frissítjük a query cache-t
-      const newProfile = await fetchProfile(userId);
-      
-      // Mivel a queryKey 'authSession', a refetch frissíti az összes adatot.
-      // A legegyszerűbb, ha csak refetch-et hívunk, de ha azonnali frissítés kell, 
-      // akkor a queryClient.setQueryData-t kellene használni.
-      // Maradunk a refetch-nél, ami a legbiztonságosabb.
       refetch();
   }, [refetch]);
+  
+  // 🔹 Jogosultság ellenőrzése
+  const checkPermission = useCallback((requiredRole: MemberRole): boolean => {
+    // 1. Fő admin mindig mindent megtehet
+    if (data?.profile?.role === 'admin') {
+        return true;
+    }
+    
+    // 2. Delegált tag ellenőrzése
+    const roles = data?.membership?.roles;
+    if (roles && roles.includes(requiredRole)) {
+        return true;
+    }
+    
+    return false;
+  }, [data?.profile?.role, data?.membership?.roles]);
 
 
   // 🔹 Visszatérő értékek
@@ -125,10 +169,12 @@ export const useAuth = () => {
     session: data?.session || null,
     user: data?.user || null,
     profile: data?.profile || null,
+    membership: data?.membership || null, // NEW
     isLoading: isLoading,
     signOut,
     isAdmin: data?.profile?.role === 'admin',
     isAuthenticated: !!data?.user,
-    fetchProfile: forceProfileRefetch, // Exportáljuk a kényszerített frissítést
+    fetchProfile: forceProfileRefetch,
+    checkPermission, // NEW
   };
 };
