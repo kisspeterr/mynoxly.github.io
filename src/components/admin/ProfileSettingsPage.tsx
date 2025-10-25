@@ -4,19 +4,26 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
-import LogoUploader from './LogoUploader'; // Import the new component
+import LogoUploader from './LogoUploader';
+import LocationPickerMap from '@/components/LocationPickerMap'; // Import the map component
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || ''); // Now managed by Uploader, but stored here
+  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
   const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
+  
+  // NEW Location States
+  const [latitude, setLatitude] = useState(profile?.latitude || null);
+  const [longitude, setLongitude] = useState(profile?.longitude || null);
+  const [formattedAddress, setFormattedAddress] = useState(profile?.formatted_address || null);
+  
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state when profile loads/changes
@@ -27,8 +34,17 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(profile.organization_name || '');
       setLogoUrl(profile.logo_url || '');
       setIsPublic(profile.is_public ?? true);
+      setLatitude(profile.latitude || null);
+      setLongitude(profile.longitude || null);
+      setFormattedAddress(profile.formatted_address || null);
     }
   }, [profile]);
+  
+  const handleLocationChange = (location: { lat: number; lng: number; address: string }) => {
+    setLatitude(location.lat);
+    setLongitude(location.lng);
+    setFormattedAddress(location.address);
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,8 +56,11 @@ const ProfileSettingsPage: React.FC = () => {
       first_name: firstName.trim() || null,
       last_name: lastName.trim() || null,
       organization_name: organizationName.trim() || null,
-      logo_url: logoUrl || null, // Use the URL set by the uploader or null
+      logo_url: logoUrl || null,
       is_public: isPublic,
+      latitude: latitude, // Save location data
+      longitude: longitude, // Save location data
+      formatted_address: formattedAddress, // Save location data
       updated_at: new Date().toISOString(),
     };
 
@@ -97,6 +116,7 @@ const ProfileSettingsPage: React.FC = () => {
       <CardContent>
         <form onSubmit={handleSave} className="space-y-6">
           
+          {/* Personal Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="firstName" className="text-gray-300">Keresztnév</Label>
@@ -120,6 +140,7 @@ const ProfileSettingsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Organization Info */}
           <div className="space-y-2">
             <Label htmlFor="organizationName" className="text-gray-300 flex items-center">
               <MapPin className="h-4 w-4 mr-2" /> Szervezet neve *
@@ -143,6 +164,32 @@ const ProfileSettingsPage: React.FC = () => {
               onRemove={() => setLogoUrl(null)}
             />
             <p className="text-xs text-gray-500">A feltöltés után ne felejtsd el menteni a beállításokat!</p>
+          </div>
+          
+          {/* Location Picker */}
+          <div className="space-y-4 pt-4 border-t border-gray-700/50">
+            <h3 className="text-lg font-semibold text-cyan-300 flex items-center gap-2">
+                <Globe className="h-5 w-5" /> Székhely beállítása
+            </h3>
+            
+            <LocationPickerMap 
+                initialLocation={{ 
+                    lat: latitude, 
+                    lng: longitude, 
+                    address: formattedAddress 
+                }}
+                onChange={handleLocationChange}
+            />
+            
+            <div className="space-y-2">
+                <Label className="text-gray-300">Kiválasztott cím:</Label>
+                <Input 
+                    value={formattedAddress || 'Kattints a térképre a hely kiválasztásához.'}
+                    readOnly
+                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                />
+                <p className="text-xs text-gray-500">Koordináták: {latitude?.toFixed(4) || 'N/A'}, {longitude?.toFixed(4) || 'N/A'}</p>
+            </div>
           </div>
           
           {/* Public Visibility Switch */}
