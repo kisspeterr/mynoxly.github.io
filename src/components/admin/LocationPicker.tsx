@@ -1,9 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { MapPin, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Dinamikusan importáljuk a react-leaflet komponenseket
+const LazyMapContainer = lazy(() => import('react-leaflet').then(module => ({ default: module.MapContainer })));
+const LazyTileLayer = lazy(() => import('react-leaflet').then(module => ({ default: module.TileLayer })));
+const LazyMarker = lazy(() => import('react-leaflet').then(module => ({ default: module.Marker })));
+const LazyUseMapEvents = lazy(() => import('react-leaflet').then(module => ({ default: module.useMapEvents })));
 
 // Fix for default Leaflet icons not loading in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -24,6 +29,9 @@ const DEFAULT_CENTER: [number, number] = [46.0727, 18.2322];
 const DEFAULT_ZOOM = 13;
 
 const LocationMarker: React.FC<{ position: [number, number], onMove: (lat: number, lng: number) => void }> = ({ position, onMove }) => {
+  // useMapEvents must be called inside a component rendered within MapContainer
+  const useMapEvents = LazyUseMapEvents as unknown as () => { click: (callback: (e: L.LeafletMouseEvent) => void) => void };
+  
   useMapEvents({
     click(e) {
       onMove(e.latlng.lat, e.latlng.lng);
@@ -31,14 +39,14 @@ const LocationMarker: React.FC<{ position: [number, number], onMove: (lat: numbe
   });
 
   return position ? (
-    <Marker position={position} draggable={true} eventHandlers={{
+    <LazyMarker position={position} draggable={true} eventHandlers={{
         dragend: (e) => {
             const marker = e.target;
             const newPosition = marker.getLatLng();
             onMove(newPosition.lat, newPosition.lng);
         }
     }}>
-    </Marker>
+    </LazyMarker>
   ) : null;
 };
 
@@ -74,19 +82,21 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng,
                 <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
             </div>
         )}
-        <MapContainer 
-          center={center} 
-          zoom={DEFAULT_ZOOM} 
-          scrollWheelZoom={false} 
-          className={cn("h-full w-full z-0", isMapLoaded ? 'opacity-100' : 'opacity-0')}
-          whenReady={() => setIsMapLoaded(true)}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <LocationMarker position={position} onMove={handleMove} />
-        </MapContainer>
+        <Suspense fallback={null}>
+            <LazyMapContainer 
+              center={center} 
+              zoom={DEFAULT_ZOOM} 
+              scrollWheelZoom={false} 
+              className={cn("h-full w-full z-0", isMapLoaded ? 'opacity-100' : 'opacity-0')}
+              whenReady={() => setIsMapLoaded(true)}
+            >
+              <LazyTileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <LocationMarker position={position} onMove={handleMove} />
+            </LazyMapContainer>
+        </Suspense>
       </div>
       
       <div className="text-sm text-gray-400">

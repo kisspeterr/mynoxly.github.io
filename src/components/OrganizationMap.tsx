@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { MapPin, Building, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+// Dinamikusan importáljuk a react-leaflet komponenseket
+const LazyMapContainer = lazy(() => import('react-leaflet').then(module => ({ default: module.MapContainer })));
+const LazyTileLayer = lazy(() => import('react-leaflet').then(module => ({ default: module.TileLayer })));
+const LazyMarker = lazy(() => import('react-leaflet').then(module => ({ default: module.Marker })));
+const LazyPopup = lazy(() => import('react-leaflet').then(module => ({ default: module.Popup })));
+
 
 // Fix for default Leaflet icons not loading in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -53,31 +59,33 @@ const OrganizationMap: React.FC<OrganizationMapProps> = ({ lat, lng, organizatio
                 <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
             </div>
         )}
-        <MapContainer 
-          center={position} 
-          zoom={DEFAULT_ZOOM} 
-          scrollWheelZoom={false} 
-          className={cn("h-full w-full z-0", isMapLoaded ? 'opacity-100' : 'opacity-0')}
-          whenReady={() => setIsMapLoaded(true)}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <Marker position={position} icon={customIcon}>
-            <Popup>
-              <div className="font-bold text-gray-900">{organizationName}</div>
-              <a 
-                href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline text-sm"
-              >
-                Megnyitás Google Maps-ben
-              </a>
-            </Popup>
-          </Marker>
-        </MapContainer>
+        <Suspense fallback={null}>
+            <LazyMapContainer 
+              center={position} 
+              zoom={DEFAULT_ZOOM} 
+              scrollWheelZoom={false} 
+              className={cn("h-full w-full z-0", isMapLoaded ? 'opacity-100' : 'opacity-0')}
+              whenReady={() => setIsMapLoaded(true)}
+            >
+              <LazyTileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              <LazyMarker position={position} icon={customIcon}>
+                <LazyPopup>
+                  <div className="font-bold text-gray-900">{organizationName}</div>
+                  <a 
+                    href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:underline text-sm"
+                  >
+                    Megnyitás Google Maps-ben
+                  </a>
+                </LazyPopup>
+              </LazyMarker>
+            </LazyMapContainer>
+        </Suspense>
       </div>
     </div>
   );
