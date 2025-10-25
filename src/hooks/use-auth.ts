@@ -13,7 +13,16 @@ interface Profile {
   role: 'user' | 'admin';
   organization_name: string | null;
   logo_url: string | null;
-  is_public: boolean | null; // NEW FIELD
+  is_public: boolean | null;
+  
+  // NEW LOCATION FIELDS
+  latitude: number | null;
+  longitude: number | null;
+  formatted_address: string | null;
+  city: string | null;
+  country: string | null;
+  street: string | null;
+  postal_code: string | null;
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -21,7 +30,7 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public') // Include is_public
+      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public, latitude, longitude, formatted_address, city, country, street, postal_code') // Include all new fields
       .eq('id', userId)
       .single();
 
