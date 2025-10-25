@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
+import SuperadminDashboard from "./pages/SuperadminDashboard"; // NEW IMPORT
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
 import OrganizationProfile from "./pages/OrganizationProfile"; 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/superadmin/dashboard" element={<SuperadminDashboard />} /> {/* NEW ROUTE */}
           <Route path="/code" element={<RedemptionPage />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> {/* New dynamic route */}

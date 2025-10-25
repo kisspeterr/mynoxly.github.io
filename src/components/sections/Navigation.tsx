@@ -11,7 +11,7 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
-  const { isAuthenticated, isAdmin, signOut, isLoading, profile } = useAuth();
+  const { isAuthenticated, isAdmin, isSuperadmin, signOut, isLoading, profile } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,7 +48,32 @@ const Navigation = () => {
     
     // 2. Hitelesített és profil betöltve
     if (isAuthenticated) {
-      if (isAdmin) {
+      if (isSuperadmin) {
+        // Superadmin: Dedicated Dashboard button
+        return (
+          <div className="flex space-x-3">
+            <Button 
+              asChild
+              variant="outline"
+              size="icon"
+              className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 transition-all duration-300 hover:scale-105"
+            >
+              <Link to="/profile">
+                <User className="h-5 w-5" />
+              </Link>
+            </Button>
+            <Button 
+              asChild
+              className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white transition-all duration-300 hover:scale-105"
+            >
+              <Link to="/superadmin/dashboard">
+                <Shield className="mr-2 h-4 w-4" />
+                Superadmin
+              </Link>
+            </Button>
+          </div>
+        );
+      } else if (isAdmin) {
         // Admin: Dashboard, Redemption, Profile buttons
         return (
           <div className="flex space-x-3">
@@ -200,15 +225,15 @@ const Navigation = () => {
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
               {!isLoading && isAuthenticated && (
                 <Link
-                  to={isAdmin ? "/admin/dashboard" : "/profile"}
+                  to={isSuperadmin ? "/superadmin/dashboard" : (isAdmin ? "/admin/dashboard" : "/profile")}
                   className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
                   onClick={() => setIsOpen(false)}
                 >
-                  {isAdmin ? <Shield className="h-4 w-4 mr-2 text-purple-300" /> : <User className="h-4 w-4 mr-2 text-cyan-300" />}
-                  {isAdmin ? "Admin Dashboard" : "Profil"}
+                  {isSuperadmin ? <Shield className="h-4 w-4 mr-2 text-red-300" /> : (isAdmin ? <Shield className="h-4 w-4 mr-2 text-purple-300" /> : <User className="h-4 w-4 mr-2 text-cyan-300" />)}
+                  {isSuperadmin ? "Superadmin Dashboard" : (isAdmin ? "Admin Dashboard" : "Profil")}
                 </Link>
               )}
-              {!isLoading && isAuthenticated && isAdmin && (
+              {!isLoading && isAuthenticated && (isAdmin || isSuperadmin) && (
                 <Link
                   to="/code"
                   className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"

@@ -26,7 +26,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isAdmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, switchActiveOrganization } = useAuth();
+  const { isAuthenticated, isAdmin, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, switchActiveOrganization } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -34,8 +34,11 @@ const AdminDashboard = () => {
     if (!isLoading && !isAuthenticated) {
       // Redirect if loading is done and user is not authenticated
       navigate('/login');
+    } else if (!isLoading && isSuperadmin) {
+      // Redirect Superadmins to their dedicated dashboard
+      navigate('/superadmin/dashboard');
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [isAuthenticated, isSuperadmin, isLoading, navigate]);
 
   if (isLoading) {
     return (

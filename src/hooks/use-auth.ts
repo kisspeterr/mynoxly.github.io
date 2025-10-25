@@ -11,7 +11,7 @@ export interface Profile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'superadmin'; // ADDED superadmin
   organization_name: string | null;
   logo_url: string | null;
   is_public: boolean | null;
@@ -131,8 +131,8 @@ export const useAuth = () => {
   const activeOrganizationProfile = useMemo(() => {
       if (!activeOrganizationId || !data?.profile) return null;
       
-      // 1. Check if the active ID is the user's own admin profile ID
-      if (data.profile.role === 'admin' && data.profile.id === activeOrganizationId) {
+      // 1. Check if the active ID is the user's own admin/superadmin profile ID
+      if ((data.profile.role === 'admin' || data.profile.role === 'superadmin') && data.profile.id === activeOrganizationId) {
           // Return the user's own profile data, mapped to the expected structure
           return {
               organization_name: data.profile.organization_name,
@@ -160,8 +160,8 @@ export const useAuth = () => {
   // 🔹 Kezdeti aktív szervezet beállítása (első tagság vagy a fő admin profilja)
   useEffect(() => {
     if (data && !activeOrganizationId) {
-        // 1. Próbáljuk meg beállítani a fő admin profilját, ha az létezik és van szervezet neve
-        const mainAdminProfile = data.profile?.role === 'admin' && data.profile.organization_name 
+        // 1. Próbáljuk meg beállítani a fő admin/superadmin profilját, ha az létezik és van szervezet neve
+        const mainAdminProfile = (data.profile?.role === 'admin' || data.profile?.role === 'superadmin') && data.profile.organization_name 
             ? data.profile 
             : null;
             
@@ -208,6 +208,11 @@ export const useAuth = () => {
   
   // 🔹 Jogosultság ellenőrzése
   const checkPermission = useCallback((requiredRole: MemberRole): boolean => {
+    // 0. Superadmin mindig mindent megtehet
+    if (data?.profile?.role === 'superadmin') {
+        return true;
+    }
+    
     // 1. Fő admin (régi rendszer) - ha a saját profilja aktív, mindent megtehet
     if (data?.profile?.role === 'admin' && data?.profile?.id === activeOrganizationId) {
         return true;
@@ -224,9 +229,9 @@ export const useAuth = () => {
   
   // 🔹 Aktív szervezet váltása
   const switchActiveOrganization = useCallback((organizationId: string) => {
-      // Check if the organizationId is either the user's own profile ID (if they are admin) 
+      // Check if the organizationId is either the user's own profile ID (if they are admin/superadmin) 
       // OR if it matches one of their accepted memberships.
-      const isOwnAdminProfile = data?.profile?.role === 'admin' && data?.profile?.id === organizationId;
+      const isOwnAdminProfile = (data?.profile?.role === 'admin' || data?.profile?.role === 'superadmin') && data?.profile?.id === organizationId;
       const isAcceptedMember = data?.allMemberships.some(m => m.organization_id === organizationId);
       
       if (isOwnAdminProfile || isAcceptedMember) {
@@ -265,6 +270,7 @@ export const useAuth = () => {
     isLoading: isLoading,
     signOut,
     isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status
+    isSuperadmin: data?.profile?.role === 'superadmin', // NEW
     isAuthenticated: !!data?.user,
     fetchProfile: forceProfileRefetch,
     checkPermission,
