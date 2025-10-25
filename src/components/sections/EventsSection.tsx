@@ -77,25 +77,37 @@ const EventsSection = () => {
                     </div>
                   )}
                   <CardHeader className="pb-4">
+                    
+                    {/* NEW: Centered Logo */}
+                    <div className="flex justify-center -mt-10 mb-4">
+                        <Link 
+                            to={`/organization/${event.organization_name}`}
+                            className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-purple-400 shadow-lg group hover:scale-105 transition-transform duration-300"
+                        >
+                            {logoUrl ? (
+                                <img 
+                                    src={logoUrl} 
+                                    alt={event.organization_name} 
+                                    className="h-full w-full rounded-full object-cover"
+                                />
+                            ) : (
+                                <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                    <Building className="h-8 w-8 text-purple-400" />
+                                </div>
+                            )}
+                        </Link>
+                    </div>
+                    
                     <div className="flex justify-between items-start mb-2">
                         <CardTitle className="text-2xl text-purple-300 mr-2">{event.title}</CardTitle>
                         <EventCountdown startTime={event.start_time} endTime={event.end_time} />
                     </div>
                     
-                    {/* Organization Name with Logo and Link */}
+                    {/* Organization Name Link (now below the title) */}
                     <Link 
                       to={`/organization/${event.organization_name}`}
-                      className="flex items-center text-gray-400 hover:text-purple-300 transition-colors duration-300 group"
+                      className="flex items-center justify-center text-gray-400 hover:text-purple-300 transition-colors duration-300 group"
                     >
-                      {logoUrl ? (
-                        <img 
-                          src={logoUrl} 
-                          alt={event.organization_name} 
-                          className="h-6 w-6 rounded-full object-cover mr-2 border border-gray-600 group-hover:border-purple-400"
-                        />
-                      ) : (
-                        <Building className="h-5 w-5 mr-2 text-gray-500 group-hover:text-purple-400" />
-                      )}
                       <CardDescription className="text-gray-400 group-hover:text-purple-300 transition-colors duration-300">
                         {event.organization_name}
                       </CardDescription>

@@ -357,8 +357,40 @@ const OrganizationProfile = () => {
                 return (
                   <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
                     <CardHeader>
-                      <CardTitle className="text-xl text-cyan-300">{coupon.title}</CardTitle>
-                      <CardDescription className="text-gray-400">{coupon.coupon_code || 'Azonnali beváltás'}</CardDescription>
+                      {coupon.image_url && (
+                        <div className="h-40 w-full overflow-hidden rounded-t-xl">
+                          <img 
+                            src={coupon.image_url} 
+                            alt={coupon.title} 
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* NEW: Centered Logo */}
+                      <div className="flex justify-center -mt-10 mb-4">
+                          <Link 
+                              to={`/organization/${coupon.organization_name}`}
+                              className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
+                          >
+                              {profile.logo_url ? (
+                                  <img 
+                                      src={profile.logo_url} 
+                                      alt={profile.organization_name} 
+                                      className="h-full w-full rounded-full object-cover"
+                                  />
+                              ) : (
+                                  <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                      <Building className="h-8 w-8 text-cyan-400" />
+                                  </div>
+                              )}
+                          </Link>
+                      </div>
+                      
+                      <CardTitle className="text-2xl text-cyan-300">{coupon.title}</CardTitle>
+                      <CardDescription className="text-gray-400 text-center">
+                        {coupon.organization_name}
+                      </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm flex-grow">
                       <p className="text-gray-300">{coupon.description || 'Nincs leírás.'}</p>
@@ -505,12 +537,33 @@ const OrganizationProfile = () => {
                       </div>
                     )}
                     <CardHeader className="pb-4">
+                      
+                      {/* NEW: Centered Logo */}
+                      <div className="flex justify-center -mt-10 mb-4">
+                          <Link 
+                              to={`/organization/${event.organization_name}`}
+                              className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-purple-400 shadow-lg group hover:scale-105 transition-transform duration-300"
+                          >
+                              {profile.logo_url ? (
+                                  <img 
+                                      src={profile.logo_url} 
+                                      alt={profile.organization_name} 
+                                      className="h-full w-full rounded-full object-cover"
+                                  />
+                              ) : (
+                                  <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                      <Building className="h-8 w-8 text-purple-400" />
+                                  </div>
+                              )}
+                          </Link>
+                      </div>
+                      
                       <div className="flex justify-between items-start mb-2">
-                        <CardTitle className="text-xl text-purple-300 mr-2">{event.title}</CardTitle>
+                        <CardTitle className="text-2xl text-purple-300 mr-2">{event.title}</CardTitle>
                         <EventCountdown startTime={event.start_time} endTime={event.end_time} />
                       </div>
-                      <CardDescription className="text-gray-400 flex items-center text-sm">
-                        <Building className="h-4 w-4 mr-1" /> {event.organization_name}
+                      <CardDescription className="text-gray-400 text-center">
+                        {event.organization_name}
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm flex-grow">
