@@ -18,11 +18,14 @@ import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
 import EventCountdown from '@/components/EventCountdown'; // Import EventCountdown
 import { Badge } from '@/components/ui/badge';
+import OrganizationMap from '@/components/OrganizationMap'; // Import OrganizationMap
 
 interface OrganizationProfileData {
   id: string;
   organization_name: string;
   logo_url: string | null;
+  latitude: number | null; // NEW
+  longitude: number | null; // NEW
 }
 
 // NOTE: This definition must match the one in use-public-coupons.ts
@@ -87,10 +90,10 @@ const OrganizationProfile = () => {
     setError(null);
     
     try {
-      // 1. Fetch Organization Profile
+      // 1. Fetch Organization Profile (including new coordinates)
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, organization_name, logo_url')
+        .select('id, organization_name, logo_url, latitude, longitude') // Include new fields
         .eq('organization_name', organizationName)
         .single();
 
@@ -302,6 +305,18 @@ const OrganizationProfile = () => {
             </div>
           </div>
         </Card>
+        
+        {/* Map Section (if coordinates exist) */}
+        {profile.latitude && profile.longitude && (
+            <div className="mb-12">
+                <OrganizationMap 
+                    lat={profile.latitude}
+                    lng={profile.longitude}
+                    organizationName={profile.organization_name}
+                    logoUrl={profile.logo_url}
+                />
+            </div>
+        )}
 
         {/* Coupons Section */}
         <div className="mb-12">
