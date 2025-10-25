@@ -16,6 +16,7 @@ interface Profile {
   is_public: boolean | null;
   username: string; // NEW FIELD: Must be present
   last_username_change: string | null; // NEW FIELD: Timestamp
+  username_change_count: number; // NEW FIELD: Change count
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -23,7 +24,7 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public, username, last_username_change') // Include new fields
+      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public, username, last_username_change, username_change_count') // Include new fields
       .eq('id', userId)
       .single();
 

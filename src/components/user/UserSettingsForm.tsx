@@ -11,6 +11,7 @@ import { differenceInDays, addDays } from 'date-fns';
 import { format } from 'date-fns/format';
 
 const USERNAME_CHANGE_LIMIT_DAYS = 7;
+const MAX_CHANGES_BEFORE_COOLDOWN = 3;
 
 const UserSettingsForm: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
@@ -37,12 +38,24 @@ const UserSettingsForm: React.FC = () => {
     );
   }
   
+  const currentChangeCount = profile.username_change_count || 0;
   const lastChangeDate = profile.last_username_change ? new Date(profile.last_username_change) : null;
   const daysSinceLastChange = lastChangeDate ? differenceInDays(new Date(), lastChangeDate) : USERNAME_CHANGE_LIMIT_DAYS;
-  const canChangeUsername = daysSinceLastChange >= USERNAME_CHANGE_LIMIT_DAYS;
   
-  const nextChangeDate = lastChangeDate ? addDays(lastChangeDate, USERNAME_CHANGE_LIMIT_DAYS) : null;
-  const nextChangeText = nextChangeDate ? format(nextChangeDate, 'yyyy. MM. dd.') : 'azonnal';
+  // Check if the cooldown period is active
+  const isCooldownActive = currentChangeCount >= MAX_CHANGES_BEFORE_COOLDOWN;
+  const isCooldownOver = daysSinceLastChange >= USERNAME_CHANGE_LIMIT_DAYS;
+  
+  // Can change username if:
+  // 1. Cooldown is NOT active OR
+  // 2. Cooldown IS active AND the cooldown period is over.
+  const canChangeUsername = !isCooldownActive || isCooldownOver;
+  
+  let nextChangeText = 'azonnal';
+  if (isCooldownActive && !isCooldownOver) {
+      const nextChangeDate = lastChangeDate ? addDays(lastChangeDate, USERNAME_CHANGE_LIMIT_DAYS) : null;
+      nextChangeText = nextChangeDate ? format(nextChangeDate, 'yyyy. MM. dd.') : 'ismeretlen időpontban';
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +67,7 @@ const UserSettingsForm: React.FC = () => {
     const isUsernameChanged = trimmedUsername !== profile.username;
     
     if (isUsernameChanged && !canChangeUsername) {
-        showError(`A felhasználónevet csak ${USERNAME_CHANGE_LIMIT_DAYS} naponta lehet módosítani. Legközelebb: ${nextChangeText}.`);
+        showError(`A felhasználónevet csak 7 naponta lehet módosítani, miután elérted a ${MAX_CHANGES_BEFORE_COOLDOWN} változtatási limitet. Legközelebb: ${nextChangeText}.`);
         setIsSaving(false);
         return;
     }
@@ -79,8 +92,16 @@ const UserSettingsForm: React.FC = () => {
     };
     
     if (isUsernameChanged) {
+        // If cooldown is over, reset count to 1 and update timestamp
+        if (isCooldownOver) {
+            updates.username_change_count = 1;
+            updates.last_username_change = new Date().toISOString();
+        } else {
+            // If cooldown is NOT active (count < 3), increment count and update timestamp
+            updates.username_change_count = currentChangeCount + 1;
+            updates.last_username_change = new Date().toISOString();
+        }
         updates.username = trimmedUsername;
-        updates.last_username_change = new Date().toISOString(); // Update timestamp
     }
 
     try {
@@ -167,15 +188,22 @@ const UserSettingsForm: React.FC = () => {
                   disabled={!canChangeUsername || isSaving}
                 />
             </div>
-            {!canChangeUsername && (
+            
+            {/* Status Messages */}
+            {isCooldownActive && !isCooldownOver && (
                 <p className="text-sm text-red-400 flex items-center">
                     <Clock className="h-4 w-4 mr-2" />
-                    A felhasználónevet csak 7 naponta lehet módosítani. Legközelebb: {nextChangeText}.
+                    Elérted a heti {MAX_CHANGES_BEFORE_COOLDOWN} változtatási limitet. Legközelebb: {nextChangeText}.
                 </p>
             )}
-            {canChangeUsername && (
+            {!isCooldownActive && (
                 <p className="text-sm text-green-400">
-                    A felhasználónév módosítható.
+                    Még {MAX_CHANGES_BEFORE_COOLDOWN - currentChangeCount} változtatás engedélyezett a 7 napos korlát előtt.
+                </p>
+            )}
+            {isCooldownActive && isCooldownOver && (
+                <p className="text-sm text-green-400">
+                    A korlát lejárt. A következő változtatás után a számláló újraindul.
                 </p>
             )}
           </div>
