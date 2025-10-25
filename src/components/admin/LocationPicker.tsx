@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense, ComponentType } from 'react';
+import React, { useState, useEffect, ComponentType } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import { showError } from '@/utils/toast';
 
@@ -19,21 +19,32 @@ interface LocationPickerProps {
 const DEFAULT_LAT = 46.0727;
 const DEFAULT_LNG = 18.2328;
 
-// Define the lazy component outside the main component function
-const LazyLeafletMap = lazy(() => import('./LeafletMap'));
-
 const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng, onLocationChange }) => {
-  const [isClient, setIsClient] = useState(false);
+  const [LeafletMapComponent, setLeafletMapComponent] = useState<ComponentType<LeafletMapProps> | null>(null);
+  const [isLoadingMap, setIsLoadingMap] = useState(true);
   
-  // Ensure the component only renders the map on the client side
+  // Dynamic import in useEffect to ensure it only runs client-side
   useEffect(() => {
-    setIsClient(true);
+    // Check if running in browser environment
+    if (typeof window !== 'undefined') {
+      import('./LeafletMap')
+        .then(module => {
+          setLeafletMapComponent(() => module.default);
+        })
+        .catch(error => {
+          console.error("Failed to load LeafletMap:", error);
+          showError("Hiba történt a térkép betöltésekor.");
+        })
+        .finally(() => {
+          setIsLoadingMap(false);
+        });
+    }
   }, []);
 
   const lat = initialLat ?? DEFAULT_LAT;
   const lng = initialLng ?? DEFAULT_LNG;
 
-  if (!isClient) {
+  if (isLoadingMap || !LeafletMapComponent) {
     // Placeholder while waiting for client-side hydration
     return (
       <div className="h-96 w-full flex items-center justify-center bg-gray-800 rounded-lg text-gray-400">
@@ -43,20 +54,13 @@ const LocationPicker: React.FC<LocationPickerProps> = ({ initialLat, initialLng,
     );
   }
 
-  // Render the map component only on the client side using Suspense
+  // Render the dynamically loaded component
   return (
-    <Suspense fallback={
-        <div className="h-96 w-full flex items-center justify-center bg-gray-800 rounded-lg text-gray-400">
-            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-            Térkép betöltése...
-        </div>
-    }>
-      <LazyLeafletMap 
-        initialLat={lat}
-        initialLng={lng}
-        onLocationChange={onLocationChange}
-      />
-    </Suspense>
+    <LeafletMapComponent 
+      initialLat={lat}
+      initialLng={lng}
+      onLocationChange={onLocationChange}
+    />
   );
 };
 
