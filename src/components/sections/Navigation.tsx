@@ -30,8 +30,8 @@ const Navigation = () => {
     setIsOpen(false);
   };
 
-  const handleSignOut = () => {
-    signOut();
+  const handleSignOut = async () => {
+    await signOut(); // Await the asynchronous signOut call
     setIsOpen(false);
   };
 
