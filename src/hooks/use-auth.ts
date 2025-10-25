@@ -85,17 +85,22 @@ export const useAuth = () => {
       } finally {
         if (isMounted) {
             // 2. Gyorsan beállítjuk az állapotot isLoading=false-ra, még profil nélkül
-            updateAuthState(session, null, false);
+            // Ez a lépés a legfontosabb, hogy a UI ne blokkoljon
+            setAuthState(prev => ({
+                ...prev,
+                session: session,
+                user: session?.user || null,
+                isLoading: false, // Betöltés befejezve
+            }));
             
             // 3. Ha van session, aszinkron módon betöltjük a profilt
             if (session?.user) {
                 fetchProfile(session.user.id).then(profile => {
                     if (isMounted && profile) {
-                        // Frissítjük az állapotot a profillal, de már nem állítjuk be a loadert
+                        // Frissítjük az állapotot a profillal
                         setAuthState(prev => ({
                             ...prev,
                             profile: profile,
-                            // isLoading már false
                         }));
                     }
                 });
@@ -111,18 +116,21 @@ export const useAuth = () => {
       async (event, session) => {
         if (!isMounted) return;
 
-        // Ha bejelentkezés vagy kijelentkezés történik, ideiglenesen mutassuk a loadert
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-            setAuthState((prev) => ({ ...prev, isLoading: true }));
-        }
-
+        // NE állítsuk vissza az isLoading-et true-ra, csak frissítsük a sessiont és a profilt
+        
         let profile: Profile | null = null;
         if (session?.user) {
           profile = await fetchProfile(session.user.id);
         }
 
-        // Mindig befejezzük a betöltést
-        updateAuthState(session, profile, false);
+        // Frissítjük az állapotot, de az isLoading marad false
+        setAuthState(prev => ({
+            ...prev,
+            session: session,
+            user: session?.user || null,
+            profile: profile,
+            isLoading: false, // Biztosítjuk, hogy false maradjon
+        }));
       }
     );
 
