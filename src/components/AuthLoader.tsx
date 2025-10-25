@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
 
@@ -6,8 +6,24 @@ interface AuthLoaderProps {
   children: React.ReactNode;
 }
 
+// 3 másodperc után frissít, ha beragadt a betöltés
+const FALLBACK_TIMEOUT_MS = 3000; 
+
 const AuthLoader: React.FC<AuthLoaderProps> = ({ children }) => {
   const { isLoading } = useAuth();
+
+  useEffect(() => {
+    if (isLoading) {
+      const timer = setTimeout(() => {
+        console.warn("Auth loading timeout reached. Forcing page refresh to resolve potential session lock.");
+        window.location.reload();
+      }, FALLBACK_TIMEOUT_MS);
+
+      return () => clearTimeout(timer);
+    }
+    // Ha a betöltés befejeződött, töröljük az időzítőt
+    return () => {};
+  }, [isLoading]);
 
   // Ha a useAuth hook még tölt, mutassuk a loadert.
   if (isLoading) {
