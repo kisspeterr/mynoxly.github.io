@@ -5,7 +5,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
 export const useCoupons = () => {
-  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
+  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,15 +47,15 @@ export const useCoupons = () => {
     }
   };
 
-  // Automatically fetch coupons when activeOrganizationProfile changes
+  // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationProfile) {
+    if (activeOrganizationId) {
       fetchCoupons();
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationProfile, isAuthenticated]); // Watch the entire profile object
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   const createCoupon = async (couponData: CouponInsert) => {
     if (!organizationName || !checkPermission('coupon_manager')) {

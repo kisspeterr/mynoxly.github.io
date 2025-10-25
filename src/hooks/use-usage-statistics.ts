@@ -20,7 +20,7 @@ export interface DetailedUsage {
 }
 
 export const useUsageStatistics = () => {
-  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
+  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
   const [stats, setStats] = useState<UsageStat[]>([]);
   const [detailedUsages, setDetailedUsages] = useState<DetailedUsage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -210,7 +210,7 @@ export const useUsageStatistics = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]);
+  }, [isAuthenticated, organizationName, checkPermission, activeOrganizationId]); // Added activeOrganizationId to dependencies
 
   return {
     stats,

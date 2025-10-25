@@ -45,7 +45,7 @@ const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string,
 
 
 export const useCouponUsages = () => {
-  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
+  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
   const [usages, setUsages] = useState<CouponUsageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -125,7 +125,7 @@ export const useCouponUsages = () => {
   };
 
   useEffect(() => {
-    if (organizationName) {
+    if (activeOrganizationId) {
       fetchUsages();
     } else if (!isLoading && isAuthenticated) {
         setUsages([]);
@@ -159,7 +159,7 @@ export const useCouponUsages = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [organizationName, isAuthenticated]);
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   return {
     usages,

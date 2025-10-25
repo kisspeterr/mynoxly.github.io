@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '@/hooks/use-events';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil, RefreshCw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import EventForm from './EventForm';
@@ -24,6 +24,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
       title: data.title,
       description: data.description,
       start_time: data.start_time,
+      end_time: data.end_time, // Ensure end_time is included
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
@@ -147,12 +148,7 @@ const EventsPage = () => {
   
   const canManageEvents = checkPermission('event_manager');
 
-  useEffect(() => {
-    // Fetch events whenever the organizationName changes (i.e., when profile loads)
-    if (organizationName) {
-      fetchEvents();
-    }
-  }, [organizationName]); // Dependency added
+  // Removed redundant useEffect, relying on useEvents hook's internal dependency on activeOrganizationId
 
   if (isLoading && events.length === 0) {
     return (
@@ -170,29 +166,40 @@ const EventsPage = () => {
           <Calendar className="h-6 w-6" />
           Esemény Kezelés
         </h2>
-        {canManageEvents && (
-            <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-purple-600 hover:bg-purple-700">
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Új Esemény
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle className="text-purple-300">Új Esemény Létrehozása</DialogTitle>
-                  <DialogDescription className="text-gray-400">
-                    Hozd létre az új eseményt a {organizationName} számára.
-                  </DialogDescription>
-                </DialogHeader>
-                <EventForm 
-                  onSubmit={createEvent} 
-                  onClose={() => setIsFormOpen(false)} 
-                  isLoading={isLoading}
-                />
-              </DialogContent>
-            </Dialog>
-        )}
+        <div className="flex space-x-3">
+            <Button 
+                onClick={fetchEvents} 
+                variant="outline" 
+                size="icon"
+                className="border-gray-700 text-gray-400 hover:bg-gray-800"
+                disabled={isLoading}
+            >
+                <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+            </Button>
+            {canManageEvents && (
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-purple-600 hover:bg-purple-700">
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Új Esemény
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-purple-300">Új Esemény Létrehozása</DialogTitle>
+                      <DialogDescription className="text-gray-400">
+                        Hozd létre az új eseményt a {organizationName} számára.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <EventForm 
+                      onSubmit={createEvent} 
+                      onClose={() => setIsFormOpen(false)} 
+                      isLoading={isLoading}
+                    />
+                  </DialogContent>
+                </Dialog>
+            )}
+        </div>
       </div>
 
       {events.length === 0 && !isLoading ? (

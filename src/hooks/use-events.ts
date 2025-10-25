@@ -5,7 +5,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
 export const useEvents = () => {
-  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
+  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,15 +49,15 @@ export const useEvents = () => {
     }
   };
 
-  // Automatically fetch events when activeOrganizationProfile changes
+  // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationProfile) {
+    if (activeOrganizationId) {
       fetchEvents();
     } else {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationProfile, isAuthenticated]); // Watch the entire profile object
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
