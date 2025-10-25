@@ -22,6 +22,28 @@ const fetchUserIdByUsername = async (username: string): Promise<string | null> =
     return data?.id || null;
 };
 
+// Helper to fetch user profiles (username, email, first_name, last_name) securely via RPC
+const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string, { username: string, first_name: string | null, last_name: string | null }>> => {
+    if (userIds.length === 0) return {};
+    
+    const { data: usersData, error } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+    
+    if (error) {
+        console.error('Error fetching user profiles via RPC:', error);
+        return {};
+    }
+    
+    return (usersData || []).reduce((acc, user) => {
+        acc[user.id] = {
+            username: user.username,
+            first_name: user.first_name || null, // Assuming RPC returns these fields or we fetch them separately if needed
+            last_name: user.last_name || null,
+        };
+        return acc;
+    }, {} as Record<string, { username: string, first_name: string | null, last_name: string | null }>);
+};
+
+
 export const useOrganizationMembers = () => {
   const { profile, isAuthenticated, isAdmin, user } = useAuth();
   const [members, setMembers] = useState<OrganizationMember[]>([]);
@@ -41,12 +63,11 @@ export const useOrganizationMembers = () => {
 
     setIsLoading(true);
     try {
-      // Fetch members for the current organization, joining user profile data
-      const { data, error } = await supabase
+      // 1. Fetch raw members data (WITHOUT JOINING PROFILE)
+      const { data: rawMembers, error } = await supabase
         .from('organization_members')
         .select(`
-          *,
-          profile:user_id (username, first_name, last_name)
+          id, organization_id, user_id, status, roles, created_at
         `)
         .eq('organization_id', organizationId)
         .order('status', { ascending: true })
@@ -59,9 +80,31 @@ export const useOrganizationMembers = () => {
         return;
       }
       
-      // Filter out the owner (the current admin user) from the list
-      const filteredMembers = (data as OrganizationMember[]).filter(m => m.user_id !== user?.id);
-      setMembers(filteredMembers);
+      if (!rawMembers) {
+          setMembers([]);
+          return;
+      }
+      
+      // 2. Collect user IDs and fetch profiles securely
+      const userIds = rawMembers.map(m => m.user_id);
+      const profileMap = await fetchUserProfilesByIds(userIds);
+      
+      // 3. Combine data and filter out the owner
+      const processedMembers: OrganizationMember[] = rawMembers
+        .filter(m => m.user_id !== user?.id)
+        .map(m => {
+            const userProfile = profileMap[m.user_id];
+            return {
+                ...m,
+                profile: userProfile ? {
+                    username: userProfile.username,
+                    first_name: userProfile.first_name,
+                    last_name: userProfile.last_name,
+                } : null,
+            } as OrganizationMember;
+        });
+        
+      setMembers(processedMembers);
 
     } finally {
       setIsLoading(false);
