@@ -175,7 +175,6 @@ const OrganizationProfile = () => {
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
         
         if (currentPoints < coupon.points_cost) {
-            canRedeem = false;
             showError(`Nincs elegendő hűségpontod (${currentPoints}/${coupon.points_cost}).`);
             return;
         }
@@ -388,7 +387,8 @@ const OrganizationProfile = () => {
                           </Link>
                       </div>
                       
-                      <CardTitle className="text-2xl text-cyan-300">{coupon.title}</CardTitle>
+                      {/* Centered Title */}
+                      <CardTitle className="text-2xl text-cyan-300 text-center">{coupon.title}</CardTitle>
                       <CardDescription className="text-gray-400 text-center">
                         {coupon.organization_name}
                       </CardDescription>
