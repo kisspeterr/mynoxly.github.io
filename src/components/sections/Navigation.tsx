@@ -11,7 +11,7 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
-  const { isAuthenticated, isAdmin, signOut, isLoading } = useAuth();
+  const { isAuthenticated, isAdmin, signOut, isLoading, profile } = useAuth(); // Hozzáadva a 'profile'
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,10 +36,24 @@ const Navigation = () => {
   };
 
   const AuthButtons = () => {
+    // 1. Session betöltése
     if (isLoading) {
       return <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>;
     }
+    
+    // 2. Hitelesített, de profil betöltése folyamatban (csak ha van user, de nincs profile)
+    const isProfileLoading = isAuthenticated && !profile;
+    
+    if (isProfileLoading) {
+        return (
+            <div className="flex space-x-3">
+                <div className="w-10 h-10 bg-gray-700 rounded-full animate-pulse"></div>
+                <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
+            </div>
+        );
+    }
 
+    // 3. Hitelesített és profil betöltve
     if (isAuthenticated) {
       if (isAdmin) {
         // Admin: Dashboard, Redemption, Profile buttons
@@ -93,7 +107,7 @@ const Navigation = () => {
       }
     }
 
-    // Unauthenticated: Login button
+    // 4. Nem hitelesített: Login button
     return (
       <Button 
         asChild
