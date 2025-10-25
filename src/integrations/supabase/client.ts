@@ -11,5 +11,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: sessionStorage, // Session storage ensures logout on browser close
     persistSession: true,
+    session_lifetime: 3600, // 1 hour inactivity timeout
   }
 });
