@@ -13,7 +13,6 @@ interface Profile {
   role: 'user' | 'admin';
   organization_name: string | null;
   logo_url: string | null;
-  is_public: boolean; // NEW
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -21,7 +20,7 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public')
+      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url')
       .eq('id', userId)
       .single();
 

@@ -28,12 +28,11 @@ const OrganizersSection = () => {
     const fetchPartners = async () => {
       setIsLoading(true);
       try {
-        // Fetch all profiles that have an organization_name set AND are marked as public
+        // Fetch all profiles that have an organization_name set
         const { data, error } = await supabase
           .from('profiles')
           .select('id, organization_name, logo_url')
           .not('organization_name', 'is', null)
-          .eq('is_public', true) // <-- NEW FILTER
           .order('organization_name', { ascending: true });
 
         if (error) {
