@@ -30,6 +30,9 @@ const initialAuthState: AuthState = {
   isLoading: true, // CRITICAL: Must be true initially
 };
 
+// 5 másodperces időtúllépés a kezdeti betöltésre
+const INITIAL_LOAD_TIMEOUT_MS = 5000;
+
 export const useAuth = () => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
 
@@ -44,7 +47,6 @@ export const useAuth = () => {
 
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching profile:', error);
-        // Nem dobunk hibát, csak null-t adunk vissza
         return null;
       }
       return data as Profile;
@@ -77,20 +79,32 @@ export const useAuth = () => {
   useEffect(() => {
     let isMounted = true;
 
+    // Promise, ami 5 másodperc után hibát dob
+    const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+            reject(new Error('Auth session timeout'));
+        }, INITIAL_LOAD_TIMEOUT_MS);
+    });
+
     // 1️⃣ Kezdeti betöltés
     const initialLoad = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
+        // Versenyhelyzet: vagy a session jön be, vagy az időtúllépés
+        const sessionPromise = supabase.auth.getSession();
+        
+        const result = await Promise.race([sessionPromise, timeoutPromise]);
+        
+        // Ha az időtúllépés nyert, a kód ide nem jut el.
+        const sessionData = result as { data: { session: Session | null } };
         
         if (isMounted) {
-            // Frissítjük az állapotot a session és a profil adatokkal
-            await updateAuthState(sessionData.session);
+            await updateAuthState(sessionData.data.session);
         }
 
       } catch (err) {
-        console.error('Initial auth load failed:', err);
+        console.error('Initial auth load failed or timed out:', err);
         if (isMounted) {
-            // Hiba esetén is be kell fejezni a betöltést
+            // Hiba vagy időtúllépés esetén is be kell fejezni a betöltést
             setAuthState(prev => ({ ...prev, isLoading: false }));
         }
       }
@@ -119,7 +133,7 @@ export const useAuth = () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []); // Dependency array is empty, runs only once on mount
+  }, []);
   
   // 🔹 Kijelentkezés
   const signOut = async () => {
