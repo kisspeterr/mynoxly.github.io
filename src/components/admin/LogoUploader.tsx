@@ -13,6 +13,9 @@ interface LogoUploaderProps {
   onRemove: () => void;
 }
 
+// Max file size check (client-side pre-check)
+const MAX_FILE_SIZE_BYTES = 200 * 1024; // 200 KB
+
 const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuccess, onRemove }) => {
   const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
@@ -28,13 +31,31 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.size > 5 * 1024 * 1024) { // 5MB limit
-        showError('A fájl mérete túl nagy (max. 5MB).');
+      if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
+        showError(`A fájl mérete túl nagy (max. ${MAX_FILE_SIZE_BYTES / 1024} KB).`);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+        setFile(null);
         return;
       }
       setFile(selectedFile);
       setPreviewUrl(URL.createObjectURL(selectedFile));
     }
+  };
+  
+  // Helper to convert File to Base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        // Remove the data URL prefix (e.g., "data:image/png;base64,")
+        const base64String = (reader.result as string).split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   const handleUpload = async () => {
@@ -42,38 +63,46 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
     setIsUploading(true);
     
-    // 1. Define file path (e.g., logos/user_id/timestamp.ext)
-    const fileExt = file.name.split('.').pop();
-    const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-    
     try {
-      // 2. Upload file to Supabase Storage (logos bucket)
-      const { data, error } = await supabase.storage
-        .from('logos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) {
-        showError(`Feltöltési hiba: ${error.message}`);
-        return;
-      }
+      const base64Data = await fileToBase64(file);
       
-      // 3. Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('logos')
-        .getPublicUrl(filePath);
-        
-      if (!publicUrlData.publicUrl) {
-          showError('Hiba: Nem sikerült lekérni a nyilvános URL-t.');
+      // 1. Get JWT token for Edge Function authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+          showError('Nincs aktív munkamenet. Kérjük, jelentkezz be újra.');
           return;
       }
+      
+      // 2. Call the Edge Function
+      const response = await fetch(
+        // Hardcoded URL for the Edge Function
+        `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/process-logo-upload`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            base64Data: base64Data,
+            mimeType: file.type,
+            oldLogoPath: currentLogoUrl, // Pass current URL for deletion
+          }),
+        }
+      );
 
-      // 4. Success
-      onUploadSuccess(publicUrlData.publicUrl);
+      const result = await response.json();
+
+      if (!response.ok) {
+        showError(`Feltöltési hiba: ${result.error || 'Ismeretlen hiba történt a szerveren.'}`);
+        console.error('Edge Function Error:', result.error);
+        return;
+      }
+
+      // 3. Success
+      onUploadSuccess(result.publicUrl);
       setFile(null); // Clear file state after successful upload
-      showSuccess('Logó sikeresen feltöltve!');
+      showSuccess('Logó sikeresen feltöltve és feldolgozva!');
 
     } catch (e) {
       showError('Váratlan hiba történt a feltöltés során.');
@@ -90,6 +119,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
       setFile(null);
       setPreviewUrl(null);
       onRemove(); // Notify parent to clear URL
+      showSuccess('Logó eltávolítva. Ne felejtsd el menteni a beállításokat!');
   };
 
   return (
@@ -114,7 +144,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
         {/* File Input and Upload Button */}
         <div className="flex-grow space-y-2">
-          <Label htmlFor="logo-upload" className="text-gray-300">Logó feltöltése (JPG, PNG)</Label>
+          <Label htmlFor="logo-upload" className="text-gray-300">Logó feltöltése (max. 200 KB, automatikus átméretezés)</Label>
           <Input 
             id="logo-upload"
             type="file" 
