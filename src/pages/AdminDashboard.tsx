@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -170,57 +170,17 @@ const AdminDashboard = () => {
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
           <p className="text-lg md:text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
           
-          {isOrganizationActive && (
-            <div className="mb-6">
-              <OrganizationSelector />
-            </div>
-          )}
+          {/* Organization Selector is always visible here */}
+          <div className="mb-6">
+            <OrganizationSelector />
+          </div>
           
           {!isOrganizationActive ? (
-            <div className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30">
-                <Shield className="h-10 w-10 text-red-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-red-300 mb-4">Nincs aktív szervezet kiválasztva</h3>
-                <p className="text-gray-400 mt-2 mb-6">Kérjük, válaszd ki, melyik szervezet nevében szeretnél dolgozni:</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                    {uniqueOrganizations.map(org => (
-                        <Card 
-                            key={org.organization_id} 
-                            className="bg-gray-900/50 border-purple-500/30 hover:border-cyan-500/50 transition-all duration-300 cursor-pointer"
-                            onClick={() => switchActiveOrganization(org.organization_id)}
-                        >
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-xl text-cyan-300 flex items-center gap-2">
-                                    <Building className="h-5 w-5" />
-                                    {org.organization_profile?.organization_name}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-1">
-                                <div className="flex flex-wrap gap-2">
-                                    <span className="text-sm text-gray-400">Szerepkör:</span>
-                                    {org.isOwner ? (
-                                        <Badge className="bg-red-600/50 text-red-300 flex items-center gap-1">
-                                            <Shield className="h-3 w-3" /> Tulajdonos
-                                        </Badge>
-                                    ) : (
-                                        org.roles.map(r => (
-                                            <Badge key={r} className="bg-cyan-600/50 text-cyan-300">{ROLE_MAP[r]}</Badge>
-                                        ))
-                                    )}
-                                </div>
-                                <Button 
-                                    size="sm" 
-                                    className="w-full mt-3 bg-purple-600 hover:bg-purple-700"
-                                    onClick={() => switchActiveOrganization(org.organization_id)}
-                                >
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Kiválasztás
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </div>
+            <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+                <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet kiválasztva</h3>
+                <p className="text-gray-400">Kérjük, válassz egy szervezetet a fenti legördülő menüből a Dashboard eléréséhez.</p>
+            </Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               {/* Tabs List - Full width on mobile (6 tabs now) */}
