@@ -125,7 +125,43 @@ export const useAuth = () => {
   const activeMembership = data?.allMemberships.find(m => m.organization_id === activeOrganizationId) || null;
   
   // 🔹 Aktív szervezet profiljának meghatározása (a profiles táblából)
-  const activeOrganizationProfile = activeMembership?.organization_profile || null;
+  const activeOrganizationProfile = (() => {
+      if (!activeOrganizationId || !data?.profile) return null;
+      
+      // 1. Check if the active ID is the user's own admin profile ID
+      if (data.profile.role === 'admin' && data.profile.id === activeOrganizationId) {
+          // Return the user's own profile data, mapped to the expected structure
+          return {
+              organization_name: data.profile.organization_name,
+              logo_url: data.profile.logo_url,
+              is_public: data.profile.is_public,
+              id: data.profile.id,
+          };
+      }
+      
+      // 2. Check if the active ID is a delegated membership
+      const membership = data.allMemberships.find(m => m.organization_id === activeOrganizationId);
+      if (membership && membership.organization_profile) {
+          // We need to fetch the full profile data for the delegated organization
+          // Since we only get name/logo from the join, we need to fetch the full profile if needed.
+          // For now, we rely on the joined data, but we need to ensure it includes 'id' and 'is_public' if possible.
+          // NOTE: The join only fetches organization_name and logo_url. We need to fetch the full profile if we need more data (like is_public).
+          
+          // Let's fetch the full profile for the selected organization ID if it's not the user's own profile
+          // To avoid making an extra query here, we will rely on the fact that the admin pages only need organization_name and id.
+          
+          // We need to ensure the structure matches what the admin pages expect (which is currently the Profile interface structure)
+          return {
+              organization_name: membership.organization_profile.organization_name,
+              logo_url: membership.organization_profile.logo_url,
+              id: membership.organization_id,
+              // We assume is_public is true for delegated profiles unless we fetch it explicitly
+              is_public: true, 
+          };
+      }
+      
+      return null;
+  })();
   
   // 🔹 Kezdeti aktív szervezet beállítása (első tagság vagy a fő admin profilja)
   useEffect(() => {
@@ -202,11 +238,18 @@ export const useAuth = () => {
       if (isOwnAdminProfile || isAcceptedMember) {
           setActiveOrganizationId(organizationId);
           
-          const orgName = isOwnAdminProfile 
-              ? data.profile.organization_name 
-              : data?.allMemberships.find(m => m.organization_id === organizationId)?.organization_profile?.organization_name;
+          // Determine organization name for success message
+          let orgName = 'Ismeretlen szervezet';
+          if (isOwnAdminProfile && data?.profile?.organization_name) {
+              orgName = data.profile.organization_name;
+          } else {
+              const memberOrg = data?.allMemberships.find(m => m.organization_id === organizationId)?.organization_profile?.organization_name;
+              if (memberOrg) {
+                  orgName = memberOrg;
+              }
+          }
               
-          showSuccess(`Aktív szervezet váltva: ${orgName || 'Ismeretlen szervezet'}`);
+          showSuccess(`Aktív szervezet váltva: ${orgName}`);
       } else {
           showError('Érvénytelen szervezet azonosító.');
       }
