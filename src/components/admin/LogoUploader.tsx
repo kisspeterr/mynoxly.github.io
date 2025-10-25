@@ -87,13 +87,15 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
           showError('Nincs aktív munkamenet. Kérjük, jelentkezz be újra.');
+          setIsUploading(false);
           return;
       }
       
       // 2. Call the Edge Function
+      const edgeFunctionUrl = `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/process-logo-upload`;
+      
       const response = await fetch(
-        // Hardcoded URL for the Edge Function
-        `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/process-logo-upload`,
+        edgeFunctionUrl,
         {
           method: 'POST',
           headers: {
@@ -108,11 +110,16 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
         }
       );
 
+      // Check if the network request itself failed (e.g., CORS, network down)
+      if (!response.ok && response.status === 0) {
+          throw new Error(`Network or CORS error. Status: ${response.status}`);
+      }
+
       const result = await response.json();
 
       if (!response.ok) {
-        showError(`Feltöltési hiba: ${result.error || 'Ismeretlen hiba történt a szerveren.'}`);
-        console.error('Edge Function Error:', result.error);
+        showError(`Feltöltési hiba: ${result.error || `Szerverhiba (${response.status}).`}`);
+        console.error('Edge Function Error:', result.error || `Status: ${response.status}`);
         return;
       }
 
@@ -123,8 +130,8 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
       showSuccess('Logó sikeresen feltöltve és feldolgozva!');
 
     } catch (e) {
-      showError('Váratlan hiba történt a feltöltés során.');
-      console.error('Upload error:', e);
+      showError('Váratlan hiba történt a feltöltés során. Kérjük, ellenőrizd a konzolt a részletekért.');
+      console.error('Unexpected upload error:', e);
     } finally {
       setIsUploading(false);
     }
