@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Users, Building, Tag, RefreshCw } from 'lucide-react';
+import { Loader2, Users, Building, Tag, RefreshCw, BarChart } from 'lucide-react';
 import { showError } from '@/utils/toast';
 import { Button } from '@/components/ui/button';
 
