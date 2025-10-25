@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
+import { decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,6 +42,7 @@ serve(async (req) => {
 
     let fileBuffer: Uint8Array;
     try {
+        // Use the imported decode function
         fileBuffer = decode(base64Data);
     } catch (e) {
         console.error('Base64 Decode Error:', e);
