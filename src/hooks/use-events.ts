@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Event, EventInsert } from '@/types/events';
 import { showError, showSuccess } from '@/utils/toast';
@@ -14,6 +14,7 @@ export const useEvents = () => {
   const fetchEvents = async () => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setEvents([]);
+      setIsLoading(false);
       return;
     }
 
@@ -26,6 +27,7 @@ export const useEvents = () => {
           *,
           coupon:coupon_id (id, title, coupon_code)
         `)
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
         .order('start_time', { ascending: true });
 
       if (error) {
