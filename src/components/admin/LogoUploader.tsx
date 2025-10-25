@@ -6,6 +6,7 @@ import { Loader2, Upload, Image, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from '@/hooks/use-auth';
+import ImageCropper from './ImageCropper'; // Import the new cropper
 
 interface LogoUploaderProps {
   currentLogoUrl: string | null;
@@ -13,14 +14,18 @@ interface LogoUploaderProps {
   onRemove: () => void;
 }
 
-// Max file size check (client-side pre-check)
-const MAX_FILE_SIZE_BYTES = 200 * 1024; // 200 KB
+// Max input file size: 2 MB
+const MAX_INPUT_FILE_SIZE_BYTES = 2 * 1024 * 1024; 
+
+// Max output size: 200 KB (This is enforced by the Cropper/Edge Function)
 
 const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuccess, onRemove }) => {
   const { user } = useAuth();
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null); // The file selected by the user (up to 2MB)
+  const [croppedFile, setCroppedFile] = useState<File | null>(null); // The final, compressed file (max 200KB)
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLogoUrl);
   const [isUploading, setIsUploading] = useState(false);
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sync currentLogoUrl with previewUrl when it changes externally
@@ -31,16 +36,18 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = event.target.files?.[0];
     if (selectedFile) {
-      if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
-        showError(`A fájl mérete túl nagy (max. ${MAX_FILE_SIZE_BYTES / 1024} KB).`);
+      if (selectedFile.size > MAX_INPUT_FILE_SIZE_BYTES) {
+        showError(`A fájl mérete túl nagy (max. ${MAX_INPUT_FILE_SIZE_BYTES / 1024 / 1024} MB).`);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
         }
         setFile(null);
         return;
       }
+      
+      // Set the file and open the cropper
       setFile(selectedFile);
-      setPreviewUrl(URL.createObjectURL(selectedFile));
+      setIsCropperOpen(true);
     }
   };
   
@@ -57,14 +64,24 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
       reader.onerror = (error) => reject(error);
     });
   };
+  
+  const handleCropComplete = (file: File) => {
+      setCroppedFile(file);
+      // Update preview to the cropped image URL
+      setPreviewUrl(URL.createObjectURL(file));
+      // Clear the original file input value
+      if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
+  };
 
   const handleUpload = async () => {
-    if (!file || !user) return;
+    if (!croppedFile || !user) return;
 
     setIsUploading(true);
     
     try {
-      const base64Data = await fileToBase64(file);
+      const base64Data = await fileToBase64(croppedFile);
       
       // 1. Get JWT token for Edge Function authentication
       const { data: { session } } = await supabase.auth.getSession();
@@ -85,7 +102,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
           },
           body: JSON.stringify({
             base64Data: base64Data,
-            mimeType: file.type,
+            mimeType: croppedFile.type,
             oldLogoPath: currentLogoUrl, // Pass current URL for deletion
           }),
         }
@@ -101,7 +118,8 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
       // 3. Success
       onUploadSuccess(result.publicUrl);
-      setFile(null); // Clear file state after successful upload
+      setFile(null); // Clear original file state
+      setCroppedFile(null); // Clear cropped file state
       showSuccess('Logó sikeresen feltöltve és feldolgozva!');
 
     } catch (e) {
@@ -117,6 +135,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
           fileInputRef.current.value = ''; // Clear file input
       }
       setFile(null);
+      setCroppedFile(null);
       setPreviewUrl(null);
       onRemove(); // Notify parent to clear URL
       showSuccess('Logó eltávolítva. Ne felejtsd el menteni a beállításokat!');
@@ -124,6 +143,15 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
   return (
     <div className="space-y-4">
+      {/* Cropper Modal */}
+      {isCropperOpen && file && (
+        <ImageCropper
+          imageSrc={URL.createObjectURL(file)}
+          onCropComplete={handleCropComplete}
+          onClose={() => setIsCropperOpen(false)}
+        />
+      )}
+      
       <div className="flex items-center space-x-4">
         {/* Preview Area (Simulated Cropping/Overlay) */}
         <div className="relative h-24 w-24 flex-shrink-0">
@@ -144,7 +172,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
         {/* File Input and Upload Button */}
         <div className="flex-grow space-y-2">
-          <Label htmlFor="logo-upload" className="text-gray-300">Logó feltöltése (max. 200 KB, automatikus átméretezés)</Label>
+          <Label htmlFor="logo-upload" className="text-gray-300">Logó feltöltése (max. 2 MB bemenet, 200 KB kimenet)</Label>
           <Input 
             id="logo-upload"
             type="file" 
@@ -159,18 +187,27 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
       
       {/* Action Buttons */}
       <div className="flex space-x-4 pt-2">
-        {file && (
+        {croppedFile ? (
           <Button 
             onClick={handleUpload}
             className="flex-grow bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-700 hover:to-purple-700 text-white"
             disabled={isUploading}
           >
             {isUploading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
-            {isUploading ? 'Feltöltés...' : 'Feltöltés megerősítése'}
+            {isUploading ? 'Feltöltés...' : 'Kivágott logó feltöltése'}
           </Button>
+        ) : (
+            <Button 
+                onClick={() => fileInputRef.current?.click()}
+                className="flex-grow bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                disabled={isUploading}
+            >
+                <Crop className="h-4 w-4 mr-2" />
+                Kép kivágása
+            </Button>
         )}
         
-        {(currentLogoUrl || file) && (
+        {(currentLogoUrl || file || croppedFile) && (
             <Button 
               onClick={handleRemoveClick}
               variant="destructive"
@@ -182,8 +219,11 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
         )}
       </div>
       
-      {!file && currentLogoUrl && (
+      {!file && !croppedFile && currentLogoUrl && (
           <p className="text-xs text-gray-500">Jelenlegi logó használatban. Új feltöltéshez válassz fájlt.</p>
+      )}
+      {croppedFile && (
+          <p className="text-xs text-green-400">Kivágott kép készen áll a feltöltésre. Méret: {Math.ceil(croppedFile.size / 1024)} KB.</p>
       )}
     </div>
   );

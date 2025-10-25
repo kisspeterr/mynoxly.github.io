@@ -1,16 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
-import { Image } from "https://deno.land/x/images@v1.0.0/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Max file size for the OUTPUT file
+// Max file size for the OUTPUT file (enforced client-side, but checked here for safety)
 const MAX_FILE_SIZE_BYTES = 200 * 1024; 
-const TARGET_SIZE = 300; // 300x300 px
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -43,37 +41,25 @@ serve(async (req) => {
     }
 
     const fileBuffer = decode(base64Data);
-
-    // 1. Process and Resize Image (This is the automatic size reduction step)
-    const image = new Image();
-    image.load(fileBuffer);
     
-    // Resize to 300x300
-    image.resize(TARGET_SIZE, TARGET_SIZE);
-    
-    // Encode as JPEG with 80% quality
-    const processedBuffer = image.encode(Image.Format.Jpeg, 80);
-    const newMimeType = 'image/jpeg';
-    const fileExt = 'jpg';
-
-    // 2. Check output size after processing
-    if (processedBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
-        // This is highly unlikely after resizing to 300x300, but serves as a final safety check.
-        return new Response(JSON.stringify({ error: `Feldolgozás után is túl nagy a fájl mérete (${Math.ceil(processedBuffer.byteLength / 1024)} KB). Kérjük, próbálj meg kisebb felbontású képet feltölteni.` }), {
+    // 1. Final size check (should be under 200KB due to client-side processing)
+    if (fileBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
+        return new Response(JSON.stringify({ error: `A feltöltött fájl mérete (${Math.ceil(fileBuffer.byteLength / 1024)} KB) meghaladja a 200 KB-os limitet a kliens oldali feldolgozás után is.` }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
 
-    // 3. Define new file path
+    // 2. Define new file path (using JPG extension as client-side cropper outputs JPEG)
+    const fileExt = 'jpg';
     const filePath = `${userId}/${Date.now()}.${fileExt}`;
     const bucketName = 'logos';
 
-    // 4. Upload new file
+    // 3. Upload new file
     const { error: uploadError } = await supabaseClient.storage
       .from(bucketName)
-      .upload(filePath, processedBuffer, {
-        contentType: newMimeType,
+      .upload(filePath, fileBuffer, {
+        contentType: 'image/jpeg', // Assuming client-side cropper outputs JPEG
         cacheControl: '3600',
         upsert: true,
       });
@@ -86,7 +72,7 @@ serve(async (req) => {
       });
     }
 
-    // 5. Delete old file if path is provided
+    // 4. Delete old file if path is provided
     if (oldLogoPath) {
         // Extract the path within the bucket (e.g., 'user_id/timestamp.jpg')
         const urlParts = oldLogoPath.split('/');
@@ -103,7 +89,7 @@ serve(async (req) => {
         }
     }
 
-    // 6. Get public URL and return
+    // 5. Get public URL and return
     const { data: publicUrlData } = supabaseClient.storage
       .from(bucketName)
       .getPublicUrl(filePath);
