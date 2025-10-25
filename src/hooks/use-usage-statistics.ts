@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
-import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, isSameDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 export type TimeRange = 'day' | 'week' | 'month' | 'year';
 
@@ -30,6 +30,7 @@ export const useUsageStatistics = () => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setStats([]);
       setDetailedUsages([]);
+      setIsLoading(false);
       return;
     }
 
@@ -83,7 +84,8 @@ export const useUsageStatistics = () => {
           throw new Error('Invalid time range');
       }
 
-      // 2. Build the base query for successfully used coupons in the organization
+      // 2. Build the base query for successfully used coupons
+      // RLS ensures only usages related to the admin's organization's coupons are returned.
       let query = supabase
         .from('coupon_usages')
         .select(`
@@ -101,7 +103,7 @@ export const useUsageStatistics = () => {
       const { data, error } = await query;
 
       if (error) {
-        showError('Hiba történt a statisztikák betöltésekor.');
+        showError('Hiba történt a statisztikák betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
         console.error('Fetch statistics error:', error);
         setStats([]);
         setDetailedUsages([]);
@@ -114,8 +116,9 @@ export const useUsageStatistics = () => {
         return;
       }
 
-      // 3. Filter and process data client-side
+      // 3. Filter and process data client-side (RLS should handle most of this, but we double-check the join)
       const organizationUsages = data.filter(
+        // We rely on RLS, but ensure the joined coupon data exists and matches the organization name (safety check)
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       

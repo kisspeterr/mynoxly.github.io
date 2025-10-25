@@ -19,7 +19,7 @@ interface CouponUsageRecord {
 }
 
 export const useCouponUsages = () => {
-  const { profile, isAuthenticated, isAdmin } = useAuth();
+  const { user, profile, isAuthenticated, isAdmin } = useAuth();
   const [usages, setUsages] = useState<CouponUsageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,12 +28,13 @@ export const useCouponUsages = () => {
   const fetchUsages = async () => {
     if (!isAuthenticated || !isAdmin || !organizationName) {
       setUsages([]);
+      setIsLoading(false);
       return;
     }
 
     setIsLoading(true);
     try {
-      // Fetch all usages for coupons belonging to this organization
+      // Fetch all usages. RLS policy ensures only usages related to the admin's organization's coupons are returned.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -47,7 +48,7 @@ export const useCouponUsages = () => {
         .order('redeemed_at', { ascending: false });
 
       if (error) {
-        showError('Hiba történt a beváltások betöltésekor.');
+        showError('Hiba történt a beváltások betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
         console.error('Fetch usages error:', error);
         return;
       }
@@ -57,15 +58,12 @@ export const useCouponUsages = () => {
         return;
       }
 
-      // Filter data client-side:
-      // 1. Ensure coupon data exists (join successful)
-      // 2. Ensure coupon belongs to the current organization
-      // 3. CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
+      // CRITICAL: Ensure redeemed_at is present and is a string (not null) for UsageCountdown
+      // We rely on RLS for filtering, but ensure data integrity for the component.
       const filteredData = (data as CouponUsageRecord[]).filter(
         (usage) => 
           usage.coupon && 
-          usage.coupon.organization_name === organizationName &&
-          typeof usage.redeemed_at === 'string' // Must be a string for Date() constructor
+          typeof usage.redeemed_at === 'string'
       );
       
       setUsages(filteredData);
@@ -77,29 +75,37 @@ export const useCouponUsages = () => {
   useEffect(() => {
     if (organizationName) {
       fetchUsages();
+    } else if (!isLoading && isAuthenticated && isAdmin) {
+        setUsages([]);
+        setIsLoading(false);
     }
     
     // Setup Realtime subscription for new/updated usages
-    const channel = supabase
-      .channel('coupon_usages_admin_feed')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'coupon_usages',
-        },
-        (payload) => {
-          // Refetch all data to ensure consistency and correct filtering/sorting
-          if (organizationName) {
-             fetchUsages();
-          }
-        }
-      )
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (organizationName) {
+        channel = supabase
+          .channel('coupon_usages_admin_feed')
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'coupon_usages',
+            },
+            (payload) => {
+              // Refetch all data to ensure consistency and correct filtering/sorting
+              fetchUsages();
+            }
+          )
+          .subscribe();
+    }
+
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [organizationName, isAuthenticated, isAdmin]);
 

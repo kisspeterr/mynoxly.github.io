@@ -13,9 +13,16 @@ export const useCoupons = () => {
 
   // Function to fetch coupons (used internally and exported for manual refresh)
   const fetchCoupons = async () => {
-    if (!isAuthenticated || !isAdmin || !organizationName) {
+    if (!isAuthenticated || !isAdmin) {
       setCoupons([]);
       return;
+    }
+    
+    if (!organizationName) {
+        // Ha nincs szervezet név, nem tudunk lekérdezni, de nem hiba, csak üres lista.
+        setCoupons([]);
+        setIsLoading(false);
+        return;
     }
 
     setIsLoading(true);
@@ -28,7 +35,7 @@ export const useCoupons = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        showError('Hiba történt a kuponok betöltésekor.');
+        showError('Hiba történt a kuponok betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
         console.error('Fetch coupons error:', error);
         return;
       }
@@ -43,13 +50,17 @@ export const useCoupons = () => {
   useEffect(() => {
     if (organizationName) {
       fetchCoupons();
+    } else if (!isLoading && isAuthenticated && isAdmin) {
+        // Ha admin, de nincs szervezet név, akkor is be kell fejezni a betöltést (üres listával)
+        setCoupons([]);
+        setIsLoading(false);
     }
-  }, [organizationName]);
+  }, [organizationName, isAuthenticated, isAdmin]);
 
 
   const createCoupon = async (couponData: CouponInsert) => {
     if (!organizationName) {
-      showError('Hiányzik a szervezet neve a profilból.');
+      showError('Hiányzik a szervezet neve a profilból. Kérjük, állítsd be a Beállítások oldalon.');
       return { success: false };
     }
 
@@ -76,6 +87,10 @@ export const useCoupons = () => {
   };
   
   const updateCoupon = async (id: string, couponData: Partial<CouponInsert>) => {
+    if (!organizationName) {
+        showError('Hiányzik a szervezet neve a profilból.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -85,9 +100,9 @@ export const useCoupons = () => {
         .select()
         .single();
 
-      if (error) {
-        // RLS hiba esetén a Supabase gyakran "null" adatot ad vissza, de a hibaobjektumot is ellenőrizzük.
-        showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz.`);
+      if (error || !data) {
+        // Ha az RLS blokkolja, a data null lehet, vagy hiba jön vissza.
+        showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz, vagy a szervezet neve hiányzik.`);
         console.error('Update coupon error:', error);
         return { success: false };
       }
@@ -101,6 +116,10 @@ export const useCoupons = () => {
   };
   
   const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
+    if (!organizationName) {
+        showError('Hiányzik a szervezet neve a profilból.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
       const newStatus = !currentStatus;
@@ -126,6 +145,10 @@ export const useCoupons = () => {
   };
   
   const archiveCoupon = async (id: string) => {
+    if (!organizationName) {
+        showError('Hiányzik a szervezet neve a profilból.');
+        return { success: false };
+    }
     setIsLoading(true);
     try {
       // Archiving automatically sets is_active to false
@@ -154,6 +177,10 @@ export const useCoupons = () => {
     if (!isArchived) {
       showError('Csak archivált kuponokat lehet véglegesen törölni.');
       return { success: false };
+    }
+    if (!organizationName) {
+        showError('Hiányzik a szervezet neve a profilból.');
+        return { success: false };
     }
     
     setIsLoading(true);
