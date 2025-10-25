@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Home } from 'lucide-react';
+import { LogOut, User, Home, Loader2 } from 'lucide-react';
 import ProfileCard from '@/components/ProfileCard';
 import UserCouponsList from '@/components/user/UserCouponsList';
 import UserFavoritesList from '@/components/user/UserFavoritesList';
@@ -23,13 +23,14 @@ const Profile = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <p className="text-cyan-400">Betöltés...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+        <p className="ml-3 text-cyan-400">Profil adatok betöltése...</p>
       </div>
     );
   }
   
   if (!isAuthenticated) {
-    return null;
+    return null; // Redirect handled by useEffect
   }
 
   // Ahelyett, hogy az AuthLayout korlátozott szélességét használnánk, 

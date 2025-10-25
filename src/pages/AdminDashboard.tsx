@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2 } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -20,6 +20,7 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
+      // Redirect if loading is done and user is not authenticated
       navigate('/login');
     }
   }, [isAuthenticated, isLoading, navigate]);
@@ -27,13 +28,20 @@ const AdminDashboard = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950">
-        <p className="text-cyan-400">Jogosultság ellenőrzése...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+        <p className="ml-3 text-cyan-400">Jogosultság ellenőrzése...</p>
       </div>
     );
   }
 
   if (isAuthenticated && !isAdmin) {
     return <UnauthorizedAccess />;
+  }
+  
+  // If not loading, and authenticated, and admin: render dashboard
+  if (!isAuthenticated) {
+      // Should be caught by useEffect redirect, but return null as fallback
+      return null;
   }
   
   return (

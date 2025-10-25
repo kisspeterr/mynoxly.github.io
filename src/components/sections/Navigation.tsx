@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -11,7 +11,7 @@ const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
-  const { isAuthenticated, isAdmin, signOut, isLoading, profile } = useAuth(); // Hozzáadva a 'profile'
+  const { isAuthenticated, isAdmin, signOut, isLoading, profile } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,22 +38,15 @@ const Navigation = () => {
   const AuthButtons = () => {
     // 1. Session betöltése
     if (isLoading) {
-      return <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>;
+      return (
+        <div className="flex items-center space-x-3">
+          <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
+          <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
+        </div>
+      );
     }
     
-    // 2. Hitelesített, de profil betöltése folyamatban (csak ha van user, de nincs profile)
-    const isProfileLoading = isAuthenticated && !profile;
-    
-    if (isProfileLoading) {
-        return (
-            <div className="flex space-x-3">
-                <div className="w-10 h-10 bg-gray-700 rounded-full animate-pulse"></div>
-                <div className="w-24 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
-            </div>
-        );
-    }
-
-    // 3. Hitelesített és profil betöltve
+    // 2. Hitelesített és profil betöltve
     if (isAuthenticated) {
       if (isAdmin) {
         // Admin: Dashboard, Redemption, Profile buttons
@@ -107,7 +100,7 @@ const Navigation = () => {
       }
     }
 
-    // 4. Nem hitelesített: Login button
+    // 3. Nem hitelesített: Login button
     return (
       <Button 
         asChild
@@ -205,7 +198,7 @@ const Navigation = () => {
               </a>
               
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
-              {isAuthenticated && (
+              {!isLoading && isAuthenticated && (
                 <Link
                   to={isAdmin ? "/admin/dashboard" : "/profile"}
                   className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
@@ -215,7 +208,7 @@ const Navigation = () => {
                   {isAdmin ? "Admin Dashboard" : "Profil"}
                 </Link>
               )}
-              {isAuthenticated && isAdmin && (
+              {!isLoading && isAuthenticated && isAdmin && (
                 <Link
                   to="/code"
                   className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
@@ -225,7 +218,7 @@ const Navigation = () => {
                   Beváltás
                 </Link>
               )}
-              {isAuthenticated && (
+              {!isLoading && isAuthenticated && (
                 <button
                   onClick={handleSignOut}
                   className="text-red-400 hover:text-red-500 transition-colors duration-300 py-2 text-left flex items-center gap-1"
@@ -234,13 +227,15 @@ const Navigation = () => {
                   Kijelentkezés
                 </button>
               )}
-              {!isAuthenticated && (
-                <button
-                  onClick={() => navigateToSection('waitlist')}
-                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left"
+              {!isLoading && !isAuthenticated && (
+                <Link
+                  to="/login"
+                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left flex items-center gap-1"
+                  onClick={() => setIsOpen(false)}
                 >
-                  Csatlakozom
-                </button>
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Bejelentkezés
+                </Link>
               )}
             </div>
           </div>
