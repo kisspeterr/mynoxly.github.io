@@ -175,6 +175,7 @@ const OrganizationProfile = () => {
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
         
         if (currentPoints < coupon.points_cost) {
+            canRedeem = false;
             showError(`Nincs elegendő hűségpontod (${currentPoints}/${coupon.points_cost}).`);
             return;
         }
@@ -367,7 +368,7 @@ const OrganizationProfile = () => {
                         </div>
                       )}
                       
-                      {/* NEW: Centered Logo */}
+                      {/* Centered Logo */}
                       <div className="flex justify-center -mt-10 mb-4">
                           <Link 
                               to={`/organization/${coupon.organization_name}`}
@@ -538,7 +539,7 @@ const OrganizationProfile = () => {
                     )}
                     <CardHeader className="pb-4">
                       
-                      {/* NEW: Centered Logo */}
+                      {/* Centered Logo */}
                       <div className="flex justify-center -mt-10 mb-4">
                           <Link 
                               to={`/organization/${event.organization_name}`}
@@ -558,10 +559,14 @@ const OrganizationProfile = () => {
                           </Link>
                       </div>
                       
-                      <div className="flex justify-between items-start mb-2">
-                        <CardTitle className="text-2xl text-purple-300 mr-2">{event.title}</CardTitle>
-                        <EventCountdown startTime={event.start_time} endTime={event.end_time} />
+                      {/* Title and Countdown - Now stacked */}
+                      <div className="flex flex-col items-center text-center mb-2">
+                        <CardTitle className="text-2xl text-purple-300 w-full break-words">{event.title}</CardTitle>
+                        <div className="mt-2">
+                            <EventCountdown startTime={event.start_time} endTime={event.end_time} />
+                        </div>
                       </div>
+                      
                       <CardDescription className="text-gray-400 text-center">
                         {event.organization_name}
                       </CardDescription>
