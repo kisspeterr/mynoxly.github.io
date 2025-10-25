@@ -192,13 +192,16 @@ export const useAuth = () => {
   // 🔹 Kijelentkezés
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
+    
+    // Always perform local cleanup and refetch, even if the API call failed (e.g., expired token)
+    // This ensures the UI reflects the logged-out state immediately.
     if (error) {
-      showError('Hiba történt a kijelentkezés során.');
+      showError('Hiba történt a kijelentkezés során, de a helyi munkamenet törölve lett.');
       console.error('Sign out error:', error);
-    } else {
-        refetch();
-        setActiveOrganizationId(null);
     }
+    
+    refetch();
+    setActiveOrganizationId(null);
   };
   
   // 🔹 Profil frissítésének kényszerítése (pl. beállítások mentése után)
