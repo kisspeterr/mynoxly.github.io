@@ -38,7 +38,7 @@ export const useCouponUsages = () => {
 
     setIsLoading(true);
     try {
-      // Fetch all usages. RLS policy ensures only usages related to the admin's organization's coupons are returned.
+      // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -47,8 +47,7 @@ export const useCouponUsages = () => {
           redeemed_at,
           is_used,
           redemption_code,
-          coupon:coupon_id (title, organization_name),
-          profile:user_id (username)
+          coupon:coupon_id (title, organization_name)
         `)
         .order('redeemed_at', { ascending: false });
 
@@ -63,15 +62,34 @@ export const useCouponUsages = () => {
         return;
       }
 
-      // Client-side filtering based on the joined organization name (redundant if RLS works perfectly, but necessary for safety)
-      const filteredData = (data as CouponUsageRecord[]).filter(
+      // Client-side filtering based on the joined organization name
+      const rawUsages = (data as Omit<CouponUsageRecord, 'profile'>[]).filter(
         (usage) => 
           usage.coupon && 
           usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER
           typeof usage.redeemed_at === 'string'
       );
       
-      setUsages(filteredData);
+      // 2. Collect unique user IDs
+      const userIds = Array.from(new Set(rawUsages.map(u => u.user_id)));
+      
+      // 3. Fetch usernames securely using RPC
+      let usernameMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+          const { data: usersData } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+          usernameMap = (usersData || []).reduce((acc, user) => {
+              acc[user.id] = user.username;
+              return acc;
+          }, {} as Record<string, string>);
+      }
+      
+      // 4. Combine data
+      const processedUsages: CouponUsageRecord[] = rawUsages.map(usage => ({
+          ...usage,
+          profile: usernameMap[usage.user_id] ? { username: usernameMap[usage.user_id] } : null,
+      }));
+      
+      setUsages(processedUsages);
     } finally {
       setIsLoading(false);
     }
