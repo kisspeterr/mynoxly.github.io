@@ -8,21 +8,15 @@ import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
-import LogoUploader from './LogoUploader';
-import MapWrapper from '@/components/MapWrapper'; // Use MapWrapper
+import LogoUploader from './LogoUploader'; // Import the new component
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
   const [firstName, setFirstName] = useState(profile?.first_name || '');
   const [lastName, setLastName] = useState(profile?.last_name || '');
   const [organizationName, setOrganizationName] = useState(profile?.organization_name || '');
-  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || '');
+  const [logoUrl, setLogoUrl] = useState(profile?.logo_url || ''); // Now managed by Uploader, but stored here
   const [isPublic, setIsPublic] = useState(profile?.is_public ?? true);
-  
-  // NEW: Location states
-  const [latitude, setLatitude] = useState<number | null>(profile?.latitude || null);
-  const [longitude, setLongitude] = useState<number | null>(profile?.longitude || null);
-  
   const [isSaving, setIsSaving] = useState(false);
 
   // Sync state when profile loads/changes
@@ -33,8 +27,6 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(profile.organization_name || '');
       setLogoUrl(profile.logo_url || '');
       setIsPublic(profile.is_public ?? true);
-      setLatitude(profile.latitude || null);
-      setLongitude(profile.longitude || null);
     }
   }, [profile]);
 
@@ -48,10 +40,8 @@ const ProfileSettingsPage: React.FC = () => {
       first_name: firstName.trim() || null,
       last_name: lastName.trim() || null,
       organization_name: organizationName.trim() || null,
-      logo_url: logoUrl || null,
+      logo_url: logoUrl || null, // Use the URL set by the uploader or null
       is_public: isPublic,
-      latitude: latitude, // NEW
-      longitude: longitude, // NEW
       updated_at: new Date().toISOString(),
     };
 
@@ -85,11 +75,6 @@ const ProfileSettingsPage: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
-  };
-  
-  const handleLocationChange = (lat: number | null, lng: number | null) => {
-      setLatitude(lat);
-      setLongitude(lng);
   };
 
   if (isAuthLoading) {
@@ -159,14 +144,6 @@ const ProfileSettingsPage: React.FC = () => {
             />
             <p className="text-xs text-gray-500">A feltöltés után ne felejtsd el menteni a beállításokat!</p>
           </div>
-          
-          {/* Location Picker */}
-          <MapWrapper 
-            type="picker"
-            initialLat={latitude}
-            initialLng={longitude}
-            onLocationChange={handleLocationChange}
-          />
           
           {/* Public Visibility Switch */}
           <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
