@@ -10,7 +10,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: sessionStorage, // Session storage ensures logout on browser close
-    persistSession: true,
+    persistSession: false, // Changed to false to prevent session reloading after sign out
     // session_lifetime removed to rely on default Supabase behavior
   }
 });
