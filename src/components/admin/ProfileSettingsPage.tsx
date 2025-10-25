@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
 import LogoUploader from './LogoUploader';
-import LocationPicker from './LocationPicker'; // Import LocationPicker
+import MapWrapper from '@/components/MapWrapper'; // Use MapWrapper
 
 const ProfileSettingsPage: React.FC = () => {
   const { profile, user, isLoading: isAuthLoading, fetchProfile } = useAuth();
@@ -161,7 +161,8 @@ const ProfileSettingsPage: React.FC = () => {
           </div>
           
           {/* Location Picker */}
-          <LocationPicker 
+          <MapWrapper 
+            type="picker"
             initialLat={latitude}
             initialLng={longitude}
             onLocationChange={handleLocationChange}

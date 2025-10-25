@@ -18,7 +18,7 @@ import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
 import EventCountdown from '@/components/EventCountdown'; // Import EventCountdown
 import { Badge } from '@/components/ui/badge';
-import OrganizationMap from '@/components/OrganizationMap'; // Import OrganizationMap
+import MapWrapper from '@/components/MapWrapper'; // Use MapWrapper
 
 interface OrganizationProfileData {
   id: string;
@@ -309,9 +309,10 @@ const OrganizationProfile = () => {
         {/* Map Section (if coordinates exist) */}
         {profile.latitude && profile.longitude && (
             <div className="mb-12">
-                <OrganizationMap 
-                    lat={profile.latitude}
-                    lng={profile.longitude}
+                <MapWrapper 
+                    type="organization"
+                    initialLat={profile.latitude}
+                    initialLng={profile.longitude}
                     organizationName={profile.organization_name}
                     logoUrl={profile.logo_url}
                 />
