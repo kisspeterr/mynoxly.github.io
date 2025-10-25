@@ -1,8 +1,17 @@
 import React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, CheckCircle, Loader2 } from 'lucide-react';
+import { Building, CheckCircle, Loader2, Shield, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { MemberRole } from '@/types/organization';
+import { Badge } from '@/components/ui/badge';
+
+const ROLE_MAP: Record<MemberRole, string> = {
+    coupon_manager: 'Kupon kezelő',
+    event_manager: 'Esemény kezelő',
+    redemption_agent: 'Beváltó ügynök',
+    viewer: 'Statisztika néző',
+};
 
 const OrganizationSelector: React.FC = () => {
     const { 
@@ -14,6 +23,7 @@ const OrganizationSelector: React.FC = () => {
         isLoading 
     } = useAuth();
     
+    // Combine own admin profile (if exists) and delegated memberships
     const allOrganizations = [
         // 1. Add the user's own profile if they are the main admin (owner)
         ...(profile?.role === 'admin' && profile.organization_name ? [{
@@ -21,12 +31,16 @@ const OrganizationSelector: React.FC = () => {
             organization_profile: {
                 organization_name: profile.organization_name,
                 logo_url: profile.logo_url,
-            }
+            },
+            roles: ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'] as MemberRole[], // Full owner rights
+            isOwner: true,
         }] : []),
         // 2. Add all accepted delegated memberships
         ...allMemberships.map(m => ({
             organization_id: m.organization_id,
             organization_profile: m.organization_profile,
+            roles: m.roles,
+            isOwner: false,
         })).filter(m => m.organization_profile !== null)
     ];
     
@@ -58,17 +72,20 @@ const OrganizationSelector: React.FC = () => {
             </Card>
         );
     }
+    
+    const activeOrg = uniqueOrganizations.find(org => org.organization_id === activeOrganizationId);
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-4">
             <label className="text-sm font-medium text-gray-400 flex items-center">
                 <Building className="h-4 w-4 mr-2 text-purple-400" />
                 Aktív Szervezet Kiválasztása
             </label>
+            
+            {/* Selector Dropdown */}
             <Select 
                 value={activeOrganizationId || undefined} 
                 onValueChange={switchActiveOrganization}
-                disabled={uniqueOrganizations.length <= 1}
             >
                 <SelectTrigger className="w-full bg-gray-800/50 border-purple-700 text-white hover:bg-gray-700/50">
                     <SelectValue placeholder="Válassz szervezetet" />
@@ -78,20 +95,42 @@ const OrganizationSelector: React.FC = () => {
                         <SelectItem 
                             key={org.organization_id} 
                             value={org.organization_id}
-                            className="flex items-center"
+                            className="flex flex-col items-start"
                         >
-                            {org.organization_profile?.organization_name}
-                            {org.organization_id === activeOrganizationId && (
-                                <CheckCircle className="h-4 w-4 ml-2 text-green-400" />
-                            )}
+                            <div className="flex items-center font-semibold">
+                                {org.organization_profile?.organization_name}
+                                {org.isOwner && <Shield className="h-4 w-4 ml-2 text-red-400" />}
+                                {org.organization_id === activeOrganizationId && (
+                                    <CheckCircle className="h-4 w-4 ml-2 text-green-400" />
+                                )}
+                            </div>
+                            <div className="text-xs text-gray-400 mt-1">
+                                {org.isOwner ? 'Tulajdonos' : org.roles.map(r => ROLE_MAP[r]).join(', ')}
+                            </div>
                         </SelectItem>
                     ))}
                 </SelectContent>
             </Select>
-            {activeOrganizationProfile && (
-                <p className="text-xs text-gray-500">
-                    Jelenleg a(z) <span className="font-semibold text-purple-300">{activeOrganizationProfile.organization_name}</span> jogosultságaival dolgozol.
-                </p>
+            
+            {/* Active Organization Status */}
+            {activeOrg && (
+                <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm p-3">
+                    <CardContent className="p-0 text-xs text-gray-500">
+                        Jelenleg a(z) <span className="font-semibold text-purple-300">{activeOrg.organization_profile?.organization_name}</span> jogosultságaival dolgozol.
+                        <div className="mt-1 flex flex-wrap gap-1">
+                            <span className="font-medium text-white">Szerepkör:</span>
+                            {activeOrg.isOwner ? (
+                                <Badge className="bg-red-600/50 text-red-300 flex items-center gap-1">
+                                    <Shield className="h-3 w-3" /> Tulajdonos
+                                </Badge>
+                            ) : (
+                                activeOrg.roles.map(r => (
+                                    <Badge key={r} className="bg-cyan-600/50 text-cyan-300">{ROLE_MAP[r]}</Badge>
+                                ))
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
             )}
         </div>
     );

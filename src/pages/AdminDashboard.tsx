@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -14,9 +14,19 @@ import OrganizationMembersPage from '@/components/admin/OrganizationMembersPage'
 import OrganizationSelector from '@/components/OrganizationSelector'; // NEW IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { MemberRole } from '@/types/organization';
+
+const ROLE_MAP: Record<MemberRole, string> = {
+    coupon_manager: 'Kupon kezelő',
+    event_manager: 'Esemény kezelő',
+    redemption_agent: 'Beváltó ügynök',
+    viewer: 'Statisztika néző',
+};
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isAdmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, switchActiveOrganization } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -36,7 +46,35 @@ const AdminDashboard = () => {
     );
   }
 
-  // Check if the user is the main admin (owner) OR has any accepted membership
+  // Combine own admin profile (if exists) and delegated memberships
+  const allOrganizations = [
+      // 1. Add the user's own profile if they are the main admin (owner)
+      ...(profile?.role === 'admin' && profile.organization_name ? [{
+          organization_id: profile.id,
+          organization_profile: {
+              organization_name: profile.organization_name,
+              logo_url: profile.logo_url,
+          },
+          roles: ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'] as MemberRole[], // Full owner rights
+          isOwner: true,
+      }] : []),
+      // 2. Add all accepted delegated memberships
+      ...allMemberships.map(m => ({
+          organization_id: m.organization_id,
+          organization_profile: m.organization_profile,
+          roles: m.roles,
+          isOwner: false,
+      })).filter(m => m.organization_profile !== null)
+  ];
+  
+  // Filter out duplicates based on organization_id
+  const uniqueOrganizations = allOrganizations.filter((org, index, self) => 
+      index === self.findIndex((t) => (
+          t.organization_id === org.organization_id
+      ))
+  );
+
+  // Check if the user is the main admin OR has any accepted membership
   const hasAdminAccess = isAdmin || allMemberships.length > 0;
 
   if (isAuthenticated && !hasAdminAccess) {
@@ -139,8 +177,47 @@ const AdminDashboard = () => {
           {!isOrganizationActive ? (
             <div className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30">
                 <Shield className="h-10 w-10 text-red-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-red-300">Nincs aktív szervezet</h3>
-                <p className="text-gray-400 mt-2">Kérjük, válassz egy szervezetet a fenti listából a dashboard funkciók eléréséhez.</p>
+                <h3 className="text-xl font-bold text-red-300 mb-4">Nincs aktív szervezet kiválasztva</h3>
+                <p className="text-gray-400 mt-2 mb-6">Kérjük, válaszd ki, melyik szervezet nevében szeretnél dolgozni:</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                    {uniqueOrganizations.map(org => (
+                        <Card 
+                            key={org.organization_id} 
+                            className="bg-gray-900/50 border-purple-500/30 hover:border-cyan-500/50 transition-all duration-300 cursor-pointer"
+                            onClick={() => switchActiveOrganization(org.organization_id)}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-xl text-cyan-300 flex items-center gap-2">
+                                    <Building className="h-5 w-5" />
+                                    {org.organization_profile?.organization_name}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-1">
+                                <div className="flex flex-wrap gap-2">
+                                    <span className="text-sm text-gray-400">Szerepkör:</span>
+                                    {org.isOwner ? (
+                                        <Badge className="bg-red-600/50 text-red-300 flex items-center gap-1">
+                                            <Shield className="h-3 w-3" /> Tulajdonos
+                                        </Badge>
+                                    ) : (
+                                        org.roles.map(r => (
+                                            <Badge key={r} className="bg-cyan-600/50 text-cyan-300">{ROLE_MAP[r]}</Badge>
+                                        ))
+                                    )}
+                                </div>
+                                <Button 
+                                    size="sm" 
+                                    className="w-full mt-3 bg-purple-600 hover:bg-purple-700"
+                                    onClick={() => switchActiveOrganization(org.organization_id)}
+                                >
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Kiválasztás
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             </div>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
