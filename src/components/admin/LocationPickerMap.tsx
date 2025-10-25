@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L, { LatLngExpression } from 'leaflet';
-import 'leaflet-defaulticon-fix';
+// import 'leaflet-defaulticon-fix'; // Removed problematic import
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, MapPin, Loader2 } from 'lucide-react';
-import { showError } from '@/utils/toast';
+import { Search, MapPin, Loader2, XCircle } from 'lucide-react';
+import { showError, showSuccess } from '@/utils/toast';
 
 interface LocationPickerMapProps {
   initialLatitude: number | null;
@@ -16,6 +16,19 @@ interface LocationPickerMapProps {
 // Default center: Pécs, Hungary
 const DEFAULT_CENTER: LatLngExpression = [46.0721, 18.2326];
 const DEFAULT_ZOOM = 13;
+
+// --- Manual Leaflet Icon Fix ---
+// This replaces the functionality of 'leaflet-defaulticon-fix'
+if (typeof L !== 'undefined') {
+  delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  });
+}
+// --- End Manual Fix ---
 
 // Custom marker icon (using default Leaflet icon fix)
 const customIcon = L.icon({
