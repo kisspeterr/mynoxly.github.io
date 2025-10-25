@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { decode } from "https://deno.land/std@0.224.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,15 +76,21 @@ serve(async (req) => {
     if (oldLogoPath) {
         // Extract the path within the bucket (e.g., 'user_id/timestamp.jpg')
         const urlParts = oldLogoPath.split('/');
-        const oldFilePath = urlParts.slice(urlParts.indexOf(bucketName) + 1).join('/');
+        const bucketIndex = urlParts.indexOf(bucketName);
         
-        if (oldFilePath && oldFilePath.startsWith(userId)) {
-            const { error: deleteError } = await supabaseClient.storage
-                .from(bucketName)
-                .remove([oldFilePath]);
+        // Ensure we found the bucket name in the URL path before slicing
+        if (bucketIndex !== -1) {
+            const oldFilePath = urlParts.slice(bucketIndex + 1).join('/');
+            
+            // Double check that the path starts with the user ID for security
+            if (oldFilePath && oldFilePath.startsWith(userId)) {
+                const { error: deleteError } = await supabaseClient.storage
+                    .from(bucketName)
+                    .remove([oldFilePath]);
 
-            if (deleteError) {
-                console.warn('Warning: Failed to delete old logo:', deleteError);
+                if (deleteError) {
+                    console.warn('Warning: Failed to delete old logo:', deleteError);
+                }
             }
         }
     }
