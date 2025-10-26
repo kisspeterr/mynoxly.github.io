@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, UserPlus, Users, Trash2, CheckCircle, Clock, Settings, RefreshCw, AtSign, XCircle } from 'lucide-react';
+import { Loader2, UserPlus, Users, Trash2, CheckCircle, Clock, Settings, RefreshCw, AtSign, XCircle, Shield } from 'lucide-react';
 import { MemberRole, OrganizationMember } from '@/types/organization';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
