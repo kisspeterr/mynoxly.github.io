@@ -393,7 +393,7 @@ const SuperadminOrganizationsPage: React.FC = () => {
                                 <DialogTitle className="text-red-400">Új Szervezet Létrehozása</DialogTitle>
                                 <DialogDescription className="text-gray-400">
                                     Válassz egy felhasználót, aki a szervezet tulajdonosa lesz.
-                                </DialogsetDescription>
+                                </DialogDescription>
                             </DialogHeader>
                             <OrganizationForm 
                                 initialOrg={null}
