@@ -13,6 +13,7 @@ import { MemberRole } from '@/types/organization';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
+import SuperadminMemberManager from './SuperadminMemberManager'; // NEW IMPORT
 
 // Extended Profile type for Superadmin view
 interface SuperadminProfile extends Profile {
@@ -246,18 +247,10 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
                         </TabsContent>
                         
                         <TabsContent value="members">
-                            <Card className="bg-black/50 border-cyan-500/30 backdrop-blur-sm p-6">
-                                <CardTitle className="text-xl text-cyan-300 mb-4">Tagok kezelése</CardTitle>
-                                <CardDescription className="text-gray-400 mb-4">
-                                    A szervezet delegált tagjainak kezeléséhez (meghívás, szerepkör módosítás) a Superadminnek át kell váltania az Admin Dashboardra, és ott ki kell választania a szervezetet.
-                                </CardDescription>
-                                <Button asChild className="bg-cyan-600 hover:bg-cyan-700">
-                                    <Link to="/admin/dashboard">
-                                        <Shield className="h-4 w-4 mr-2" />
-                                        Admin Dashboard megnyitása
-                                    </Link>
-                                </Button>
-                            </Card>
+                            <SuperadminMemberManager 
+                                organizationId={organization.id}
+                                organizationName={organization.organization_name || 'Ismeretlen Szervezet'}
+                            />
                         </TabsContent>
                     </div>
                 </Tabs>
