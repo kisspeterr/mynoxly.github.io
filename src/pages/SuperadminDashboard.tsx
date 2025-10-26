@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import SuperadminUsersPage from '@/components/superadmin/SuperadminUsersPage';
 import SuperadminStatsPage from '@/components/superadmin/SuperadminStatsPage';
+import SuperadminOrganizationsPage from '@/components/superadmin/SuperadminOrganizationsPage';
 
 const SuperadminDashboard: React.FC = () => {
   const { isAuthenticated, isSuperadmin, isLoading, signOut, profile } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('organizations');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -70,9 +71,12 @@ const SuperadminDashboard: React.FC = () => {
           <p className="text-lg md:text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Superadmin'}!</p>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-gray-800/50 border border-gray-700/50 h-auto p-1 max-w-md mx-auto">
+            <TabsList className="grid w-full grid-cols-3 bg-gray-800/50 border border-gray-700/50 h-auto p-1 max-w-xl mx-auto">
+              <TabsTrigger value="organizations" className="data-[state=active]:bg-red-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-red-400 py-2 text-sm md:text-base">
+                <Building className="h-4 w-4 mr-1 md:mr-2" /> Szervezetek
+              </TabsTrigger>
               <TabsTrigger value="users" className="data-[state=active]:bg-red-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-red-400 py-2 text-sm md:text-base">
-                <Users className="h-4 w-4 mr-1 md:mr-2" /> Felhasználók & Szervezetek
+                <Users className="h-4 w-4 mr-1 md:mr-2" /> Felhasználók
               </TabsTrigger>
               <TabsTrigger value="stats" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
                 <BarChart className="h-4 w-4 mr-1 md:mr-2" /> Globális Statisztikák
@@ -80,6 +84,9 @@ const SuperadminDashboard: React.FC = () => {
             </TabsList>
             
             <div className="mt-6">
+              <TabsContent value="organizations">
+                <SuperadminOrganizationsPage />
+              </TabsContent>
               <TabsContent value="users">
                 <SuperadminUsersPage />
               </TabsContent>
