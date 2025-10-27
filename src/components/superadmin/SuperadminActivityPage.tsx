@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuditLogs, AuditLog, AuditFilter } from '@/hooks/use-audit-logs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Clock, User, Building, Filter, RefreshCw, Activity, Tag, Calendar, Shield, Trash2, Upload } from 'lucide-react';
+import { Loader2, Clock, User, Building, Filter, RefreshCw, Activity, Tag, Calendar, Shield, Trash2, Upload, PlusCircle, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
