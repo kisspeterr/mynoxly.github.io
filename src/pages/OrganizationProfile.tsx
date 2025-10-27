@@ -365,11 +365,8 @@ const OrganizationProfile = () => {
                 return (
                   <Card key={coupon.id} className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white flex flex-col ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}>
                     
-                    {/* Clickable Card Area to open details */}
-                    <div 
-                        onClick={() => openDetailsModal(coupon)}
-                        className="cursor-pointer flex flex-col flex-grow"
-                    >
+                    {/* Card Content Area (No longer clickable for details) */}
+                    <div className="flex flex-col flex-grow">
                         <CardHeader>
                           {coupon.image_url && (
                             <div className="h-40 w-full overflow-hidden rounded-t-xl">
@@ -386,7 +383,6 @@ const OrganizationProfile = () => {
                               <Link 
                                   to={`/organization/${coupon.organization_name}`}
                                   className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
-                                  onClick={(e) => e.stopPropagation()}
                               >
                                   {profile.logo_url ? (
                                       <img 
@@ -423,9 +419,6 @@ const OrganizationProfile = () => {
                                       <CheckCircle className="h-3 w-3 mr-1" /> Azonnali beváltás
                                   </Badge>
                               )}
-                              <span className="text-xs text-gray-500 ml-auto flex items-center">
-                                <Eye className="h-3 w-3 mr-1" /> Részletek
-                              </span>
                           </div>
                           
                           {/* Loyalty Status/Reward */}
@@ -461,7 +454,17 @@ const OrganizationProfile = () => {
                       
                     {/* Redemption Button (Outside clickable area) */}
                     <CardContent className="pt-0">
-                      <div className="pt-4 border-t border-gray-700/50">
+                      <div className="pt-4 space-y-2 border-t border-gray-700/50">
+                        {/* NEW: Details Button */}
+                        <Button 
+                            onClick={() => openDetailsModal(coupon)}
+                            variant="outline"
+                            className="w-full border-gray-700 text-gray-400 hover:bg-gray-800"
+                        >
+                            <Eye className="h-4 w-4 mr-2" />
+                            Részletek
+                        </Button>
+                        
                         {isAuthenticated ? (
                           <>
                             {pending ? (
