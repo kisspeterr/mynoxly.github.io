@@ -392,34 +392,41 @@ const OrganizationProfile = () => {
                           </div>
                         )}
                         
-                        {/* Organization Info Overlay (Top Left) */}
-                        <Link 
-                            to={`/organization/${coupon.organization_name}`}
-                            className="absolute top-3 left-3 z-10 flex items-center p-2 bg-black/50 rounded-full backdrop-blur-sm border border-purple-400/50 group-hover:bg-black/70 transition-all duration-300"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Logo */}
-                            <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-purple-400 overflow-hidden flex-shrink-0">
-                                {profile.logo_url ? (
-                                    <img 
-                                        src={profile.logo_url} 
-                                        alt={profile.organization_name} 
-                                        className="w-full h-full object-cover rounded-full"
-                                    />
-                                ) : (
-                                    <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                        <Building className="h-4 w-4 text-purple-400" />
-                                    </div>
-                                )}
-                            </div>
-                            {/* Organization Name */}
-                            <span className="text-sm font-semibold text-gray-300 ml-2 group-hover:text-purple-300 transition-colors truncate max-w-[100px] hidden sm:block">
+                        {/* Organization Info Overlay (Top Left & Center) */}
+                        <div className="absolute inset-0 z-10 pointer-events-none">
+                            {/* Logo (Top Left) */}
+                            <Link 
+                                to={`/organization/${coupon.organization_name}`}
+                                className="absolute top-3 left-3 z-20 flex items-center p-0.5 bg-black/50 rounded-full backdrop-blur-sm border border-purple-400/50 transition-all duration-300 pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-purple-400 overflow-hidden flex-shrink-0">
+                                    {profile.logo_url ? (
+                                        <img 
+                                            src={profile.logo_url} 
+                                            alt={profile.organization_name} 
+                                            className="w-full h-full object-cover rounded-full"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                            <Building className="h-4 w-4 text-purple-400" />
+                                        </div>
+                                    )}
+                                </div>
+                            </Link>
+                            
+                            {/* Organization Name (Center Top) */}
+                            <Link 
+                                to={`/organization/${coupon.organization_name}`}
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-purple-400/50 transition-all duration-300 hover:text-purple-300 pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 {profile.organization_name}
-                            </span>
-                        </Link>
+                            </Link>
+                        </div>
                         
                         {/* Overlay Content (Top Right - Status Badge) */}
-                        <div className="absolute top-3 right-3 p-1 flex items-start justify-end">
+                        <div className="absolute top-3 right-3 p-1 flex items-start justify-end z-10">
                             {pending ? (
                                 <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
                                     <QrCode className="h-3 w-3" /> Aktív kód
@@ -440,7 +447,7 @@ const OrganizationProfile = () => {
                         </div>
                         
                         {/* Title Overlay (Bottom Left) */}
-                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent z-10">
                             <CardTitle className="text-xl text-white text-left truncate">{coupon.title}</CardTitle>
                         </div>
                       </div>
@@ -496,31 +503,38 @@ const OrganizationProfile = () => {
                             </div>
                         )}
                         
-                        {/* Organization Info Overlay (Top Left) */}
-                        <Link 
-                            to={`/organization/${event.organization_name}`}
-                            className="absolute top-3 left-3 z-10 flex items-center p-2 bg-black/50 rounded-full backdrop-blur-sm border border-cyan-400/50 group-hover:bg-black/70 transition-all duration-300"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Logo */}
-                            <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-cyan-400 overflow-hidden flex-shrink-0">
-                                {profile.logo_url ? (
-                                    <img 
-                                        src={profile.logo_url} 
-                                        alt={profile.organization_name} 
-                                        className="w-full h-full object-cover rounded-full"
-                                    />
-                                ) : (
-                                    <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                        <Building className="h-4 w-4 text-cyan-400" />
-                                    </div>
-                                )}
-                            </div>
-                            {/* Organization Name */}
-                            <span className="text-sm font-semibold text-gray-300 ml-2 group-hover:text-cyan-300 transition-colors truncate max-w-[100px] hidden sm:block">
+                        {/* Organization Info Overlay (Top Left & Center) */}
+                        <div className="absolute inset-0 z-10 pointer-events-none">
+                            {/* Logo (Top Left) */}
+                            <Link 
+                                to={`/organization/${event.organization_name}`}
+                                className="absolute top-3 left-3 z-20 flex items-center p-0.5 bg-black/50 rounded-full backdrop-blur-sm border border-cyan-400/50 transition-all duration-300 pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-cyan-400 overflow-hidden flex-shrink-0">
+                                    {profile.logo_url ? (
+                                        <img 
+                                            src={profile.logo_url} 
+                                            alt={profile.organization_name} 
+                                            className="w-full h-full object-cover rounded-full"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                            <Building className="h-4 w-4 text-cyan-400" />
+                                        </div>
+                                    )}
+                                </div>
+                            </Link>
+                            
+                            {/* Organization Name (Center Top) */}
+                            <Link 
+                                to={`/organization/${event.organization_name}`}
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-cyan-400/50 transition-all duration-300 hover:text-cyan-300 pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 {profile.organization_name}
-                            </span>
-                        </Link>
+                            </Link>
+                        </div>
                         
                         {/* Countdown Overlay (Top Right) */}
                         <div className="absolute top-3 right-3 z-10">

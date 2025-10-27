@@ -62,7 +62,6 @@ const EventsSection = () => {
           <div className="flex flex-wrap justify-center gap-8">
             {events.map((event) => {
               const logoUrl = (event as PublicEvent).logo_url;
-              const interested = isInterested(event.id);
               
               return (
                 <div 
@@ -79,7 +78,7 @@ const EventsSection = () => {
                           <img 
                             src={event.image_url} 
                             alt={event.title} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                           />
                         ) : (
                             <div className="w-full h-full bg-gray-800 flex items-center justify-center">
@@ -87,31 +86,38 @@ const EventsSection = () => {
                             </div>
                         )}
                         
-                        {/* Organization Info Overlay (Top Left) */}
-                        <Link 
-                            to={`/organization/${event.organization_name}`}
-                            className="absolute top-3 left-3 z-10 flex items-center p-2 bg-black/50 rounded-full backdrop-blur-sm border border-purple-400/50 group-hover:bg-black/70 transition-all duration-300"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            {/* Logo */}
-                            <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-purple-400 overflow-hidden flex-shrink-0">
-                                {logoUrl ? (
-                                    <img 
-                                        src={logoUrl} 
-                                        alt={event.organization_name} 
-                                        className="w-full h-full object-cover rounded-full"
-                                    />
-                                ) : (
-                                    <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                        <Building className="h-4 w-4 text-purple-400" />
-                                    </div>
-                                )}
-                            </div>
-                            {/* Organization Name */}
-                            <span className="text-sm font-semibold text-gray-300 ml-2 group-hover:text-purple-300 transition-colors truncate max-w-[100px] hidden sm:block">
+                        {/* Organization Info Overlay (Top Left & Center) */}
+                        <div className="absolute inset-0 z-10 pointer-events-none">
+                            {/* Logo (Top Left) */}
+                            <Link 
+                                to={`/organization/${event.organization_name}`}
+                                className="absolute top-3 left-3 z-20 flex items-center p-0.5 bg-black/50 rounded-full backdrop-blur-sm border border-purple-400/50 transition-all duration-300 pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-purple-400 overflow-hidden flex-shrink-0">
+                                    {logoUrl ? (
+                                        <img 
+                                            src={logoUrl} 
+                                            alt={event.organization_name} 
+                                            className="w-full h-full object-cover rounded-full"
+                                        />
+                                    ) : (
+                                        <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                            <Building className="h-4 w-4 text-purple-400" />
+                                        </div>
+                                    )}
+                                </div>
+                            </Link>
+                            
+                            {/* Organization Name (Center Top) */}
+                            <Link 
+                                to={`/organization/${event.organization_name}`}
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-purple-400/50 transition-all duration-300 hover:text-purple-300 pointer-events-auto"
+                                onClick={(e) => e.stopPropagation()}
+                            >
                                 {event.organization_name}
-                            </span>
-                        </Link>
+                            </Link>
+                        </div>
                         
                         {/* Countdown Overlay (Top Right) */}
                         <div className="absolute top-3 right-3 z-10">
