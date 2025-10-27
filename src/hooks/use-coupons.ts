@@ -9,12 +9,13 @@ export const useCoupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  // organizationName most már csak egy egyszerű változó, nem a useCallback függősége
   const organizationName = activeOrganizationProfile?.organization_name;
 
   // Function to fetch coupons (used internally and exported for manual refresh)
-  const fetchCoupons = useCallback(async () => {
+  const fetchCoupons = useCallback(async (currentOrgName: string | undefined) => {
     // CRITICAL CHECK: Ensure organizationName is present before fetching
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !currentOrgName) {
       setCoupons([]);
       setIsLoading(false);
       return;
@@ -33,7 +34,7 @@ export const useCoupons = () => {
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
+        .eq('organization_name', currentOrgName) // <-- EXPLICIT FILTER
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -46,21 +47,18 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]); // organizationName is the key dependency
+  }, [isAuthenticated, checkPermission]); // Csak a statikus függőségek maradnak
 
   // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
-    // We use activeOrganizationId as the primary trigger, as it changes when the selector is used.
-    // This ensures the fetch is triggered whenever the active context changes.
-    if (activeOrganizationId) {
-      // We rely on the fetchCoupons dependency array (which includes organizationName) 
-      // to ensure the correct organizationName is used when fetchCoupons is called.
-      fetchCoupons();
+    // activeOrganizationId változása garantálja, hogy a fetch lefut
+    if (activeOrganizationId && organizationName) {
+      fetchCoupons(organizationName);
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, fetchCoupons]); // fetchCoupons is stable due to useCallback
+  }, [activeOrganizationId, isAuthenticated, organizationName, fetchCoupons]); // organizationName hozzáadva a triggerhez
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -258,7 +256,7 @@ export const useCoupons = () => {
   return {
     coupons,
     isLoading,
-    fetchCoupons,
+    fetchCoupons: () => fetchCoupons(organizationName), // Exportált függvény hívása a legfrissebb organizationName-nel
     createCoupon,
     updateCoupon,
     toggleActiveStatus,

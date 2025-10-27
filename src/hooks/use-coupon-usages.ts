@@ -51,8 +51,8 @@ export const useCouponUsages = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchUsages = useCallback(async () => {
-    if (!isAuthenticated || !organizationName) {
+  const fetchUsages = useCallback(async (currentOrgName: string | undefined) => {
+    if (!isAuthenticated || !currentOrgName) {
       setUsages([]);
       setIsLoading(false);
       return;
@@ -98,7 +98,7 @@ export const useCouponUsages = () => {
       const rawUsages = (data as Omit<CouponUsageRecord, 'profile'>[]).filter(
         (usage) => 
           usage.coupon && 
-          usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER for ACTIVE ORG
+          usage.coupon.organization_name === currentOrgName && // <-- EXPLICIT FILTER for ACTIVE ORG
           typeof usage.redeemed_at === 'string'
       );
       
@@ -125,12 +125,12 @@ export const useCouponUsages = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]);
+  }, [isAuthenticated, checkPermission]);
 
   useEffect(() => {
     // Trigger fetch when the active organization ID changes
-    if (activeOrganizationId) {
-      fetchUsages();
+    if (activeOrganizationId && organizationName) {
+      fetchUsages(organizationName);
     } else if (!isLoading && isAuthenticated) {
         // Clear data if authenticated but no organization is selected
         setUsages([]);
@@ -153,7 +153,7 @@ export const useCouponUsages = () => {
             },
             (payload) => {
               // Refetch all data to ensure consistency and correct filtering/sorting
-              fetchUsages();
+              fetchUsages(organizationName);
             }
           )
           .subscribe();
@@ -170,7 +170,7 @@ export const useCouponUsages = () => {
   return {
     usages,
     isLoading,
-    fetchUsages,
+    fetchUsages: () => fetchUsages(organizationName),
     organizationName,
   };
 };

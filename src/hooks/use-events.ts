@@ -11,9 +11,9 @@ export const useEvents = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (currentOrgName: string | undefined) => {
     // CRITICAL CHECK: Ensure organizationName is present before fetching
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !currentOrgName) {
       setEvents([]);
       setIsLoading(false);
       return;
@@ -35,7 +35,7 @@ export const useEvents = () => {
           *,
           coupon:coupon_id (id, title, coupon_code)
         `)
-        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
+        .eq('organization_name', currentOrgName) // <-- EXPLICIT FILTER
         .order('start_time', { ascending: true });
 
       if (error) {
@@ -48,17 +48,17 @@ export const useEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]); // organizationName added to dependencies
+  }, [isAuthenticated, checkPermission]); // Csak a statikus függőségek maradnak
 
   // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationId) {
-      fetchEvents();
+    if (activeOrganizationId && organizationName) {
+      fetchEvents(organizationName);
     } else {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, fetchEvents]);
+  }, [activeOrganizationId, isAuthenticated, organizationName, fetchEvents]);
 
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
@@ -264,7 +264,7 @@ export const useEvents = () => {
   return {
     events,
     isLoading,
-    fetchEvents,
+    fetchEvents: () => fetchEvents(organizationName),
     createEvent,
     updateEvent,
     toggleActiveStatus,
