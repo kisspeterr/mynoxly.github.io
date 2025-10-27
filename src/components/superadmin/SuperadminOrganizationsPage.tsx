@@ -58,7 +58,8 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             
             const options: UserOption[] = (usersData as SuperadminProfile[])
                 // Filter: Only show users (role='user') or the current owner (for editing)
-                .filter(u => u.role === 'user' || u.id === initialOrg?.id) 
+                // NOTE: We now allow selecting existing admins/superadmins as new owners, 
+                // as the logic below will handle demoting the old owner if necessary.
                 .map(u => ({
                     id: u.id,
                     username: u.username,
@@ -127,7 +128,8 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                                 <div className="flex items-center">
                                     <AtSign className="h-4 w-4 mr-2 text-gray-400" />
                                     @{user.username} ({user.email})
-                                    {user.role === 'admin' && <Badge className="ml-2 bg-purple-600/50 text-purple-300">Jelenlegi Admin</Badge>}
+                                    {user.role === 'admin' && user.id !== initialOrg?.id && <Badge className="ml-2 bg-yellow-600/50 text-yellow-300">Már Admin</Badge>}
+                                    {user.role === 'superadmin' && <Badge className="ml-2 bg-red-600/50 text-red-300">Superadmin</Badge>}
                                 </div>
                             </SelectItem>
                         ))}
@@ -177,20 +179,23 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
             // 2. If the owner changed, we must demote the old owner
             if (userId !== organization.id) {
                 // Demote old owner back to 'user' and clear their organization_name
-                const { error } = await supabase
-                    .from('profiles')
-                    .update({ 
-                        role: 'user', 
-                        organization_name: null, 
-                        logo_url: null,
-                        updated_at: new Date().toISOString(),
-                    })
-                    .eq('id', organization.id);
-                    
-                if (error) {
-                    console.error('Error demoting old owner:', error);
-                    showError('Hiba történt a régi tulajdonos jogosultságának visszavonásakor.');
-                    return false;
+                // CRITICAL CHANGE: Only demote if the old owner is NOT a superadmin.
+                if (organization.role !== 'superadmin') {
+                    const { error } = await supabase
+                        .from('profiles')
+                        .update({ 
+                            role: 'user', 
+                            organization_name: null, 
+                            logo_url: null,
+                            updated_at: new Date().toISOString(),
+                        })
+                        .eq('id', organization.id); // organization.id is the old owner's ID
+                        
+                    if (error) {
+                        console.error('Error demoting old owner:', error);
+                        showError('Hiba történt a régi tulajdonos jogosultságának visszavonásakor.');
+                        return false;
+                    }
                 }
                 
                 // 3. Remove old owner's membership record (if it exists)
@@ -205,7 +210,11 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
                 }
                 
                 showSuccess(`Tulajdonos sikeresen átruházva ${orgName} szervezetre.`);
+            } else {
+                // If the owner is the same, just update the organization name/details
+                showSuccess(`Szervezet adatai sikeresen frissítve.`);
             }
+            
             fetchOrganizations(); // Refresh list
             return true;
         }
