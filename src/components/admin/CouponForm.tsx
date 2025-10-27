@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Save, Gift, Coins, QrCode, CheckCircle, ArrowRight } from 'lucide-react';
+import { CalendarIcon, Save, Gift, Coins, QrCode, CheckCircle } from 'lucide-react';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -103,8 +103,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
     
     const result = await onSubmit(insertData);
     if (result.success) {
-      // If creation was successful, the parent component will open the edit dialog
-      // If editing was successful, the parent component will close the dialog
       onClose();
     }
   };
@@ -141,8 +139,8 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
       </div>
 
-      {/* Coupon Banner Uploader - Always visible, but only functional if couponId exists */}
-      {couponId ? (
+      {/* NEW: Coupon Banner Uploader */}
+      {isEditing && couponId ? (
         <CouponBannerUploader
             couponId={couponId}
             currentImageUrl={imageUrl}
@@ -150,9 +148,8 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
             onRemove={handleImageRemove}
         />
       ) : (
-        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300 flex items-center">
-            <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
-            Kérjük, először mentsd el a kupon alapadatait. A képfeltöltés a következő lépésben (a szerkesztőben) lesz elérhető.
+        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300">
+            Képfeltöltés csak a kupon létrehozása után, a szerkesztőben lehetséges.
         </div>
       )}
       {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}

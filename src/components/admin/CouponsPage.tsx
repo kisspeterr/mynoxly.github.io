@@ -255,10 +255,7 @@ const CouponsPage = () => {
   const handleUpdateCoupon = async (id: string, data: Partial<CouponInsert>) => {
       const result = await updateCoupon(id, data);
       if (result.success) {
-          // If we were editing a newly created coupon, clear the state
-          if (couponToEdit && couponToEdit.id === id) {
-              setCouponToEdit(null);
-          }
+          setCouponToEdit(null); // Close the edit dialog
       }
       return result;
   };
@@ -266,7 +263,16 @@ const CouponsPage = () => {
   // Effect to open the edit dialog when a new coupon is set
   useEffect(() => {
       if (couponToEdit) {
-          // This effect ensures the dialog is rendered when couponToEdit is set
+          // We need to ensure the dialog is open when couponToEdit is set
+          // The CouponCard component handles the dialog state internally, but we need to trigger it.
+          // Since we can't directly control the internal state of CouponCard, we use a temporary state here.
+          // A simpler approach is to ensure the newly created coupon is passed to the edit dialog directly.
+          // Since the CouponEditDialog is designed to be triggered by a button on the card, 
+          // we will rely on the user clicking the edit button on the newly created card, 
+          // or we modify the logic to open the dialog immediately after creation.
+          
+          // Let's use a dedicated state for the creation dialog flow:
+          // If couponToEdit is set, we render a dedicated edit dialog outside the list.
       }
   }, [couponToEdit]);
 
@@ -382,7 +388,6 @@ const CouponsPage = () => {
               isLoading={isLoading} 
               isOpen={true}
               onOpenChange={(open) => {
-                  // If the user closes the dialog, clear the state
                   if (!open) setCouponToEdit(null);
               }}
           />
