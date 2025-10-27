@@ -53,6 +53,8 @@ export const useCoupons = () => {
     // We use activeOrganizationId as the primary trigger, as it changes when the selector is used.
     // This ensures the fetch is triggered whenever the active context changes.
     if (activeOrganizationId) {
+      // We rely on the fetchCoupons dependency array (which includes organizationName) 
+      // to ensure the correct organizationName is used when fetchCoupons is called.
       fetchCoupons();
     } else {
         setCoupons([]);
