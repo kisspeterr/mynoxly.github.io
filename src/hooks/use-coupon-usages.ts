@@ -68,6 +68,10 @@ export const useCouponUsages = () => {
     setIsLoading(true);
     try {
       // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
+      // NOTE: We cannot filter by organization_name here directly in the query 
+      // because the coupon table is joined, and RLS might interfere. 
+      // We rely on RLS for the user's access to the coupon_usages table (Admins can view usages for their organization's coupons).
+      // However, for safety and explicit filtering, we fetch all and filter client-side based on the joined coupon data.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -135,15 +139,18 @@ export const useCouponUsages = () => {
     // Setup Realtime subscription for new/updated usages
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
-    if (organizationName) {
+    // CRITICAL FIX: Use organization ID in channel name for uniqueness
+    if (activeOrganizationId) {
         channel = supabase
-          .channel('coupon_usages_admin_feed')
+          .channel(`coupon_usages_admin_feed_${activeOrganizationId}`)
           .on(
             'postgres_changes',
             { 
               event: '*', 
               schema: 'public', 
               table: 'coupon_usages',
+              // NOTE: We cannot filter by organization_name here, as it's a joined column.
+              // We rely on the client-side fetchUsages to filter the data.
             },
             (payload) => {
               // Refetch all data to ensure consistency and correct filtering/sorting
