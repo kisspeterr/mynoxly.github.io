@@ -55,7 +55,7 @@ const AdminDashboard = () => {
   }
 
   // Check if the user has any accepted membership (owner or delegated)
-  const has AdminAccess = allMemberships.length > 0;
+  const hasAdminAccess = allMemberships.length > 0;
 
   if (isAuthenticated && !hasAdminAccess) {
     return <UnauthorizedAccess />;
