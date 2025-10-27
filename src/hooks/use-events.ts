@@ -133,9 +133,20 @@ export const useEvents = () => {
         showError('Nincs jogosultságod az esemény állapotának módosításához.');
         return { success: false };
     }
+    
+    const newStatus = !currentStatus;
+    
+    // CRITICAL CHECK: Prevent publishing if image_url is missing
+    if (newStatus === true) {
+        const eventToPublish = events.find(e => e.id === id);
+        if (!eventToPublish || !eventToPublish.image_url) {
+            showError('Az esemény publikálásához kötelező feltölteni egy bannert!');
+            return { success: false };
+        }
+    }
+    
     setIsLoading(true);
     try {
-      const newStatus = !currentStatus;
       const { data, error } = await supabase
         .from('events')
         .update({ is_active: newStatus })

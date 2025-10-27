@@ -120,9 +120,20 @@ export const useCoupons = () => {
         showError('Nincs jogosultságod a kupon állapotának módosításához.');
         return { success: false };
     }
+    
+    const newStatus = !currentStatus;
+    
+    // CRITICAL CHECK: Prevent publishing if image_url is missing
+    if (newStatus === true) {
+        const couponToPublish = coupons.find(c => c.id === id);
+        if (!couponToPublish || !couponToPublish.image_url) {
+            showError('A kupon publikálásához kötelező feltölteni egy bannert!');
+            return { success: false };
+        }
+    }
+    
     setIsLoading(true);
     try {
-      const newStatus = !currentStatus;
       const { data, error } = await supabase
         .from('coupons')
         .update({ is_active: newStatus })
