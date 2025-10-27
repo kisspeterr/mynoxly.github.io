@@ -13,13 +13,11 @@ interface EventEditDialogProps {
   event: Event;
   onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>;
   isLoading: boolean;
-  isOpen: boolean; // Added isOpen prop for external control
-  onOpenChange: (open: boolean) => void; // Added onOpenChange prop
 }
 
-const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading, isOpen, onOpenChange }) => {
-  // Removed internal state 'isOpen' and replaced with props
-  
+const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
   const handleSubmit = async (data: EventInsert) => {
     // We only send fields that might have changed, excluding organization_name
     const updateData: Partial<EventInsert> = {
@@ -30,26 +28,21 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
-      event_link: data.event_link,
-      link_title: data.link_title,
     };
     
     const result = await onUpdate(event.id, updateData);
     if (result.success) {
-      onOpenChange(false);
+      setIsOpen(false);
     }
     return result;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        {/* Only render trigger if dialog is not already open (used for the card button) */}
-        {!isOpen && (
-            <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
-              <Pencil className="h-4 w-4" />
-            </Button>
-        )}
+        <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
+          <Pencil className="h-4 w-4" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -60,7 +53,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
         </DialogHeader>
         <EventForm 
           onSubmit={handleSubmit} 
-          onClose={() => onOpenChange(false)} 
+          onClose={() => setIsOpen(false)} 
           isLoading={isLoading}
           initialData={event}
         />
@@ -71,7 +64,6 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
 
 
 const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean, canManage: boolean }> = ({ event, onDelete, onUpdate, isLoading, canManage }) => {
-  const [isEditOpen, setIsEditOpen] = useState(false);
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
 
   return (
@@ -89,13 +81,7 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
         <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
         {canManage && (
             <div className="flex space-x-2">
-              <EventEditDialog 
-                event={event} 
-                onUpdate={onUpdate} 
-                isLoading={isLoading} 
-                isOpen={isEditOpen}
-                onOpenChange={setIsEditOpen}
-              />
+              <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
@@ -158,60 +144,11 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
 const EventsPage = () => {
   const { events, isLoading, fetchEvents, createEvent, updateEvent, deleteEvent, organizationName } = useEvents();
   const { checkPermission } = useAuth(); // Use checkPermission
-  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
-  const [eventToEdit, setEventToEdit] = useState<Event | null>(null); // State to hold the newly created event for immediate editing
+  const [isFormOpen, setIsFormOpen] = useState(false);
   
   const canManageEvents = checkPermission('event_manager');
 
-  // Handle creation submission: if successful, open the edit dialog immediately
-  const handleCreateEvent = async (data: EventInsert) => {
-      // 1. Create event without image_url
-      const dataWithoutImage = { ...data, image_url: null };
-      const result = await createEvent(dataWithoutImage);
-      
-      if (result.success) {
-          // 2. Find the newly created event in the local state (it should be the first one after creation, due to sorting by created_at)
-          // We rely on the hook having updated the state after the successful insert.
-          await fetchEvents(); // Ensure state is fresh
-          
-          // Find the newest event (by created_at descending)
-          const newestEvent = events.reduce((latest, current) => {
-              if (!latest || new Date(current.created_at) > new Date(latest.created_at)) {
-                  return current;
-              }
-              return latest;
-          }, null as Event | null);
-          
-          if (newestEvent) {
-              setEventToEdit(newestEvent); // Set state to open edit dialog
-          }
-          
-          setIsCreateFormOpen(false); // Close creation form
-          return { success: true };
-      }
-      return { success: false };
-  };
-  
-  // Handle update submission: if successful, clear the eventToEdit state
-  const handleUpdateEvent = async (id: string, data: Partial<EventInsert>) => {
-      const result = await updateEvent(id, data);
-      if (result.success) {
-          setEventToEdit(null); // Close the edit dialog
-      }
-      return result;
-  };
-  
-  // Effect to ensure the local state is updated when the main events list changes (e.g., after creation)
-  useEffect(() => {
-      if (eventToEdit) {
-          // If we are currently editing a newly created event, ensure its data is up-to-date
-          const updatedEvent = events.find(e => e.id === eventToEdit.id);
-          if (updatedEvent) {
-              setEventToEdit(updatedEvent);
-          }
-      }
-  }, [events]);
-
+  // Removed redundant useEffect, relying on useEvents hook's internal dependency on activeOrganizationId
 
   if (isLoading && events.length === 0) {
     return (
@@ -240,7 +177,7 @@ const EventsPage = () => {
                 <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
             {canManageEvents && (
-                <Dialog open={isCreateFormOpen} onOpenChange={setIsCreateFormOpen}>
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-purple-600 hover:bg-purple-700">
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -255,8 +192,8 @@ const EventsPage = () => {
                       </DialogDescription>
                     </DialogHeader>
                     <EventForm 
-                      onSubmit={handleCreateEvent} 
-                      onClose={() => setIsCreateFormOpen(false)} 
+                      onSubmit={createEvent} 
+                      onClose={() => setIsFormOpen(false)} 
                       isLoading={isLoading}
                     />
                   </DialogContent>
@@ -280,19 +217,6 @@ const EventsPage = () => {
             />
           ))}
         </div>
-      )}
-      
-      {/* Dedicated Edit Dialog for newly created event (if needed) */}
-      {eventToEdit && (
-          <EventEditDialog 
-              event={eventToEdit} 
-              onUpdate={handleUpdateEvent} 
-              isLoading={isLoading} 
-              isOpen={true}
-              onOpenChange={(open) => {
-                  if (!open) setEventToEdit(null);
-              }}
-          />
       )}
     </div>
   );
