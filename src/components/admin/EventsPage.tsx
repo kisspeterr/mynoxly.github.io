@@ -13,11 +13,11 @@ interface EventEditDialogProps {
   event: Event;
   onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>;
   isLoading: boolean;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading, isOpen, onOpenChange }) => {
   const handleSubmit = async (data: EventInsert) => {
     // We only send fields that might have changed, excluding organization_name
     const updateData: Partial<EventInsert> = {
@@ -28,21 +28,26 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
+      event_link: data.event_link,
+      link_title: data.link_title,
     };
     
     const result = await onUpdate(event.id, updateData);
     if (result.success) {
-      setIsOpen(false);
+      onOpenChange(false);
     }
     return result;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
-          <Pencil className="h-4 w-4" />
-        </Button>
+        {/* Only render trigger if dialog is not already open (used for the card button) */}
+        {!isOpen && (
+            <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
+              <Pencil className="h-4 w-4" />
+            </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -53,7 +58,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
         </DialogHeader>
         <EventForm 
           onSubmit={handleSubmit} 
-          onClose={() => setIsOpen(false)} 
+          onClose={() => onOpenChange(false)} 
           isLoading={isLoading}
           initialData={event}
         />
@@ -64,6 +69,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
 
 
 const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean, canManage: boolean }> = ({ event, onDelete, onUpdate, isLoading, canManage }) => {
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
 
   return (
@@ -81,7 +87,13 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
         <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
         {canManage && (
             <div className="flex space-x-2">
-              <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
+              <EventEditDialog 
+                event={event} 
+                onUpdate={onUpdate} 
+                isLoading={isLoading} 
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+              />
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
@@ -144,11 +156,41 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
 const EventsPage = () => {
   const { events, isLoading, fetchEvents, createEvent, updateEvent, deleteEvent, organizationName } = useEvents();
   const { checkPermission } = useAuth(); // Use checkPermission
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<Event | null>(null); // State to hold the newly created event for immediate editing
   
   const canManageEvents = checkPermission('event_manager');
 
-  // Removed redundant useEffect, relying on useEvents hook's internal dependency on activeOrganizationId
+  // Handle creation submission: if successful, open the edit dialog immediately
+  const handleCreateEvent = async (data: EventInsert) => {
+      const result = await createEvent(data);
+      if (result.success && result.newEvent) {
+          setEventToEdit(result.newEvent);
+          setIsCreateFormOpen(false); // Close creation form
+          return { success: true };
+      }
+      return { success: false };
+  };
+  
+  // Handle update submission: if successful, clear the eventToEdit state
+  const handleUpdateEvent = async (id: string, data: Partial<EventInsert>) => {
+      const result = await updateEvent(id, data);
+      if (result.success) {
+          // If we were editing a newly created event, clear the state
+          if (eventToEdit && eventToEdit.id === id) {
+              setEventToEdit(null);
+          }
+      }
+      return result;
+  };
+  
+  // Effect to open the edit dialog when a new event is set
+  useEffect(() => {
+      if (eventToEdit) {
+          // This effect ensures the dialog is rendered when eventToEdit is set
+      }
+  }, [eventToEdit]);
+
 
   if (isLoading && events.length === 0) {
     return (
@@ -177,7 +219,7 @@ const EventsPage = () => {
                 <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
             {canManageEvents && (
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <Dialog open={isCreateFormOpen} onOpenChange={setIsCreateFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-purple-600 hover:bg-purple-700">
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -192,8 +234,8 @@ const EventsPage = () => {
                       </DialogDescription>
                     </DialogHeader>
                     <EventForm 
-                      onSubmit={createEvent} 
-                      onClose={() => setIsFormOpen(false)} 
+                      onSubmit={handleCreateEvent} 
+                      onClose={() => setIsCreateFormOpen(false)} 
                       isLoading={isLoading}
                     />
                   </DialogContent>
@@ -217,6 +259,19 @@ const EventsPage = () => {
             />
           ))}
         </div>
+      )}
+      
+      {/* Dedicated Edit Dialog for newly created event */}
+      {eventToEdit && (
+          <EventEditDialog 
+              event={eventToEdit} 
+              onUpdate={handleUpdateEvent} 
+              isLoading={isLoading} 
+              isOpen={true}
+              onOpenChange={(open) => {
+                  if (!open) setEventToEdit(null);
+              }}
+          />
       )}
     </div>
   );

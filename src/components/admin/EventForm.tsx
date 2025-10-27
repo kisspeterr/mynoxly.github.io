@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Clock, Save, MapPin, Link as LinkIcon } from 'lucide-react';
+import { CalendarIcon, Clock, Save, MapPin, Link as LinkIcon, ArrowRight } from 'lucide-react';
 import { Event, EventInsert } from '@/types/events';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -78,7 +78,7 @@ const eventSchema = z.object({
 type EventFormData = z.infer<typeof eventSchema>;
 
 interface EventFormProps {
-  onSubmit: (data: EventInsert) => Promise<{ success: boolean }>;
+  onSubmit: (data: EventInsert) => Promise<{ success: boolean, newEvent?: Event }>;
   onClose: () => void;
   isLoading: boolean;
   initialData?: Event; // Optional data for editing
@@ -199,8 +199,8 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         {errors.location && <p className="text-red-400 text-sm">{errors.location.message}</p>}
       </div>
       
-      {/* NEW: Event Banner Uploader */}
-      {isEditing && eventId ? (
+      {/* Event Banner Uploader - Always visible, but only functional if eventId exists */}
+      {eventId ? (
         <EventBannerUploader
             eventId={eventId}
             currentImageUrl={imageUrl}
@@ -208,12 +208,12 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
             onRemove={handleImageRemove}
         />
       ) : (
-        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300">
-            Képfeltöltés csak az esemény létrehozása után, a szerkesztőben lehetséges.
+        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300 flex items-center">
+            <ArrowRight className="h-4 w-4 mr-2 flex-shrink-0" />
+            Kérjük, először mentsd el az esemény alapadatait. A képfeltöltés a következő lépésben (a szerkesztőben) lesz elérhető.
         </div>
       )}
       {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
-      {/* END NEW UPLOADER */}
       
       {/* Event Link and Link Title */}
       <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">

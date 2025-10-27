@@ -59,7 +59,7 @@ export const useEvents = () => {
     }
   }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
-  const createEvent = async (eventData: EventInsert) => {
+  const createEvent = async (eventData: EventInsert): Promise<{ success: boolean, newEvent?: Event }> => {
     if (!organizationName || !checkPermission('event_manager')) {
       showError('Nincs jogosultságod esemény létrehozásához, vagy hiányzik a szervezet neve.');
       return { success: false };
@@ -82,9 +82,10 @@ export const useEvents = () => {
         return { success: false };
       }
 
-      setEvents(prev => [...prev, data as Event]);
+      const newEvent = data as Event;
+      setEvents(prev => [...prev, newEvent]);
       showSuccess('Esemény sikeresen létrehozva!');
-      return { success: true };
+      return { success: true, newEvent };
     } finally {
       setIsLoading(false);
     }
