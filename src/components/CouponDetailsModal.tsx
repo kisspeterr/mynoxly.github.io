@@ -29,6 +29,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
+      {/* max-w-lg ensures it's not full screen. Default DialogContent handles centering. */}
       <DialogContent className="bg-black/90 border-cyan-500/30 backdrop-blur-xl max-w-lg p-0 text-white">
         
         {/* Image Header */}
@@ -74,10 +75,10 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                 </DialogDescription>
             </DialogHeader>
 
-            {/* Full Description - Added max-h-40 and overflow-y-auto for scrolling */}
-            <div className="space-y-3 max-h-40 overflow-y-auto pr-4"> {/* Increased pr-4 for scrollbar */}
+            {/* Full Description - Now uses whitespace-normal and break-words for responsive wrapping */}
+            <div className="space-y-3 max-h-40 overflow-y-auto pr-4">
                 <h4 className="text-lg font-semibold text-white">Teljes leírás:</h4>
-                <p className="text-gray-300 whitespace-pre-wrap">
+                <p className="text-gray-300 whitespace-normal break-words">
                     {coupon.description && coupon.description.trim() !== '' ? coupon.description : 'Nincs részletes leírás megadva.'}
                 </p>
             </div>
