@@ -354,15 +354,44 @@ const OrganizationProfile = () => {
                 const logoUrl = profile.logo_url; // Use organization profile logo
                 
                 return (
-                  <Card 
+                  <div 
                     key={coupon.id} 
-                    className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.05] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}
-                    onClick={() => openDetailsModal(coupon)}
+                    className={`relative w-full sm:w-full lg:w-full max-w-sm transition-all duration-300 ${isDisabled ? 'opacity-60 grayscale' : 'hover:scale-[1.05]'}`}
                   >
+                    {/* Organization Header (Above Card) */}
+                    <Link 
+                        to={`/organization/${coupon.organization_name}`}
+                        className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center group"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Logo */}
+                        <div className="w-12 h-12 rounded-full bg-gray-900 p-1 border-2 border-purple-400 overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
+                            {logoUrl ? (
+                                <img 
+                                    src={logoUrl} 
+                                    alt={coupon.organization_name} 
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                    <Building className="h-6 w-6 text-purple-400" />
+                                </div>
+                            )}
+                        </div>
+                        {/* Organization Name */}
+                        <span className="text-xs font-semibold text-gray-300 mt-1 group-hover:text-purple-300 transition-colors truncate max-w-[100px]">
+                            {coupon.organization_name}
+                        </span>
+                    </Link>
                     
-                    {/* NEW CARD DESIGN: Banner Image with Overlay */}
-                    <div className="relative w-full aspect-video overflow-hidden rounded-xl">
-                        {/* Banner Image (16:9 aspect ratio) */}
+                    <Card 
+                      className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full mt-8 cursor-pointer ${isDisabled ? '' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}
+                      onClick={() => openDetailsModal(coupon)}
+                    >
+                      
+                      {/* Card Content starts below the space reserved for the logo */}
+                      <div className="relative w-full aspect-video overflow-hidden rounded-xl">
+                        {/* Banner Image (16:9 aspect ratio) - object-cover ensures fixed ratio and no excessive zoom */}
                         {coupon.image_url ? (
                           <img 
                             src={coupon.image_url} 
@@ -375,32 +404,8 @@ const OrganizationProfile = () => {
                           </div>
                         )}
                         
-                        {/* Overlay Content (Top Left) */}
-                        <div className="absolute inset-0 p-3 flex items-start justify-between bg-gradient-to-b from-black/50 to-transparent">
-                            <Link 
-                                to={`/organization/${coupon.organization_name}`}
-                                className="flex items-center space-x-2 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                {/* Logo */}
-                                <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center border border-cyan-400 overflow-hidden">
-                                    {logoUrl ? (
-                                        <img 
-                                            src={logoUrl} 
-                                            alt={coupon.organization_name} 
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <Building className="h-4 w-4 text-cyan-400" />
-                                    )}
-                                </div>
-                                {/* Organization Name */}
-                                <span className="text-sm font-semibold text-white truncate max-w-[100px] md:max-w-[150px]">
-                                    {coupon.organization_name}
-                                </span>
-                            </Link>
-                            
-                            {/* Status Badge (Top Right) */}
+                        {/* Overlay Content (Top Right - Status Badge) */}
+                        <div className="absolute top-3 right-3 p-1 flex items-start justify-end">
                             {pending ? (
                                 <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
                                     <QrCode className="h-3 w-3" /> Aktív kód
@@ -411,11 +416,11 @@ const OrganizationProfile = () => {
                                 </Badge>
                             ) : coupon.points_cost > 0 ? (
                                 <Badge className="bg-red-600/70 text-white flex items-center gap-1">
-                                    <Coins className="h-3 w-3" /> {coupon.points_cost} pont
+                                    <Coins className="h-3 w-3" /> -{coupon.points_cost}
                                 </Badge>
                             ) : coupon.points_reward > 0 ? (
                                 <Badge className="bg-green-600/70 text-white flex items-center gap-1">
-                                    <Coins className="h-3 w-3" /> +{coupon.points_reward} pont
+                                    <Coins className="h-3 w-3" /> +{coupon.points_reward}
                                 </Badge>
                             ) : null}
                         </div>
@@ -424,10 +429,10 @@ const OrganizationProfile = () => {
                         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
                             <CardTitle className="text-xl text-white text-left truncate">{coupon.title}</CardTitle>
                         </div>
-                    </div>
-                    
-                    {/* Card Content (Empty, only for padding/structure) */}
-                    <CardContent className="p-3 text-center">
+                      </div>
+                      
+                      {/* Card Content (Button) */}
+                      <CardContent className="p-3 text-center">
                         <Button 
                             onClick={() => openDetailsModal(coupon)}
                             variant="outline"
@@ -435,10 +440,11 @@ const OrganizationProfile = () => {
                         >
                             <Gift className="h-4 w-4 mr-2" /> Részletek & Beváltás
                         </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      </CardContent>
+                    </Card>
+                </div>
+              );
+            })}
             </div>
           )}
         </div>
