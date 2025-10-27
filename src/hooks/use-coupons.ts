@@ -12,8 +12,9 @@ export const useCoupons = () => {
   const organizationName = activeOrganizationProfile?.organization_name;
 
   // Function to fetch coupons (used internally and exported for manual refresh)
-  const fetchCoupons = useCallback(async () => {
-    if (!isAuthenticated || !organizationName) {
+  // It now accepts the organizationName explicitly to ensure it uses the latest value.
+  const fetchCoupons = useCallback(async (currentOrgName: string | undefined) => {
+    if (!isAuthenticated || !currentOrgName) {
       setCoupons([]);
       setIsLoading(false);
       return;
@@ -32,7 +33,7 @@ export const useCoupons = () => {
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
+        .eq('organization_name', currentOrgName) // <-- USE PARAMETER
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -45,17 +46,17 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]); // Dependencies updated
+  }, [isAuthenticated, checkPermission]); // organizationName removed from dependencies
 
-  // Automatically fetch coupons when activeOrganizationId changes
+  // Automatically fetch coupons when activeOrganizationId or organizationName changes
   useEffect(() => {
-    if (activeOrganizationId) {
-      fetchCoupons();
+    if (activeOrganizationId && organizationName) {
+      fetchCoupons(organizationName);
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, fetchCoupons]); // fetchCoupons added as dependency
+  }, [activeOrganizationId, organizationName, isAuthenticated, fetchCoupons]); // organizationName added to trigger fetch
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -252,7 +253,7 @@ export const useCoupons = () => {
   return {
     coupons,
     isLoading,
-    fetchCoupons,
+    fetchCoupons: () => fetchCoupons(organizationName), // Exported function uses the latest organizationName
     createCoupon,
     updateCoupon,
     toggleActiveStatus,
