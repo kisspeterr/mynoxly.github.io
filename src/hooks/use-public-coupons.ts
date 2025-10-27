@@ -320,7 +320,7 @@ export const usePublicCoupons = () => {
                 return { success: false };
             }
             
-            // NOTE: Points deduction happens *after* successful code generation insertion below.
+            // NOTE: Points deduction now happens in finalize_coupon_redemption RPC.
         }
         
         // 4. Generate unique redemption code
@@ -365,27 +365,7 @@ export const usePublicCoupons = () => {
             return { success: false };
           }
           
-          // 6. Deduct points immediately upon successful code generation
-          if (coupon.points_cost > 0) {
-              const organizationId = await getOrganizationId(coupon.organization_name);
-              if (organizationId) {
-                  // We use a raw update to deduct points
-                  const { error: pointError } = await supabase
-                      .from('loyalty_points')
-                      .update({ 
-                          points: supabase.raw(`points - ${coupon.points_cost}`),
-                          updated_at: new Date().toISOString(),
-                      })
-                      .eq('user_id', user.id)
-                      .eq('organization_id', organizationId);
-                      
-                  if (pointError) {
-                      // Critical failure: usage recorded, but points deduction failed.
-                      // We rely on the user contacting support, as rolling back the usage is complex.
-                      showError('Hiba történt a hűségpontok levonásakor. Kérjük, lépj kapcsolatba az ügyfélszolgálattal.');
-                  }
-              }
-          }
+          // 6. REMOVED: Point deduction logic removed here. It will be handled by RPC on finalization.
           
           // Refresh usages immediately after successful insertion to update local state
           await refreshUsages();
