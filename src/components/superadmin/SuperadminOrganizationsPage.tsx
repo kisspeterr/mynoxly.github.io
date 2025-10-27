@@ -178,13 +178,15 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
         if (success) {
             // 2. If the owner changed, we must demote the old owner
             if (userId !== organization.id) {
-                // Demote old owner back to 'user' and clear their organization_name
-                // CRITICAL CHANGE: Only demote if the old owner is NOT a superadmin.
+                // CRITICAL CHANGE: We only clear the organization_name and logo_url from the OLD owner's profile, 
+                // but we DO NOT demote the role if they are already an admin.
+                // This allows the old owner to retain their 'admin' role and potentially own other organizations.
+                
+                // Check if the old owner is NOT a superadmin before attempting to modify their profile
                 if (organization.role !== 'superadmin') {
                     const { error } = await supabase
                         .from('profiles')
                         .update({ 
-                            role: 'user', 
                             organization_name: null, 
                             logo_url: null,
                             updated_at: new Date().toISOString(),
@@ -192,8 +194,8 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
                         .eq('id', organization.id); // organization.id is the old owner's ID
                         
                     if (error) {
-                        console.error('Error demoting old owner:', error);
-                        showError('Hiba történt a régi tulajdonos jogosultságának visszavonásakor.');
+                        console.error('Error clearing old owner organization data:', error);
+                        showError('Hiba történt a régi tulajdonos szervezeti adatainak törlésekor.');
                         return false;
                     }
                 }
@@ -293,6 +295,7 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 return;
             }
             
+            // Filter for profiles that are explicitly marked as 'admin' AND have an organization name set.
             const orgs = (data as SuperadminProfile[])
                 .filter(p => p.role === 'admin' && p.organization_name);
                 
