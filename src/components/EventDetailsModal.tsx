@@ -144,7 +144,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, isOpen, on
                         </div>
                     )}
                     
-                    {event.event_link && (
+                    {/* NEW: Event Link Display */}
+                    {event.event_link && event.link_title && (
                         <div className="flex items-center text-cyan-400">
                             <LinkIcon className="h-4 w-4 mr-2" />
                             <a 
@@ -153,7 +154,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, isOpen, on
                                 rel="noopener noreferrer" 
                                 className="font-semibold hover:underline break-all"
                             >
-                                Esemény link
+                                {event.link_title}
                             </a>
                         </div>
                     )}

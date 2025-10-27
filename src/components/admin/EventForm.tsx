@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarIcon, Clock, Save, MapPin } from 'lucide-react';
+import { CalendarIcon, Clock, Save, MapPin, Link as LinkIcon } from 'lucide-react';
 import { Event, EventInsert } from '@/types/events';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -24,6 +24,10 @@ const eventSchema = z.object({
   location: z.string().nullable().optional().transform(e => e === "" ? null : e),
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
   coupon_id: z.string().nullable().optional().transform(e => e === "" ? null : e),
+  
+  // NEW FIELDS
+  event_link: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
+  link_title: z.string().max(50, 'A link címe maximum 50 karakter lehet.').nullable().optional().transform(e => e === "" ? null : e),
   
   // Start Date and Time handling
   startDate: z.date({ required_error: "A kezdő dátum kötelező." }),
@@ -59,6 +63,15 @@ const eventSchema = z.object({
 }, {
     message: "A befejezési időnek későbbinek kell lennie, mint a kezdési idő.",
     path: ["endTime"],
+}).refine(data => {
+    // Custom validation: If event_link is provided, link_title must also be provided
+    if (data.event_link && !data.link_title) {
+        return false;
+    }
+    return true;
+}, {
+    message: "Ha megadsz esemény linket, a link címe is kötelező.",
+    path: ["link_title"],
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -83,6 +96,8 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     location: initialData?.location || null,
     image_url: initialData?.image_url || null,
     coupon_id: initialData?.coupon_id || null,
+    event_link: initialData?.event_link || null, // NEW
+    link_title: initialData?.event_link ? 'Esemény link' : null, // Default title if link exists
     startDate: initialData?.start_time ? defaultStartTime : undefined,
     startTime: format(defaultStartTime, 'HH:mm'),
     endDate: defaultEndTime,
@@ -96,6 +111,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
 
   const startDate = watch('startDate');
   const endDate = watch('endDate');
+  const eventLink = watch('event_link');
   const isEditing = !!initialData;
 
   const handleFormSubmit = async (data: EventFormData) => {
@@ -129,7 +145,9 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       image_url: data.image_url,
       coupon_id: data.coupon_id,
       start_time: startDateTime.toISOString(),
-      end_time: endDateTime ? endDateTime.toISOString() : null, // NEW
+      end_time: endDateTime ? endDateTime.toISOString() : null,
+      event_link: data.event_link, // NEW
+      link_title: data.link_title, // NEW
     };
 
     const result = await onSubmit(eventInsert);
@@ -169,6 +187,36 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         />
         {errors.location && <p className="text-red-400 text-sm">{errors.location.message}</p>}
       </div>
+      
+      {/* NEW: Event Link and Link Title */}
+      <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">
+        <h4 className="text-lg font-semibold text-cyan-300 flex items-center gap-2">
+            <LinkIcon className="h-5 w-5" /> Esemény Link (opcionális)
+        </h4>
+        <div className="space-y-2">
+            <Label htmlFor="event_link" className="text-gray-300">Link URL</Label>
+            <Input 
+              id="event_link"
+              type="url"
+              {...register('event_link')}
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              placeholder="https://esemeny.hu/jegyek"
+            />
+            {errors.event_link && <p className="text-red-400 text-sm">{errors.event_link.message}</p>}
+        </div>
+        
+        <div className="space-y-2">
+            <Label htmlFor="link_title" className="text-gray-300">Link címe {eventLink ? '*' : '(opcionális)'}</Label>
+            <Input 
+              id="link_title"
+              {...register('link_title')}
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              placeholder="Jegyvásárlás"
+            />
+            {errors.link_title && <p className="text-red-400 text-sm">{errors.link_title.message}</p>}
+        </div>
+      </div>
+      {/* END NEW FIELDS */}
 
       <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">
         <h4 className="text-lg font-semibold text-cyan-300">Kezdési időpont</h4>
