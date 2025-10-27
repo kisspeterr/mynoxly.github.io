@@ -362,7 +362,7 @@ const OrganizationProfile = () => {
                 return (
                   <Card 
                     key={coupon.id} 
-                    className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.02] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}
+                    className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.05] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}
                     onClick={() => openDetailsModal(coupon)} // Make card clickable for details
                   >
                     
@@ -409,7 +409,7 @@ const OrganizationProfile = () => {
                         <CardContent className="space-y-3 text-sm flex-grow">
                           {/* Use short_description here, only if it exists */}
                           {coupon.short_description && coupon.short_description.trim() !== '' && (
-                            <p className="text-gray-300 flex-grow">{coupon.short_description}</p>
+                            <p className="text-gray-300 flex-grow truncate">{coupon.short_description}</p>
                           )}
                           
                           {/* Redemption Type Badge */}

@@ -178,7 +178,7 @@ const CouponsSection = () => {
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm cursor-pointer hover:scale-[1.02] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm cursor-pointer hover:scale-[1.05] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                   onClick={() => openDetailsModal(coupon)} // Make card clickable for details
                 >
                   {/* Card Content Area */}
@@ -231,7 +231,7 @@ const CouponsSection = () => {
                     <CardContent className="space-y-3 flex-grow text-left">
                       {/* Use short_description here, only if it exists */}
                       {coupon.short_description && coupon.short_description.trim() !== '' && (
-                        <p className="text-gray-300 flex-grow">{coupon.short_description}</p>
+                        <p className="text-gray-300 flex-grow truncate">{coupon.short_description}</p>
                       )}
                       
                       {/* Redemption Type Badge */}
@@ -281,15 +281,6 @@ const CouponsSection = () => {
                   {/* Action Buttons (Details + Redeem) */}
                   <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
                     <div className="pt-4 space-y-2 border-t border-gray-700/50">
-                      {/* Details Button (Now redundant, but kept for visual consistency if needed) */}
-                      {/* <Button 
-                        onClick={() => openDetailsModal(coupon)}
-                        variant="outline"
-                        className="w-full border-gray-700 text-gray-400 hover:bg-gray-800"
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Részletek
-                      </Button> */}
                       
                       {isAuthenticated ? (
                         <>
