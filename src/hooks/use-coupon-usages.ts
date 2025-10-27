@@ -68,6 +68,7 @@ export const useCouponUsages = () => {
     setIsLoading(true);
     try {
       // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
+      // NOTE: RLS on coupon_usages ensures only usages related to the user's organization are returned.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -92,10 +93,12 @@ export const useCouponUsages = () => {
       }
 
       // Client-side filtering based on the joined organization name
+      // This is necessary because the RLS policy on coupon_usages only checks if the coupon's organization_name 
+      // matches ANY of the user's organizations, but we only want the ACTIVE one.
       const rawUsages = (data as Omit<CouponUsageRecord, 'profile'>[]).filter(
         (usage) => 
           usage.coupon && 
-          usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER
+          usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER for ACTIVE ORG
           typeof usage.redeemed_at === 'string'
       );
       
@@ -125,9 +128,11 @@ export const useCouponUsages = () => {
   }, [isAuthenticated, organizationName, checkPermission]);
 
   useEffect(() => {
+    // Trigger fetch when the active organization ID changes
     if (activeOrganizationId) {
       fetchUsages();
     } else if (!isLoading && isAuthenticated) {
+        // Clear data if authenticated but no organization is selected
         setUsages([]);
         setIsLoading(false);
     }
@@ -136,6 +141,7 @@ export const useCouponUsages = () => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
     if (organizationName) {
+        // NOTE: Realtime subscription is generic and relies on fetchUsages() to filter the results.
         channel = supabase
           .channel('coupon_usages_admin_feed')
           .on(
