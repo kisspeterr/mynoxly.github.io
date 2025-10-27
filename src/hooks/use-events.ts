@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Event, EventInsert } from '@/types/events';
 import { showError, showSuccess } from '@/utils/toast';
@@ -11,8 +11,8 @@ export const useEvents = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchEvents = useCallback(async (currentOrgName: string | undefined) => {
-    if (!isAuthenticated || !currentOrgName) {
+  const fetchEvents = async () => {
+    if (!isAuthenticated || !organizationName) {
       setEvents([]);
       setIsLoading(false);
       return;
@@ -34,7 +34,7 @@ export const useEvents = () => {
           *,
           coupon:coupon_id (id, title, coupon_code)
         `)
-        .eq('organization_name', currentOrgName) // <-- USE PARAMETER
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
         .order('start_time', { ascending: true });
 
       if (error) {
@@ -47,49 +47,17 @@ export const useEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, checkPermission]); // organizationName removed from dependencies
+  };
 
-  // Automatically fetch events when activeOrganizationId or organizationName changes
+  // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationId && organizationName) {
-      fetchEvents(organizationName);
+    if (activeOrganizationId) {
+      fetchEvents();
     } else {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, organizationName, isAuthenticated, fetchEvents]); // organizationName added to trigger fetch
-
-  // --- Realtime Subscription ---
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    
-    if (activeOrganizationId) {
-        channel = supabase
-          .channel(`events_admin_feed_${activeOrganizationId}`)
-          .on(
-            'postgres_changes',
-            { 
-              event: '*', 
-              schema: 'public', 
-              table: 'events',
-            },
-            (payload) => {
-              // Refetch all data to ensure consistency and correct filtering/sorting
-              if (organizationName) {
-                  fetchEvents(organizationName);
-              }
-            }
-          )
-          .subscribe();
-    }
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [activeOrganizationId, organizationName, fetchEvents]);
-  // --- End Realtime Subscription ---
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
@@ -295,7 +263,7 @@ export const useEvents = () => {
   return {
     events,
     isLoading,
-    fetchEvents: () => fetchEvents(organizationName),
+    fetchEvents,
     createEvent,
     updateEvent,
     toggleActiveStatus,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
@@ -12,9 +12,8 @@ export const useCoupons = () => {
   const organizationName = activeOrganizationProfile?.organization_name;
 
   // Function to fetch coupons (used internally and exported for manual refresh)
-  // It now accepts the organizationName explicitly to ensure it uses the latest value.
-  const fetchCoupons = useCallback(async (currentOrgName: string | undefined) => {
-    if (!isAuthenticated || !currentOrgName) {
+  const fetchCoupons = async () => {
+    if (!isAuthenticated || !organizationName) {
       setCoupons([]);
       setIsLoading(false);
       return;
@@ -33,7 +32,7 @@ export const useCoupons = () => {
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', currentOrgName) // <-- USE PARAMETER
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -46,54 +45,17 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, checkPermission]); // organizationName removed from dependencies
+  };
 
-  // Automatically fetch coupons when activeOrganizationId or organizationName changes
+  // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationId && organizationName) {
-      fetchCoupons(organizationName);
+    if (activeOrganizationId) {
+      fetchCoupons();
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, organizationName, isAuthenticated, fetchCoupons]); // organizationName added to trigger fetch
-
-  // --- Realtime Subscription ---
-  useEffect(() => {
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-    
-    if (activeOrganizationId) {
-        // We use the organization ID for the channel name, but rely on the DB trigger/RLS 
-        // to ensure only relevant changes are processed, or we simply refetch everything.
-        channel = supabase
-          .channel(`coupons_admin_feed_${activeOrganizationId}`)
-          .on(
-            'postgres_changes',
-            { 
-              event: '*', 
-              schema: 'public', 
-              table: 'coupons',
-              // NOTE: We cannot filter by organization_name here, as it's a joined column.
-              // We rely on the client-side fetchCoupons to filter the data.
-            },
-            (payload) => {
-              // Refetch all data to ensure consistency and correct filtering/sorting
-              if (organizationName) {
-                  fetchCoupons(organizationName);
-              }
-            }
-          )
-          .subscribe();
-    }
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
-  }, [activeOrganizationId, organizationName, fetchCoupons]);
-  // --- End Realtime Subscription ---
-
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -116,7 +78,6 @@ export const useCoupons = () => {
       }
 
       const newCoupon = data as Coupon;
-      // Realtime will handle the list update, but we add it locally for immediate feedback
       setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
@@ -291,7 +252,7 @@ export const useCoupons = () => {
   return {
     coupons,
     isLoading,
-    fetchCoupons: () => fetchCoupons(organizationName), // Exported function uses the latest organizationName
+    fetchCoupons,
     createCoupon,
     updateCoupon,
     toggleActiveStatus,

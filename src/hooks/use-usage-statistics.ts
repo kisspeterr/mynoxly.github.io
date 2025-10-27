@@ -28,7 +28,7 @@ export const useUsageStatistics = () => {
   const organizationName = activeOrganizationProfile?.organization_name;
 
   const fetchStatistics = useCallback(async (date: Date, timeRange: TimeRange, userEmailFilter: string = '') => {
-    if (!isAuthenticated || !organizationName || !activeOrganizationId) {
+    if (!isAuthenticated || !organizationName) {
       setStats([]);
       setDetailedUsages([]);
       setIsLoading(false);
@@ -99,28 +99,8 @@ export const useUsageStatistics = () => {
         default:
           throw new Error('Invalid time range');
       }
-      
-      // 2. Get all coupon IDs belonging to the active organization
-      const { data: couponIdsData, error: couponIdError } = await supabase
-        .from('coupons')
-        .select('id')
-        .eq('organization_name', organizationName);
-        
-      if (couponIdError) {
-        showError('Hiba történt a kupon ID-k betöltésekor a statisztikákhoz.');
-        console.error('Fetch coupon IDs error:', couponIdError);
-        return;
-      }
-      
-      const couponIds = couponIdsData.map(c => c.id);
-      
-      if (couponIds.length === 0) {
-          setStats([]);
-          setDetailedUsages([]);
-          return;
-      }
 
-      // 3. Build the base query for successfully used coupons, filtered by coupon IDs
+      // 2. Build the base query for successfully used coupons
       let query = supabase
         .from('coupon_usages')
         .select(`
@@ -131,7 +111,6 @@ export const useUsageStatistics = () => {
           coupon:coupon_id (title, organization_name)
         `)
         .eq('is_used', true)
-        .in('coupon_id', couponIds) // <-- EFFICIENT FILTER
         .gte('redeemed_at', start)
         .lte('redeemed_at', end)
         .order('redeemed_at', { ascending: true });
@@ -139,7 +118,7 @@ export const useUsageStatistics = () => {
       const { data, error } = await query;
 
       if (error) {
-        showError('Hiba történt a statisztikák betöltésekor.');
+        showError('Hiba történt a statisztikák betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
         console.error('Fetch statistics error:', error);
         setStats([]);
         setDetailedUsages([]);
@@ -152,12 +131,12 @@ export const useUsageStatistics = () => {
         return;
       }
 
-      // 4. Filter and process data (Client-side filtering is now minimal, only for safety/integrity)
+      // 3. Filter and process data client-side (CRITICAL: Filter by organization name)
       const organizationUsages = data.filter(
         (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       
-      // 5. Fetch user profiles (username and email) for detailed view (ONLY for 'day' range)
+      // 4. Fetch user profiles (username and email) for detailed view (ONLY for 'day' range)
       const processedDetails: DetailedUsage[] = [];
       let profileMap: Record<string, { username: string, email: string }> = {};
 
@@ -173,7 +152,7 @@ export const useUsageStatistics = () => {
         }, {} as Record<string, { username: string, email: string }>);
       }
 
-      // 6. Group by time range and filter by email/username (only for 'day' range)
+      // 5. Group by time range and filter by email/username (only for 'day' range)
       const aggregatedCounts: Record<string, number> = {};
       
       for (const usage of organizationUsages) {
@@ -206,7 +185,7 @@ export const useUsageStatistics = () => {
         aggregatedCounts[groupKey] = (aggregatedCounts[groupKey] || 0) + 1;
       }
 
-      // 7. Format stats array
+      // 6. Format stats array
       let finalStats: UsageStat[];
       
       if (timeRange === 'day' || timeRange === 'week' || timeRange === 'year') {
