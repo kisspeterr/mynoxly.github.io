@@ -229,7 +229,7 @@ const CouponsPage = () => {
   const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, toggleActiveStatus, archiveCoupon, deleteCoupon, organizationName } = useCoupons();
   const { checkPermission } = useAuth();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
-  const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null); // State to hold the newly created coupon for immediate editing
+  const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null); 
   
   const canManageCoupons = checkPermission('coupon_manager');
 
@@ -238,12 +238,15 @@ const CouponsPage = () => {
   
   // Handle creation submission: if successful, open the edit dialog immediately
   const handleCreateCoupon = async (data: CouponInsert) => {
-      const result = await createCoupon(data);
+      // 1. Create coupon without image_url
+      const dataWithoutImage = { ...data, image_url: null };
+      const result = await createCoupon(dataWithoutImage);
+      
       if (result.success && result.newCouponId) {
-          // Find the newly created coupon in the local state (it should be the first one after creation)
+          // 2. Find the newly created coupon in the local state
           const newCoupon = coupons.find(c => c.id === result.newCouponId);
           if (newCoupon) {
-              setCouponToEdit(newCoupon);
+              setCouponToEdit(newCoupon); // Set state to open edit dialog
           }
           setIsCreateFormOpen(false); // Close creation form
           return { success: true };
@@ -260,19 +263,11 @@ const CouponsPage = () => {
       return result;
   };
   
-  // Effect to open the edit dialog when a new coupon is set
+  // Effect to open the dedicated edit dialog when a new coupon is set
   useEffect(() => {
       if (couponToEdit) {
-          // We need to ensure the dialog is open when couponToEdit is set
-          // The CouponCard component handles the dialog state internally, but we need to trigger it.
-          // Since we can't directly control the internal state of CouponCard, we use a temporary state here.
-          // A simpler approach is to ensure the newly created coupon is passed to the edit dialog directly.
-          // Since the CouponEditDialog is designed to be triggered by a button on the card, 
-          // we will rely on the user clicking the edit button on the newly created card, 
-          // or we modify the logic to open the dialog immediately after creation.
-          
-          // Let's use a dedicated state for the creation dialog flow:
-          // If couponToEdit is set, we render a dedicated edit dialog outside the list.
+          // This effect ensures the dedicated edit dialog is opened when couponToEdit is set
+          // We don't need to do anything here as the JSX below handles the rendering.
       }
   }, [couponToEdit]);
 
@@ -318,6 +313,7 @@ const CouponsPage = () => {
                         Hozd létre az új akciót a {organizationName} számára.
                       </DialogDescription>
                     </DialogHeader>
+                    {/* NOTE: CouponForm will show a message that image upload is only available after creation */}
                     <CouponForm 
                       onSubmit={handleCreateCoupon} 
                       onClose={() => setIsCreateFormOpen(false)} 

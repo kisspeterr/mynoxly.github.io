@@ -139,18 +139,14 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
       </div>
 
-      {/* NEW: Coupon Banner Uploader */}
-      {isEditing && couponId ? (
+      {/* Coupon Banner Uploader - Visible only if couponId exists (i.e., editing/post-creation) */}
+      {couponId && (
         <CouponBannerUploader
             couponId={couponId}
             currentImageUrl={imageUrl}
             onUploadSuccess={handleImageUploadSuccess}
             onRemove={handleImageRemove}
         />
-      ) : (
-        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300">
-            Képfeltöltés csak a kupon létrehozása után, a szerkesztőben lehetséges.
-        </div>
       )}
       {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
 

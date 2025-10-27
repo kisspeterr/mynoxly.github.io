@@ -199,48 +199,45 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         {errors.location && <p className="text-red-400 text-sm">{errors.location.message}</p>}
       </div>
       
-      {/* NEW: Event Banner Uploader */}
-      {isEditing && eventId ? (
+      {/* Event Banner Uploader - Visible only if eventId exists (i.e., editing/post-creation) */}
+      {eventId && (
         <EventBannerUploader
             eventId={eventId}
             currentImageUrl={imageUrl}
             onUploadSuccess={handleImageUploadSuccess}
             onRemove={handleImageRemove}
         />
-      ) : (
-        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300">
-            Képfeltöltés csak az esemény létrehozása után, a szerkesztőben lehetséges.
-        </div>
       )}
       {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
-      {/* END NEW UPLOADER */}
       
       {/* Event Link and Link Title */}
       <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">
         <h4 className="text-lg font-semibold text-cyan-300 flex items-center gap-2">
             <LinkIcon className="h-5 w-5" /> Esemény Link (opcionális)
         </h4>
-        <div className="space-y-2">
-            <Label htmlFor="event_link" className="text-gray-300">Link URL</Label>
-            <Input 
-              id="event_link"
-              type="url"
-              {...register('event_link')}
-              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-              placeholder="https://esemeny.hu/jegyek"
-            />
-            {errors.event_link && <p className="text-red-400 text-sm">{errors.event_link.message}</p>}
-        </div>
-        
-        <div className="space-y-2">
-            <Label htmlFor="link_title" className="text-gray-300">Link címe {eventLink ? '*' : '(opcionális)'}</Label>
-            <Input 
-              id="link_title"
-              {...register('link_title')}
-              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-              placeholder="Jegyvásárlás"
-            />
-            {errors.link_title && <p className="text-red-400 text-sm">{errors.link_title.message}</p>}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+                <Label htmlFor="event_link" className="text-gray-300">Link URL</Label>
+                <Input 
+                  id="event_link"
+                  type="url"
+                  {...register('event_link')}
+                  className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                  placeholder="https://esemeny.hu/jegyek"
+                />
+                {errors.event_link && <p className="text-red-400 text-sm">{errors.event_link.message}</p>}
+            </div>
+            
+            <div className="space-y-2">
+                <Label htmlFor="link_title" className="text-gray-300">Link címe {eventLink ? '*' : '(opcionális)'}</Label>
+                <Input 
+                  id="link_title"
+                  {...register('link_title')}
+                  className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                  placeholder="Jegyvásárlás"
+                />
+                {errors.link_title && <p className="text-red-400 text-sm">{errors.link_title.message}</p>}
+            </div>
         </div>
       </div>
 

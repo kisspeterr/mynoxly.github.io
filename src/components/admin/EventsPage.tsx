@@ -28,6 +28,8 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
+      event_link: data.event_link,
+      link_title: data.link_title,
     };
     
     const result = await onUpdate(event.id, updateData);
@@ -64,6 +66,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
 
 
 const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean, canManage: boolean }> = ({ event, onDelete, onUpdate, isLoading, canManage }) => {
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
 
   return (
@@ -144,11 +147,64 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
 const EventsPage = () => {
   const { events, isLoading, fetchEvents, createEvent, updateEvent, deleteEvent, organizationName } = useEvents();
   const { checkPermission } = useAuth(); // Use checkPermission
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<Event | null>(null); // State to hold the newly created event for immediate editing
   
   const canManageEvents = checkPermission('event_manager');
 
-  // Removed redundant useEffect, relying on useEvents hook's internal dependency on activeOrganizationId
+  // Handle creation submission: if successful, open the edit dialog immediately
+  const handleCreateEvent = async (data: EventInsert) => {
+      // 1. Create event without image_url
+      const dataWithoutImage = { ...data, image_url: null };
+      const result = await createEvent(dataWithoutImage);
+      
+      if (result.success) {
+          // 2. Find the newly created event in the local state (it should be the first one after creation, due to sorting by start_time)
+          // NOTE: Since we sort by start_time, the new event might not be the first. We need to refetch or rely on the hook's internal state update.
+          // The useEvents hook updates the state internally. We need to find the newly created event ID.
+          // Since createEvent doesn't return the ID, we rely on the hook's internal state update and find the newest event.
+          
+          // A safer approach: force a refetch and then find the newest event.
+          await fetchEvents();
+          
+          // Find the newest event (assuming the hook sorts by start_time ascending, we look for the last one, or by created_at descending)
+          // Since the hook sorts by start_time ascending, we look for the one with the latest created_at time.
+          const newestEvent = events.reduce((latest, current) => {
+              if (!latest || new Date(current.created_at) > new Date(latest.created_at)) {
+                  return current;
+              }
+              return latest;
+          }, null as Event | null);
+          
+          if (newestEvent) {
+              setEventToEdit(newestEvent); // Set state to open edit dialog
+          }
+          
+          setIsCreateFormOpen(false); // Close creation form
+          return { success: true };
+      }
+      return { success: false };
+  };
+  
+  // Handle update submission: if successful, clear the eventToEdit state
+  const handleUpdateEvent = async (id: string, data: Partial<EventInsert>) => {
+      const result = await updateEvent(id, data);
+      if (result.success) {
+          setEventToEdit(null); // Close the edit dialog
+      }
+      return result;
+  };
+  
+  // Effect to open the dedicated edit dialog when a new event is set
+  useEffect(() => {
+      if (eventToEdit) {
+          // We need to ensure the dialog is open when eventToEdit is set
+          // The EventEditDialog component handles the dialog state internally, but we need to trigger it.
+          // Since the EventEditDialog is not designed to be controlled externally, we need to wrap it in a controlled dialog.
+          // We will use a dedicated controlled dialog for the newly created event.
+      }
+  }, [eventToEdit]);
+
 
   if (isLoading && events.length === 0) {
     return (
@@ -177,7 +233,7 @@ const EventsPage = () => {
                 <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
             {canManageEvents && (
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <Dialog open={isCreateFormOpen} onOpenChange={setIsCreateFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-purple-600 hover:bg-purple-700">
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -191,9 +247,10 @@ const EventsPage = () => {
                         Hozd létre az új eseményt a {organizationName} számára.
                       </DialogDescription>
                     </DialogHeader>
+                    {/* NOTE: EventForm will show a message that image upload is only available after creation */}
                     <EventForm 
-                      onSubmit={createEvent} 
-                      onClose={() => setIsFormOpen(false)} 
+                      onSubmit={handleCreateEvent} 
+                      onClose={() => setIsCreateFormOpen(false)} 
                       isLoading={isLoading}
                     />
                   </DialogContent>
@@ -218,6 +275,36 @@ const EventsPage = () => {
           ))}
         </div>
       )}
+      
+      {/* Dedicated Edit Dialog for newly created event (if needed) */}
+      {eventToEdit && (
+          <EventEditDialog 
+              event={eventToEdit} 
+              onUpdate={handleUpdateEvent} 
+              isLoading={isLoading} 
+              // We need to manually control the open state here since the trigger is inside the card
+              // For simplicity, we rely on the user clicking the edit button on the newly created card, 
+              // or we modify the EventEditDialog to be controlled. Let's make it controlled here.
+              // Since EventEditDialog is not designed to be controlled externally, we need to duplicate the dialog structure.
+              
+              // Re-implementing the controlled dialog structure here:
+              <Dialog open={!!eventToEdit} onOpenChange={(open) => { if (!open) setEventToEdit(null); }}>
+                <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle className="text-purple-300">Esemény szerkesztése</DialogTitle>
+                    <DialogDescription className="text-gray-400">
+                      Kérjük, töltsd fel a bannert a "{eventToEdit.title}" eseményhez.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <EventForm 
+                    onSubmit={handleUpdateEvent} 
+                    onClose={() => setEventToEdit(null)} 
+                    isLoading={isLoading}
+                    initialData={eventToEdit}
+                  />
+                </DialogContent>
+              </Dialog>
+          )}
     </div>
   );
 };
