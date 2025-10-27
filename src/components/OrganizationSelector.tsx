@@ -71,13 +71,16 @@ const OrganizationSelector: React.FC = () => {
             
             {/* Selector Dropdown */}
             <Select 
-                value={activeOrganizationId || undefined} 
-                onValueChange={switchActiveOrganization}
+                // Use 'null' string when activeOrganizationId is null for Select component compatibility
+                value={activeOrganizationId || 'null'} 
+                onValueChange={(value) => switchActiveOrganization(value === 'null' ? '' : value)}
             >
                 <SelectTrigger className="w-full bg-gray-800/50 border-purple-700 text-white hover:bg-gray-700/50">
                     <SelectValue placeholder="Válassz szervezetet" />
                 </SelectTrigger>
                 <SelectContent className="bg-black/90 border-purple-500/30 text-white">
+                    {/* Placeholder item with value='null' */}
+                    <SelectItem value="null">Válassz szervezetet</SelectItem>
                     {uniqueOrganizations.map(org => (
                         <SelectItem 
                             key={org.organization_id} 

@@ -39,9 +39,10 @@ interface OrganizationFormProps {
 }
 
 const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave, onClose, isSaving }) => {
+    // Initialize ownerId to 'null' string if not set, to handle Select placeholder correctly
     const [orgName, setOrgName] = useState(initialOrg?.organization_name || '');
-    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || '');
-    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); // Logo is now part of the organization record
+    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || 'null'); 
+    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); 
     const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
     
@@ -85,7 +86,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             showError('A szervezet neve kötelező.');
             return;
         }
-        if (!ownerId) {
+        if (ownerId === 'null' || !ownerId) {
             showError('A tulajdonos kiválasztása kötelező.');
             return;
         }
@@ -129,7 +130,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                         <SelectValue placeholder={isLoadingUsers ? "Felhasználók betöltése..." : "Válassz tulajdonost"} />
                     </SelectTrigger>
                     <SelectContent className="bg-black/90 border-red-500/30 text-white">
-                        <SelectItem value="">Válassz tulajdonost</SelectItem>
+                        <SelectItem value="null">Válassz tulajdonost</SelectItem>
                         {availableUsers.map(user => (
                             <SelectItem key={user.id} value={user.id}>
                                 <div className="flex items-center">
@@ -168,7 +169,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 <Button 
                     type="submit" 
                     className="bg-red-600 hover:bg-red-700"
-                    disabled={isSaving || !orgName.trim() || !ownerId}
+                    disabled={isSaving || !orgName.trim() || ownerId === 'null'}
                 >
                     {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                     {isEditing ? 'Frissítés' : 'Létrehozás'}
