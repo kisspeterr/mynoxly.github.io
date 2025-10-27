@@ -309,7 +309,7 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 .from('organizations')
                 .select(`
                     *,
-                    owner_profile:owner_id (username, email)
+                    owner_profile:owner_id (username, email, role)
                 `)
                 .order('organization_name', { ascending: true });
 
@@ -329,7 +329,7 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 owner_id: org.owner_id,
                 owner_username: (org.owner_profile as any)?.username || 'Nincs tulajdonos',
                 owner_email: (org.owner_profile as any)?.email || 'Nincs email',
-                owner_role: (org.owner_profile as any)?.role || 'user', // Role is not directly available in RPC, but we assume admin/superadmin if they own an org
+                owner_role: (org.owner_profile as any)?.role || 'user',
             }));
                 
             setOrganizations(orgs);
