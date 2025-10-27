@@ -97,6 +97,7 @@ export const useCoupons = () => {
         .from('coupons')
         .update(couponData)
         .eq('id', id)
+        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
         .select()
         .single();
 
@@ -126,6 +127,7 @@ export const useCoupons = () => {
         .from('coupons')
         .update({ is_active: newStatus })
         .eq('id', id)
+        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
         .select()
         .single();
 
@@ -155,6 +157,7 @@ export const useCoupons = () => {
         .from('coupons')
         .update({ is_archived: true, is_active: false })
         .eq('id', id)
+        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
         .select()
         .single();
 
@@ -187,7 +190,8 @@ export const useCoupons = () => {
       const { error } = await supabase
         .from('coupons')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('organization_name', organizationName); // <-- ADDED SECURITY FILTER
 
       if (error) {
         showError('Hiba történt a kupon törlésekor. Ellenőrizd a jogosultságokat.');
