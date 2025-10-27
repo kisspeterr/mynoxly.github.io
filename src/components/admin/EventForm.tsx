@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCoupons } from '@/hooks/use-coupons';
 import { showError } from '@/utils/toast';
+import EventBannerUploader from './EventBannerUploader'; // NEW IMPORT
 
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
 
@@ -97,7 +98,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     image_url: initialData?.image_url || null,
     coupon_id: initialData?.coupon_id || null,
     event_link: initialData?.event_link || null, // NEW
-    link_title: initialData?.event_link ? 'Esemény link' : null, // Default title if link exists
+    link_title: initialData?.link_title || null, // Use actual link_title
     startDate: initialData?.start_time ? defaultStartTime : undefined,
     startTime: format(defaultStartTime, 'HH:mm'),
     endDate: defaultEndTime,
@@ -112,7 +113,9 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
   const startDate = watch('startDate');
   const endDate = watch('endDate');
   const eventLink = watch('event_link');
+  const imageUrl = watch('image_url'); // Watch image_url state
   const isEditing = !!initialData;
+  const eventId = initialData?.id; // Get ID for uploader if editing
 
   const handleFormSubmit = async (data: EventFormData) => {
     const [startHours, startMinutes] = data.startTime.split(':').map(Number);
@@ -142,7 +145,7 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
       title: data.title,
       description: data.description,
       location: data.location,
-      image_url: data.image_url,
+      image_url: imageUrl, // Use the state managed by the uploader
       coupon_id: data.coupon_id,
       start_time: startDateTime.toISOString(),
       end_time: endDateTime ? endDateTime.toISOString() : null,
@@ -154,6 +157,14 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
     if (result.success) {
       onClose();
     }
+  };
+  
+  const handleImageUploadSuccess = (url: string) => {
+      setValue('image_url', url, { shouldValidate: true });
+  };
+  
+  const handleImageRemove = () => {
+      setValue('image_url', null, { shouldValidate: true });
   };
 
   return (
@@ -188,7 +199,23 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         {errors.location && <p className="text-red-400 text-sm">{errors.location.message}</p>}
       </div>
       
-      {/* NEW: Event Link and Link Title */}
+      {/* NEW: Event Banner Uploader */}
+      {isEditing && eventId ? (
+        <EventBannerUploader
+            eventId={eventId}
+            currentImageUrl={imageUrl}
+            onUploadSuccess={handleImageUploadSuccess}
+            onRemove={handleImageRemove}
+        />
+      ) : (
+        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300">
+            Képfeltöltés csak az esemény létrehozása után, a szerkesztőben lehetséges.
+        </div>
+      )}
+      {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
+      {/* END NEW UPLOADER */}
+      
+      {/* Event Link and Link Title */}
       <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">
         <h4 className="text-lg font-semibold text-cyan-300 flex items-center gap-2">
             <LinkIcon className="h-5 w-5" /> Esemény Link (opcionális)
@@ -216,7 +243,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
             {errors.link_title && <p className="text-red-400 text-sm">{errors.link_title.message}</p>}
         </div>
       </div>
-      {/* END NEW FIELDS */}
 
       <div className="space-y-4 border border-cyan-500/20 p-4 rounded-lg">
         <h4 className="text-lg font-semibold text-cyan-300">Kezdési időpont</h4>
@@ -316,17 +342,6 @@ const EventForm: React.FC<EventFormProps> = ({ onSubmit, onClose, isLoading, ini
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="image_url" className="text-gray-300">Kép URL (opcionális)</Label>
-        <Input 
-          id="image_url"
-          {...register('image_url')}
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-        {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
-      </div>
-      
-      {/* Optional Coupon Link */}
       <div className="space-y-2">
         <Label htmlFor="coupon_id" className="text-gray-300">Opcionális Kupon Csatolása</Label>
         <Select 
