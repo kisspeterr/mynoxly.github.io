@@ -277,7 +277,6 @@ const OrganizationMembersPage: React.FC = () => {
     const pendingMembers = members.filter(m => m.status === 'pending');
     
     if (!activeOrganizationProfile) {
-        // This state should ideally not be reached if AdminLayout works correctly
         return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
     }
 

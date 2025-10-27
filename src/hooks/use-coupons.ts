@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
@@ -9,13 +9,11 @@ export const useCoupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // organizationName most már csak egy egyszerű változó, nem a useCallback függősége
   const organizationName = activeOrganizationProfile?.organization_name;
 
   // Function to fetch coupons (used internally and exported for manual refresh)
-  const fetchCoupons = useCallback(async (currentOrgName: string | undefined) => {
-    // CRITICAL CHECK: Ensure organizationName is present before fetching
-    if (!isAuthenticated || !currentOrgName) {
+  const fetchCoupons = async () => {
+    if (!isAuthenticated || !organizationName) {
       setCoupons([]);
       setIsLoading(false);
       return;
@@ -34,7 +32,7 @@ export const useCoupons = () => {
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', currentOrgName) // <-- EXPLICIT FILTER
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -47,18 +45,17 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, checkPermission]); // Csak a statikus függőségek maradnak
+  };
 
   // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
-    // activeOrganizationId változása garantálja, hogy a fetch lefut
-    if (activeOrganizationId && organizationName) {
-      fetchCoupons(organizationName);
+    if (activeOrganizationId) {
+      fetchCoupons();
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, organizationName, fetchCoupons]); // organizationName hozzáadva a triggerhez
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -81,7 +78,6 @@ export const useCoupons = () => {
       }
 
       const newCoupon = data as Coupon;
-      // Update local state immediately
       setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
@@ -256,7 +252,7 @@ export const useCoupons = () => {
   return {
     coupons,
     isLoading,
-    fetchCoupons: () => fetchCoupons(organizationName), // Exportált függvény hívása a legfrissebb organizationName-nel
+    fetchCoupons,
     createCoupon,
     updateCoupon,
     toggleActiveStatus,

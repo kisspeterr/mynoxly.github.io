@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Event, EventInsert } from '@/types/events';
 import { showError, showSuccess } from '@/utils/toast';
@@ -11,9 +11,8 @@ export const useEvents = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchEvents = useCallback(async (currentOrgName: string | undefined) => {
-    // CRITICAL CHECK: Ensure organizationName is present before fetching
-    if (!isAuthenticated || !currentOrgName) {
+  const fetchEvents = async () => {
+    if (!isAuthenticated || !organizationName) {
       setEvents([]);
       setIsLoading(false);
       return;
@@ -35,7 +34,7 @@ export const useEvents = () => {
           *,
           coupon:coupon_id (id, title, coupon_code)
         `)
-        .eq('organization_name', currentOrgName) // <-- EXPLICIT FILTER
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
         .order('start_time', { ascending: true });
 
       if (error) {
@@ -48,17 +47,17 @@ export const useEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, checkPermission]); // Csak a statikus függőségek maradnak
+  };
 
   // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationId && organizationName) {
-      fetchEvents(organizationName);
+    if (activeOrganizationId) {
+      fetchEvents();
     } else {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, organizationName, fetchEvents]);
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
@@ -264,7 +263,7 @@ export const useEvents = () => {
   return {
     events,
     isLoading,
-    fetchEvents: () => fetchEvents(organizationName),
+    fetchEvents,
     createEvent,
     updateEvent,
     toggleActiveStatus,

@@ -295,8 +295,15 @@ const CouponsPage = () => {
   // Effect to open the edit dialog when a new coupon is set
   useEffect(() => {
       if (couponToEdit) {
-          // Since the CouponEditDialog is triggered by a button, we rely on the user clicking the edit button 
-          // on the newly created card, which should be visible in the Drafts section.
+          // Open the edit dialog for the newly created coupon
+          // We rely on the user clicking the edit button on the newly created card, 
+          // or we modify the logic to open the dialog immediately after creation.
+          // Since the CouponEditDialog is triggered by a button, we need to manually open it here.
+          setIsCreateFormOpen(false); // Ensure create form is closed
+          // Since we can't directly control the dialog state inside the card, 
+          // we'll rely on the user clicking the edit button on the newly created card, 
+          // which should be visible in the Drafts section.
+          // For now, we just ensure the state is set correctly.
       }
   }, [couponToEdit]);
 
@@ -351,6 +358,13 @@ const CouponsPage = () => {
                 </Dialog>
             )}
         </div>
+      </div>
+
+      <div className="mb-6 p-4 bg-purple-900/50 rounded-lg border border-purple-500/50 flex items-center gap-3">
+        <MapPin className="h-5 w-5 text-purple-300" />
+        <p className="text-gray-300">
+          Szervezet: <span className="font-semibold text-white">{organizationName || 'Nincs beállítva'}</span>
+        </p>
       </div>
       
       {/* Active Coupons */}

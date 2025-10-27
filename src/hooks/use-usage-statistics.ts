@@ -27,8 +27,8 @@ export const useUsageStatistics = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchStatistics = useCallback(async (date: Date, timeRange: TimeRange, userEmailFilter: string = '', currentOrgName: string | undefined) => {
-    if (!isAuthenticated || !currentOrgName) {
+  const fetchStatistics = useCallback(async (date: Date, timeRange: TimeRange, userEmailFilter: string = '') => {
+    if (!isAuthenticated || !organizationName) {
       setStats([]);
       setDetailedUsages([]);
       setIsLoading(false);
@@ -133,7 +133,7 @@ export const useUsageStatistics = () => {
 
       // 3. Filter and process data client-side (CRITICAL: Filter by organization name)
       const organizationUsages = data.filter(
-        (usage) => usage.coupon && usage.coupon.organization_name === currentOrgName
+        (usage) => usage.coupon && usage.coupon.organization_name === organizationName
       );
       
       // 4. Fetch user profiles (username and email) for detailed view (ONLY for 'day' range)
@@ -210,17 +210,12 @@ export const useUsageStatistics = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, checkPermission]);
-
-  // A komponensben a fetchStatistics hívása a legfrissebb organizationName-t használja
-  const fetchStatsWrapper = useCallback((date: Date, timeRange: TimeRange, userEmailFilter: string = '') => {
-      fetchStatistics(date, timeRange, userEmailFilter, organizationName);
-  }, [fetchStatistics, organizationName]);
+  }, [isAuthenticated, organizationName, checkPermission, activeOrganizationId]); // Added activeOrganizationId to dependencies
 
   return {
     stats,
     detailedUsages,
     isLoading,
-    fetchStatistics: fetchStatsWrapper,
+    fetchStatistics,
   };
 };

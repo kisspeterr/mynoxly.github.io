@@ -21,20 +21,19 @@ const timeRangeLabels: Record<TimeRange, string> = {
 
 const UsageStatisticsPage: React.FC = () => {
   const { stats, detailedUsages, isLoading, fetchStatistics } = useUsageStatistics();
-  const { checkPermission, activeOrganizationProfile } = useAuth(); // Get activeOrganizationProfile
+  const { checkPermission } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [emailFilter, setEmailFilter] = useState('');
   
   const canViewStatistics = checkPermission('viewer');
-  const organizationName = activeOrganizationProfile?.organization_name; // Get organization name
 
-  // Fetch data whenever date, timeRange, filter, OR organizationName changes
+  // Fetch data whenever date, timeRange, or filter changes
   useEffect(() => {
-    if (canViewStatistics && organizationName) {
+    if (canViewStatistics) {
         fetchStatistics(selectedDate, timeRange, emailFilter);
     }
-  }, [selectedDate, timeRange, emailFilter, organizationName, fetchStatistics, canViewStatistics]);
+  }, [selectedDate, timeRange, emailFilter, fetchStatistics, canViewStatistics]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -128,7 +127,7 @@ const UsageStatisticsPage: React.FC = () => {
             {/* Email/Username Filter (Only visible for 'day' range) */}
             {timeRange === 'day' && (
               <div className="md:col-span-2 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input 
                   type="text"
                   placeholder="Szűrés felhasználónévre vagy email címre..."

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
@@ -51,8 +51,8 @@ export const useCouponUsages = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchUsages = useCallback(async (currentOrgName: string | undefined) => {
-    if (!isAuthenticated || !currentOrgName) {
+  const fetchUsages = async () => {
+    if (!isAuthenticated || !organizationName) {
       setUsages([]);
       setIsLoading(false);
       return;
@@ -68,7 +68,6 @@ export const useCouponUsages = () => {
     setIsLoading(true);
     try {
       // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
-      // NOTE: RLS on coupon_usages ensures only usages related to the user's organization are returned.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -93,12 +92,10 @@ export const useCouponUsages = () => {
       }
 
       // Client-side filtering based on the joined organization name
-      // This is necessary because the RLS policy on coupon_usages only checks if the coupon's organization_name 
-      // matches ANY of the user's organizations, but we only want the ACTIVE one.
       const rawUsages = (data as Omit<CouponUsageRecord, 'profile'>[]).filter(
         (usage) => 
           usage.coupon && 
-          usage.coupon.organization_name === currentOrgName && // <-- EXPLICIT FILTER for ACTIVE ORG
+          usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER
           typeof usage.redeemed_at === 'string'
       );
       
@@ -125,14 +122,12 @@ export const useCouponUsages = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, checkPermission]);
+  };
 
   useEffect(() => {
-    // Trigger fetch when the active organization ID changes
-    if (activeOrganizationId && organizationName) {
-      fetchUsages(organizationName);
+    if (activeOrganizationId) {
+      fetchUsages();
     } else if (!isLoading && isAuthenticated) {
-        // Clear data if authenticated but no organization is selected
         setUsages([]);
         setIsLoading(false);
     }
@@ -141,7 +136,6 @@ export const useCouponUsages = () => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
     if (organizationName) {
-        // NOTE: Realtime subscription is generic and relies on fetchUsages() to filter the results.
         channel = supabase
           .channel('coupon_usages_admin_feed')
           .on(
@@ -153,7 +147,7 @@ export const useCouponUsages = () => {
             },
             (payload) => {
               // Refetch all data to ensure consistency and correct filtering/sorting
-              fetchUsages(organizationName);
+              fetchUsages();
             }
           )
           .subscribe();
@@ -165,12 +159,12 @@ export const useCouponUsages = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [activeOrganizationId, isAuthenticated, organizationName, fetchUsages]);
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   return {
     usages,
     isLoading,
-    fetchUsages: () => fetchUsages(organizationName),
+    fetchUsages,
     organizationName,
   };
 };

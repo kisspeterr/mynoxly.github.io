@@ -36,15 +36,15 @@ const ProfileSettingsPage: React.FC = () => {
     }
   }, [activeOrganizationProfile]);
   
+  // Check if the user is the owner of the active organization
+  const isOwner = activeOrganizationProfile?.owner_id === user?.id;
+  
   // Check if the user has permission to manage settings (owner or high-level admin)
   const canManageSettings = checkPermission('coupon_manager'); 
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || isSaving || !activeOrganizationId || !canManageSettings) {
-        showError('Nincs jogosultságod a beállítások mentéséhez.');
-        return;
-    }
+    if (!user || isSaving || !activeOrganizationId || !canManageSettings) return;
 
     setIsSaving(true);
     
