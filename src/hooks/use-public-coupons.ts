@@ -19,24 +19,9 @@ interface CouponUsage {
 // Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
   logo_url: string | null; // Simplified: logo_url directly on coupon object
-  organization_id: string; // NEW: Organization ID
+  organization_id: string; // NEW: Organization ID (UUID)
   usage_count: number; // New field for total successful usages
 }
-
-// Helper function to get the organization ID from its name (No longer needed in redeemCoupon, but kept for reference)
-const getOrganizationId = async (organizationName: string): Promise<string | null> => {
-    const { data, error } = await supabase
-        .from('organizations') // Use new organizations table
-        .select('id')
-        .eq('organization_name', organizationName)
-        .single();
-        
-    if (error) {
-        console.error('Error fetching organization ID:', error);
-        return null;
-    }
-    return data?.id || null;
-};
 
 export const usePublicCoupons = () => {
   const { user, isAuthenticated } = useAuth();
@@ -108,7 +93,7 @@ export const usePublicCoupons = () => {
         return {
           ...coupon,
           logo_url: orgInfo?.logo_url || null,
-          organization_id: orgInfo?.id || '', // CRITICAL: Store organization ID
+          organization_id: orgInfo?.id || '', // CRITICAL: Store organization ID (UUID)
           usage_count: Number(usageCount), // Ensure it's a number
         };
       }).filter(c => c.organization_id !== ''); // Filter out coupons whose organization profile is missing
@@ -232,7 +217,7 @@ export const usePublicCoupons = () => {
     return pendingUsage;
   };
   
-  const redeemCoupon = async (coupon: Coupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
+  const redeemCoupon = async (coupon: PublicCoupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return { success: false };
@@ -303,13 +288,13 @@ export const usePublicCoupons = () => {
         
         // 3. Check Loyalty Points Cost (Pre-check for code generation)
         if (coupon.points_cost > 0) {
-            const organizationId = await getOrganizationId(coupon.organization_name);
+            const organizationId = coupon.organization_id; // Use the already fetched UUID
             if (!organizationId) {
                 showError('Hiba: Nem található a szervezet azonosítója.');
                 return { success: false };
             }
             
-            // Fetch current points for this organization
+            // Fetch current points for this organization using organizationId (UUID)
             const { data: pointsData } = await supabase
                 .from('loyalty_points')
                 .select('points')

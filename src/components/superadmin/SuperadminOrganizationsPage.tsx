@@ -33,7 +33,7 @@ interface UserOption {
 
 interface OrganizationFormProps {
     initialOrg: SuperadminOrganization | null; // Null for creation, data for editing
-    onSave: (orgData: { organization_name: string, owner_id: string }, isNew: boolean) => Promise<boolean>;
+    onSave: (orgData: { organization_name: string, owner_id: string, logo_url: string | null }, isNew: boolean) => Promise<boolean>;
     onClose: () => void;
     isSaving: boolean;
 }
@@ -42,6 +42,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
     // Initialize ownerId to 'null' string if not set, to handle Select placeholder correctly
     const [orgName, setOrgName] = useState(initialOrg?.organization_name || '');
     const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || 'null'); 
+    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); 
     const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
     
@@ -90,11 +91,13 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             return;
         }
         
-        // Pass null for logo_url as it's managed elsewhere
+        // Pass logo_url only if editing, otherwise it's null (as per previous logic)
+        const logoToSave = isEditing ? logoUrl : null;
+        
         const success = await onSave({ 
             organization_name: trimmedOrgName, 
             owner_id: ownerId,
-            logo_url: null, 
+            logo_url: logoToSave, 
         }, !isEditing);
         
         if (success) {
@@ -148,7 +151,20 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 )}
             </div>
             
-            {/* Removed Logo URL Input */}
+            {isEditing && (
+                <div className="space-y-2">
+                    <Label htmlFor="logoUrl" className="text-gray-300">Logó URL (opcionális)</Label>
+                    <Input 
+                        id="logoUrl"
+                        type="url" 
+                        value={logoUrl || ''}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                        placeholder="https://..."
+                        disabled={isSaving}
+                    />
+                </div>
+            )}
 
             <DialogFooter>
                 <DialogClose asChild>
@@ -189,7 +205,7 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
         // CRITICAL: When updating, we must preserve the existing logo_url if the form doesn't provide one (which it won't now)
         const updatedOrgData = {
             ...orgData,
-            logo_url: organization.logo_url, // Preserve existing logo URL
+            logo_url: orgData.logo_url, // Use the URL provided by the form (which might be the old one or a new manual one)
         };
         
         const success = await onUpdate(updatedOrgData, isNew);
