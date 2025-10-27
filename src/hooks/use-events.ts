@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Event, EventInsert } from '@/types/events';
 import { showError, showSuccess } from '@/utils/toast';
@@ -11,7 +11,7 @@ export const useEvents = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     if (!isAuthenticated || !organizationName) {
       setEvents([]);
       setIsLoading(false);
@@ -47,7 +47,7 @@ export const useEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, organizationName, checkPermission]);
 
   // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {
@@ -57,7 +57,7 @@ export const useEvents = () => {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
+  }, [activeOrganizationId, isAuthenticated, fetchEvents]);
 
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {

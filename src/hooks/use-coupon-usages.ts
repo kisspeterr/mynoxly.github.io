@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
@@ -51,7 +51,7 @@ export const useCouponUsages = () => {
 
   const organizationName = activeOrganizationProfile?.organization_name;
 
-  const fetchUsages = async () => {
+  const fetchUsages = useCallback(async () => {
     if (!isAuthenticated || !organizationName) {
       setUsages([]);
       setIsLoading(false);
@@ -122,7 +122,7 @@ export const useCouponUsages = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, organizationName, checkPermission]);
 
   useEffect(() => {
     if (activeOrganizationId) {
@@ -159,7 +159,7 @@ export const useCouponUsages = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
+  }, [activeOrganizationId, isAuthenticated, organizationName, fetchUsages]);
 
   return {
     usages,
