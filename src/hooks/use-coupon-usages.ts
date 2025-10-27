@@ -52,7 +52,7 @@ export const useCouponUsages = () => {
   const organizationName = activeOrganizationProfile?.organization_name;
 
   const fetchUsages = async () => {
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !organizationName || !activeOrganizationId) {
       setUsages([]);
       setIsLoading(false);
       return;
@@ -67,11 +67,28 @@ export const useCouponUsages = () => {
 
     setIsLoading(true);
     try {
-      // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
-      // NOTE: We cannot filter by organization_name here directly in the query 
-      // because the coupon table is joined, and RLS might interfere. 
-      // We rely on RLS for the user's access to the coupon_usages table (Admins can view usages for their organization's coupons).
-      // However, for safety and explicit filtering, we fetch all and filter client-side based on the joined coupon data.
+      // 1. Get all coupon IDs belonging to the active organization
+      const { data: couponIdsData, error: couponIdError } = await supabase
+        .from('coupons')
+        .select('id')
+        .eq('organization_name', organizationName);
+        
+      if (couponIdError) {
+        showError('Hiba történt a kupon ID-k betöltésekor.');
+        console.error('Fetch coupon IDs error:', couponIdError);
+        return;
+      }
+      
+      const couponIds = couponIdsData.map(c => c.id);
+      
+      if (couponIds.length === 0) {
+          setUsages([]);
+          return;
+      }
+
+      // 2. Fetch usage records filtered by the retrieved coupon IDs
+      // NOTE: We still need to join the coupon title/org_name for display/filtering, 
+      // but the primary filter is now on coupon_id.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -82,10 +99,11 @@ export const useCouponUsages = () => {
           redemption_code,
           coupon:coupon_id (title, organization_name)
         `)
+        .in('coupon_id', couponIds) // <-- EFFICIENT FILTER
         .order('redeemed_at', { ascending: false });
 
       if (error) {
-        showError('Hiba történt a beváltások betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
+        showError('Hiba történt a beváltások betöltésekor.');
         console.error('Fetch usages error:', error);
         return;
       }
@@ -95,18 +113,17 @@ export const useCouponUsages = () => {
         return;
       }
 
-      // Client-side filtering based on the joined organization name
+      // We still perform a final check to ensure data integrity, although the coupon_id filter should be sufficient.
       const rawUsages = (data as Omit<CouponUsageRecord, 'profile'>[]).filter(
         (usage) => 
           usage.coupon && 
-          usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER
+          usage.coupon.organization_name === organizationName && 
           typeof usage.redeemed_at === 'string'
       );
       
-      // 2. Collect unique user IDs
+      // 3. Collect unique user IDs and fetch usernames securely
       const userIds = Array.from(new Set(rawUsages.map(u => u.user_id)));
       
-      // 3. Fetch usernames securely using RPC
       let usernameMap: Record<string, string> = {};
       if (userIds.length > 0) {
           const { data: usersData } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
@@ -139,7 +156,6 @@ export const useCouponUsages = () => {
     // Setup Realtime subscription for new/updated usages
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
-    // CRITICAL FIX: Use organization ID in channel name for uniqueness
     if (activeOrganizationId) {
         channel = supabase
           .channel(`coupon_usages_admin_feed_${activeOrganizationId}`)
@@ -149,8 +165,7 @@ export const useCouponUsages = () => {
               event: '*', 
               schema: 'public', 
               table: 'coupon_usages',
-              // NOTE: We cannot filter by organization_name here, as it's a joined column.
-              // We rely on the client-side fetchUsages to filter the data.
+              // NOTE: We cannot filter by coupon_id here in Realtime, so we rely on the refetch.
             },
             (payload) => {
               // Refetch all data to ensure consistency and correct filtering/sorting
