@@ -59,6 +59,38 @@ export const useEvents = () => {
     }
   }, [activeOrganizationId, organizationName, isAuthenticated, fetchEvents]); // organizationName added to trigger fetch
 
+  // --- Realtime Subscription ---
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (activeOrganizationId) {
+        channel = supabase
+          .channel(`events_admin_feed_${activeOrganizationId}`)
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'events',
+            },
+            (payload) => {
+              // Refetch all data to ensure consistency and correct filtering/sorting
+              if (organizationName) {
+                  fetchEvents(organizationName);
+              }
+            }
+          )
+          .subscribe();
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [activeOrganizationId, organizationName, fetchEvents]);
+  // --- End Realtime Subscription ---
+
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
       showError('Nincs jogosultságod esemény létrehozásához, vagy hiányzik a szervezet neve.');

@@ -58,6 +58,43 @@ export const useCoupons = () => {
     }
   }, [activeOrganizationId, organizationName, isAuthenticated, fetchCoupons]); // organizationName added to trigger fetch
 
+  // --- Realtime Subscription ---
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (activeOrganizationId) {
+        // We use the organization ID for the channel name, but rely on the DB trigger/RLS 
+        // to ensure only relevant changes are processed, or we simply refetch everything.
+        channel = supabase
+          .channel(`coupons_admin_feed_${activeOrganizationId}`)
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'coupons',
+              // NOTE: We cannot filter by organization_name here, as it's a joined column.
+              // We rely on the client-side fetchCoupons to filter the data.
+            },
+            (payload) => {
+              // Refetch all data to ensure consistency and correct filtering/sorting
+              if (organizationName) {
+                  fetchCoupons(organizationName);
+              }
+            }
+          )
+          .subscribe();
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [activeOrganizationId, organizationName, fetchCoupons]);
+  // --- End Realtime Subscription ---
+
+
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
       showError('Nincs jogosultságod kupon létrehozásához, vagy hiányzik a szervezet neve.');
@@ -79,6 +116,7 @@ export const useCoupons = () => {
       }
 
       const newCoupon = data as Coupon;
+      // Realtime will handle the list update, but we add it locally for immediate feedback
       setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
