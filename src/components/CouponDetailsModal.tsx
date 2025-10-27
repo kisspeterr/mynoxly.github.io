@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Gift, Calendar, Tag, MapPin, Coins, XCircle, Building, Loader2, Info } from 'lucide-react';
+import { Gift, Calendar, Tag, MapPin, Coins, XCircle, Building, Loader2, Info, ArrowRight } from 'lucide-react';
 import { Coupon } from '@/types/coupons';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -48,35 +48,42 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                         <Gift className="h-12 w-12 text-cyan-400" />
                     </div>
                 )}
-                
-                {/* Organization Logo Overlay */}
-                <div className="absolute bottom-[-20px] left-4">
-                    <Link 
-                        to={`/organization/${coupon.organization_name}`}
-                        className="relative w-16 h-16 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
-                        onClick={onClose} // Close modal when navigating to organization profile
-                    >
-                        {coupon.logo_url ? (
-                            <img 
-                                src={coupon.logo_url} 
-                                alt={coupon.organization_name} 
-                                className="h-full w-full rounded-full object-cover"
-                            />
-                        ) : (
-                            <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                <Building className="h-8 w-8 text-cyan-400" />
-                            </div>
-                        )}
-                    </Link>
-                </div>
             </div>
             
-            <div className="p-6 pt-8 space-y-6">
+            <div className="p-6 pt-6 space-y-6">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl text-cyan-300">{coupon.title}</DialogTitle>
-                    <DialogDescription className="text-gray-400 flex items-center pt-1">
-                        <MapPin className="h-4 w-4 mr-2" /> {coupon.organization_name}
-                    </DialogDescription>
+                    <DialogTitle className="text-3xl text-cyan-300 mb-2">{coupon.title}</DialogTitle>
+                    
+                    {/* Organization Info & Link */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-700/50 pb-3">
+                        <div className="flex items-center text-gray-400 pt-1 mb-3 sm:mb-0">
+                            {/* Organization Logo */}
+                            <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center border border-cyan-400 overflow-hidden mr-2">
+                                {coupon.logo_url ? (
+                                    <img 
+                                        src={coupon.logo_url} 
+                                        alt={coupon.organization_name} 
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <Building className="h-3 w-3 text-cyan-400" />
+                                )}
+                            </div>
+                            <span className="text-lg font-semibold text-white">{coupon.organization_name}</span>
+                        </div>
+                        
+                        {/* Organization Profile Button */}
+                        <Button 
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="border-purple-400 text-purple-400 hover:bg-purple-400/10"
+                        >
+                            <Link to={`/organization/${coupon.organization_name}`} onClick={onClose}>
+                                Profil <ArrowRight className="h-4 w-4 ml-2" />
+                            </Link>
+                        </Button>
+                    </div>
                 </DialogHeader>
 
                 {/* Full Description - Scrollable and Responsive Text Wrapping */}
@@ -102,11 +109,11 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                     </div>
                     <div className="flex items-center text-gray-300">
                         <Coins className="h-4 w-4 mr-2 text-purple-400" />
-                        Költség: <span className="font-semibold ml-1 text-white">{coupon.points_cost} pont</span>
+                        Költség: <span className="font-semibold ml-1 text-white">{coupon.points_cost}</span>
                     </div>
                     <div className="flex items-center text-gray-300">
                         <Coins className="h-4 w-4 mr-2 text-purple-400" />
-                        Jutalom: <span className="font-semibold ml-1 text-white">{coupon.points_reward} pont</span>
+                        Jutalom: <span className="font-semibold ml-1 text-white">{coupon.points_reward}</span>
                     </div>
                 </div>
 
