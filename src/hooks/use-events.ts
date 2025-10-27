@@ -12,6 +12,7 @@ export const useEvents = () => {
   const organizationName = activeOrganizationProfile?.organization_name;
 
   const fetchEvents = useCallback(async () => {
+    // CRITICAL CHECK: Ensure organizationName is present before fetching
     if (!isAuthenticated || !organizationName) {
       setEvents([]);
       setIsLoading(false);
@@ -47,7 +48,7 @@ export const useEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]);
+  }, [isAuthenticated, organizationName, checkPermission]); // organizationName added to dependencies
 
   // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {

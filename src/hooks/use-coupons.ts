@@ -13,6 +13,7 @@ export const useCoupons = () => {
 
   // Function to fetch coupons (used internally and exported for manual refresh)
   const fetchCoupons = useCallback(async () => {
+    // CRITICAL CHECK: Ensure organizationName is present before fetching
     if (!isAuthenticated || !organizationName) {
       setCoupons([]);
       setIsLoading(false);
@@ -45,17 +46,18 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]);
+  }, [isAuthenticated, organizationName, checkPermission]); // organizationName added to dependencies
 
   // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
+    // We use activeOrganizationId as the primary trigger, as it changes when the selector is used.
     if (activeOrganizationId) {
       fetchCoupons();
     } else {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, fetchCoupons]);
+  }, [activeOrganizationId, isAuthenticated, fetchCoupons]); // fetchCoupons is stable due to useCallback
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -78,6 +80,7 @@ export const useCoupons = () => {
       }
 
       const newCoupon = data as Coupon;
+      // Update local state immediately
       setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
