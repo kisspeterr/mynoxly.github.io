@@ -112,6 +112,25 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
     }
+    
+    // 6. Log to audit_logs (using service role key for direct DB access)
+    const serviceSupabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    await serviceSupabaseClient.from('audit_logs').insert({
+        user_id: userId,
+        action: 'STORAGE_UPLOAD',
+        table_name: 'coupon_banners',
+        record_id: couponId, // Use coupon ID as record ID for banners
+        payload: { 
+            new_url: publicUrlData.publicUrl, 
+            old_url: oldBannerPath || null,
+            file_size_kb: Math.ceil(fileBuffer.byteLength / 1024)
+        }
+    });
+
 
     return new Response(JSON.stringify({ publicUrl: publicUrlData.publicUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

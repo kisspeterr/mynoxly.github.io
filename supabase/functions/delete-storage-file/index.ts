@@ -66,6 +66,34 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    
+    // 4. Log to audit_logs (using service role key for direct DB access)
+    const serviceSupabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    // Determine record ID based on bucket (for logos, it's the user ID; for banners, it's the coupon ID)
+    let recordId = userId;
+    if (bucketName === 'coupon_banners') {
+        // The file path is expected to be userId/couponId.jpg
+        const fileName = filePath.split('/').pop();
+        if (fileName) {
+            recordId = fileName.split('.')[0]; // couponId
+        }
+    }
+
+    await serviceSupabaseClient.from('audit_logs').insert({
+        user_id: userId,
+        action: 'STORAGE_DELETE',
+        table_name: bucketName,
+        record_id: recordId,
+        payload: { 
+            deleted_url: publicUrl,
+            file_path: filePath
+        }
+    });
+
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
