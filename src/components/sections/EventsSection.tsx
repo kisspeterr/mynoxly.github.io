@@ -63,106 +63,110 @@ const EventsSection = () => {
               const isCurrentToggling = isToggling === event.id;
               
               return (
-                <Card 
-                  key={event.id} 
-                  className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm"
+                <div 
+                    key={event.id} 
+                    className="relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm transition-all duration-300 hover:scale-[1.02]"
                 >
-                  {event.image_url && (
-                    <div className="h-40 w-full overflow-hidden rounded-t-xl">
-                      <img 
-                        src={event.image_url} 
-                        alt={event.title} 
-                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
-                      />
-                    </div>
-                  )}
-                  <CardHeader className="pb-4">
-                    
-                    {/* Centered Logo */}
-                    <div className="flex justify-center -mt-10 mb-4">
-                        <Link 
-                            to={`/organization/${event.organization_name}`}
-                            className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-purple-400 shadow-lg group hover:scale-105 transition-transform duration-300"
-                        >
+                    {/* Organization Header (Above Card) */}
+                    <Link 
+                        to={`/organization/${event.organization_name}`}
+                        className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center group"
+                    >
+                        {/* Logo */}
+                        <div className="w-12 h-12 rounded-full bg-gray-900 p-1 border-2 border-purple-400 overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
                             {logoUrl ? (
                                 <img 
                                     src={logoUrl} 
                                     alt={event.organization_name} 
-                                    className="h-full w-full rounded-full object-cover"
+                                    className="w-full h-full object-cover"
                                 />
                             ) : (
                                 <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                    <Building className="h-8 w-8 text-purple-400" />
+                                    <Building className="h-6 w-6 text-purple-400" />
                                 </div>
                             )}
-                        </Link>
-                    </div>
-                    
-                    {/* Title and Countdown - Now stacked */}
-                    <div className="flex flex-col items-center text-center mb-2">
-                        <CardTitle className="text-2xl text-purple-300 w-full break-words">{event.title}</CardTitle>
-                        <div className="mt-2">
-                            <EventCountdown startTime={event.start_time} endTime={event.end_time} />
                         </div>
-                    </div>
-                    
-                    {/* Organization Name Link */}
-                    <Link 
-                      to={`/organization/${event.organization_name}`}
-                      className="flex items-center justify-center text-gray-400 hover:text-purple-300 transition-colors duration-300 group"
-                    >
-                      <CardDescription className="text-gray-400 group-hover:text-purple-300 transition-colors duration-300">
-                        {event.organization_name}
-                      </CardDescription>
+                        {/* Organization Name */}
+                        <span className="text-xs font-semibold text-gray-300 mt-1 group-hover:text-purple-300 transition-colors truncate max-w-[100px]">
+                            {event.organization_name}
+                        </span>
                     </Link>
-                  </CardHeader>
-                  <CardContent className="space-y-3 flex-grow text-left">
-                    <p className="text-gray-300">{event.description || 'Nincs leírás.'}</p>
                     
-                    <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
-                      <Clock className="h-4 w-4 mr-2 text-cyan-400" />
-                      Kezdés: <span className="font-semibold ml-1 text-white">{format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}</span>
-                      {event.end_time && (
-                        <span className="ml-2 text-gray-500"> - {format(new Date(event.end_time), 'HH:mm')}</span>
+                    <Card 
+                      className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col w-full mt-8"
+                    >
+                      {event.image_url && (
+                        <div className="h-40 w-full overflow-hidden rounded-t-xl">
+                          <img 
+                            src={event.image_url} 
+                            alt={event.title} 
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                          />
+                        </div>
                       )}
-                    </div>
-                    
-                    {event.location && (
-                      <div className="flex items-center text-sm text-gray-300">
-                        <MapPin className="h-4 w-4 mr-2 text-cyan-400" />
-                        Helyszín: <span className="font-semibold ml-1 text-white">{event.location}</span>
-                      </div>
-                    )}
+                      <CardHeader className="pb-4 pt-6">
+                        
+                        {/* Title and Countdown */}
+                        <div className="flex flex-col items-center text-center mb-2">
+                            <CardTitle className="text-2xl text-purple-300 w-full break-words">{event.title}</CardTitle>
+                            <div className="mt-2">
+                                <EventCountdown startTime={event.start_time} endTime={event.end_time} />
+                            </div>
+                        </div>
+                        
+                        {/* Organization Name Link (Removed from here, now above the card) */}
+                        <CardDescription className="text-gray-500 text-center">
+                            {/* Placeholder for description if needed, but organization name is now above */}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3 flex-grow text-left">
+                        <p className="text-gray-300">{event.description || 'Nincs leírás.'}</p>
+                        
+                        <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                          <Clock className="h-4 w-4 mr-2 text-cyan-400" />
+                          Kezdés: <span className="font-semibold ml-1 text-white">{format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}</span>
+                          {event.end_time && (
+                            <span className="ml-2 text-gray-500"> - {format(new Date(event.end_time), 'HH:mm')}</span>
+                          )}
+                        </div>
+                        
+                        {event.location && (
+                          <div className="flex items-center text-sm text-gray-300">
+                            <MapPin className="h-4 w-4 mr-2 text-cyan-400" />
+                            Helyszín: <span className="font-semibold ml-1 text-white">{event.location}</span>
+                          </div>
+                        )}
 
-                    {event.coupon && (
-                      <div className="flex items-center text-sm text-green-400">
-                        <Tag className="h-4 w-4 mr-2" />
-                        Kupon: <span className="font-semibold ml-1">{event.coupon.title}</span>
-                      </div>
-                    )}
-                    
-                    {/* Interest Button */}
-                    {isAuthenticated && (
-                        <Button
-                            variant="outline"
-                            onClick={() => handleToggleInterest(event)}
-                            disabled={isCurrentToggling}
-                            className={`w-full mt-4 transition-colors duration-300 ${
-                                interested 
-                                    ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
-                                    : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
-                            }`}
-                        >
-                            {isCurrentToggling ? (
-                                <Spinner className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                                <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
-                            )}
-                            {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
-                        </Button>
-                    )}
-                  </CardContent>
-                </Card>
+                        {event.coupon && (
+                          <div className="flex items-center text-sm text-green-400">
+                            <Tag className="h-4 w-4 mr-2" />
+                            Kupon: <span className="font-semibold ml-1">{event.coupon.title}</span>
+                          </div>
+                        )}
+                        
+                        {/* Interest Button */}
+                        {isAuthenticated && (
+                            <Button
+                                variant="outline"
+                                onClick={() => handleToggleInterest(event)}
+                                disabled={isCurrentToggling}
+                                className={`w-full mt-4 transition-colors duration-300 ${
+                                    interested 
+                                        ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
+                                }`}
+                            >
+                                {isCurrentToggling ? (
+                                    <Spinner className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                    <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
+                                )}
+                                {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
+                            </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                </div>
               );
             })}
           </div>
