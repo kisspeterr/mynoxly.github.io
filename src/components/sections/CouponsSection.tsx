@@ -39,6 +39,48 @@ const CouponsSection = () => {
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
 
+  // Helper function to calculate redemption status for a given coupon
+  const getRedemptionStatus = (coupon: PublicCoupon) => {
+    const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
+    const pending = isAuthenticated && coupon.is_code_required && isCouponPending(coupon.id);
+    
+    const isPointCoupon = coupon.points_cost > 0;
+    let canRedeem = true;
+    let pointStatusText = '';
+    
+    if (isAuthenticated && isPointCoupon) {
+        const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
+        const organizationId = organizationRecord?.organization_id;
+        const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
+        
+        if (currentPoints < coupon.points_cost) {
+            canRedeem = false;
+            pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
+        } else {
+            pointStatusText = `Pontok levonása: ${coupon.points_cost}`;
+        }
+    }
+    
+    const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
+    
+    let buttonText = coupon.is_code_required ? 'Kód generálása' : 'Beváltás';
+    if (isRedeeming) {
+        buttonText = 'Feldolgozás...';
+    } else if (usedUp) {
+        buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
+    } else if (!canRedeem) {
+        buttonText = pointStatusText;
+    } else if (pending) {
+        buttonText = 'Aktív kód';
+    }
+    
+    const buttonClasses = coupon.is_code_required 
+      ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
+      : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600';
+      
+    return { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem };
+  };
+
   const handleRedeemClick = async (coupon: PublicCoupon) => {
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
@@ -47,27 +89,12 @@ const CouponsSection = () => {
     
     if (isRedeeming) return; // Prevent double click
 
-    // Check local state before attempting redemption
-    if (isCouponUsedUp(coupon.id, coupon.max_uses_per_user)) {
-      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal (beleértve a lejárt kódokat is).`);
-      return;
-    }
-    
-    if (coupon.is_code_required && isCouponPending(coupon.id)) {
-      showError('Már generáltál egy beváltási kódot ehhez a kuponhoz. Kérjük, használd azt.');
-      return;
-    }
-
-    // Check points cost (The actual check is done in redeemCoupon, but we check here for immediate UI feedback)
-    if (coupon.points_cost > 0) {
-        const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
-        const organizationId = organizationRecord?.organization_id;
-        const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
-        
-        if (currentPoints < coupon.points_cost) {
-            showError(`Nincs elegendő hűségpontod (${currentPoints}/${coupon.points_cost}).`);
-            return;
-        }
+    // Re-check status before starting redemption
+    const { isDisabled: preCheckDisabled } = getRedemptionStatus(coupon);
+    if (preCheckDisabled) {
+        // If disabled, the status text should already be set by getRedemptionStatus
+        showError(getRedemptionStatus(coupon).buttonText);
+        return;
     }
 
     setIsRedeeming(true);
@@ -110,6 +137,10 @@ const CouponsSection = () => {
       setIsDetailsModalOpen(false);
       setSelectedCoupon(null);
   };
+  
+  // Calculate modal props based on selectedCoupon state
+  const modalProps = selectedCoupon ? getRedemptionStatus(selectedCoupon) : { isDisabled: false, buttonText: '', buttonClasses: '', usedUp: false, pending: false, canRedeem: true };
+
 
   return (
     <section id="coupons-section" className="py-12 px-6">
@@ -137,54 +168,17 @@ const CouponsSection = () => {
         ) : (
           <div className="flex flex-wrap justify-center gap-8">
             {coupons.map((coupon) => {
-              const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
-              const pending = isAuthenticated && coupon.is_code_required && isCouponPending(coupon.id); // Only pending if code is required
+              const { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem } = getRedemptionStatus(coupon);
               const logoUrl = (coupon as PublicCoupon).logo_url;
-              
-              // Loyalty logic
               const isPointCoupon = coupon.points_cost > 0;
               const isRewardCoupon = coupon.points_reward > 0;
-              let canRedeem = true;
-              let pointStatusText = '';
-              
-              if (isAuthenticated && isPointCoupon) {
-                  const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
-                  const organizationId = organizationRecord?.organization_id;
-                  const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
-                  
-                  if (currentPoints < coupon.points_cost) {
-                      canRedeem = false;
-                      pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
-                  } else {
-                      pointStatusText = `Pontok levonása: ${coupon.points_cost}`;
-                  }
-              }
-              
-              const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
-              
-              // Determine button text based on status
-              let buttonText = coupon.is_code_required ? 'Kód generálása' : 'Beváltás';
-              if (isRedeeming) {
-                  buttonText = 'Feldolgozás...';
-              } else if (usedUp) {
-                  buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
-              } else if (!canRedeem) {
-                  buttonText = pointStatusText;
-              } else if (pending) {
-                  buttonText = 'Aktív kód';
-              }
-              
-              // Determine button style
-              const buttonClasses = coupon.is_code_required 
-                ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
-                : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600';
               
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm ${usedUp || !canRedeem ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                 >
-                  {/* Card Content Area (No longer clickable for details) */}
+                  {/* Card Content Area */}
                   <div className="flex flex-col flex-grow">
                     <CardHeader className="pb-4">
                       {coupon.image_url && (
@@ -231,7 +225,7 @@ const CouponsSection = () => {
                     </CardHeader>
                     <CardContent className="space-y-3 flex-grow text-left">
                       {/* Use short_description here, only if it exists */}
-                      {coupon.short_description && (
+                      {coupon.short_description && coupon.short_description.trim() !== '' && (
                         <p className="text-gray-300 flex-grow">{coupon.short_description}</p>
                       )}
                       
@@ -386,8 +380,8 @@ const CouponsSection = () => {
             onClose={closeDetailsModal}
             onRedeemClick={handleRedeemClick}
             isRedeeming={isRedeeming}
-            isDisabled={isDisabled}
-            buttonText={buttonText}
+            isDisabled={modalProps.isDisabled} // Use calculated modal prop
+            buttonText={modalProps.buttonText} // Use calculated modal prop
           />
       )}
     </section>
