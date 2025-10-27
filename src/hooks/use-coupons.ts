@@ -46,11 +46,12 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission]); // organizationName added to dependencies
+  }, [isAuthenticated, organizationName, checkPermission]); // organizationName is the key dependency
 
   // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
     // We use activeOrganizationId as the primary trigger, as it changes when the selector is used.
+    // This ensures the fetch is triggered whenever the active context changes.
     if (activeOrganizationId) {
       fetchCoupons();
     } else {
