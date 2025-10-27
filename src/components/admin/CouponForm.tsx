@@ -19,9 +19,6 @@ import CouponBannerUploader from './CouponBannerUploader'; // Import the new upl
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   
-  // NEW: Short Description (Max 50 chars)
-  short_description: z.string().min(1, 'A rövid leírás kötelező.').max(50, 'A rövid leírás maximum 50 karakter lehet.'),
-  
   // Updated: Full Description (Max 500 chars)
   description: z.string().max(500, 'A teljes leírás maximum 500 karakter lehet.').nullable().optional().transform(e => e === "" ? null : e),
   
@@ -71,7 +68,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
   // Prepare default values for editing
   const defaultValues: CouponFormData = {
     title: initialData?.title || '',
-    short_description: initialData?.short_description || '', // NEW default
     description: initialData?.description || null,
     coupon_code: initialData?.coupon_code || null, // Use null for empty code
     image_url: initialData?.image_url || null,
@@ -131,18 +127,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {errors.title && <p className="text-red-400 text-sm">{errors.title.message}</p>}
       </div>
       
-      {/* NEW: Short Description */}
-      <div className="space-y-2">
-        <Label htmlFor="short_description" className="text-gray-300">Rövid leírás (Max. 50 karakter) *</Label>
-        <Input 
-          id="short_description"
-          {...register('short_description')}
-          maxLength={50}
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-        {errors.short_description && <p className="text-red-400 text-sm">{errors.short_description.message}</p>}
-      </div>
-
       {/* Full Description */}
       <div className="space-y-2">
         <Label htmlFor="description" className="text-gray-300">Teljes leírás (Max. 500 karakter, opcionális)</Label>

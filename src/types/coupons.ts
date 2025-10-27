@@ -2,7 +2,6 @@ export interface Coupon {
   id: string;
   organization_name: string;
   title: string;
-  short_description: string; // NEW: Max 50 chars
   description: string | null; // Max 500 chars
   coupon_code: string | null; // Can be null if not required
   image_url: string | null;
@@ -13,11 +12,12 @@ export interface Coupon {
   points_reward: number; // Points earned upon successful redemption
   points_cost: number;   // Points required to redeem
   is_code_required: boolean; // NEW: If true, requires admin validation code
+  is_active: boolean; // Added missing field
+  is_archived: boolean; // Added missing field
 }
 
 export interface CouponInsert {
   title: string;
-  short_description: string; // NEW
   description: string | null;
   coupon_code: string | null; // Can be null if not required
   image_url: string | null;
