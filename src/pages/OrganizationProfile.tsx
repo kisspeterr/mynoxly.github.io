@@ -69,7 +69,7 @@ const OrganizationProfile = () => {
   const [isRedemptionModalOpen, setIsRedemptionModalOpen] = useState(false); // For the 3-minute code modal
   const [isCouponDetailsModalOpen, setIsCouponDetailsModalOpen] = useState(false); // For the full description modal
   const [isEventDetailsModalOpen, setIsEventDetailsModalOpen] = useState(false); // NEW: For event details modal
-  const [selectedCoupon, setSelectedCoupon] = useState<PublicCoupon | null>(null);
+  const [selectedCoupon, setSelectedCoupon] = useState<PublicCoupon | null>(selectedCoupon);
   const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null); // NEW: Selected event
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
@@ -418,7 +418,7 @@ const OrganizationProfile = () => {
                             {/* Organization Name (Center Top) */}
                             <Link 
                                 to={`/organization/${coupon.organization_name}`}
-                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-purple-400/50 transition-all duration-300 hover:text-purple-300 pointer-events-auto"
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-sm font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-purple-400/50 transition-all duration-300 hover:text-purple-300 pointer-events-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {profile.organization_name}
@@ -448,7 +448,7 @@ const OrganizationProfile = () => {
                         
                         {/* Title Overlay (Bottom Left) */}
                         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent z-10">
-                            <CardTitle className="text-xl text-white text-left truncate">{coupon.title}</CardTitle>
+                            <CardTitle className="text-lg text-white text-left truncate">{coupon.title}</CardTitle>
                         </div>
                       </div>
                       
@@ -529,7 +529,7 @@ const OrganizationProfile = () => {
                             {/* Organization Name (Center Top) */}
                             <Link 
                                 to={`/organization/${event.organization_name}`}
-                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-cyan-400/50 transition-all duration-300 hover:text-cyan-300 pointer-events-auto"
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-sm font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-cyan-400/50 transition-all duration-300 hover:text-cyan-300 pointer-events-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {profile.organization_name}
@@ -543,7 +543,7 @@ const OrganizationProfile = () => {
                       </div>
                       
                       <CardHeader className="pb-4 pt-4">
-                        <CardTitle className="text-2xl text-purple-300 w-full break-words text-left">{event.title}</CardTitle>
+                        <CardTitle className="text-lg text-purple-300 w-full break-words text-left">{event.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 text-sm flex-grow">
                         

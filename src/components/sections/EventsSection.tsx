@@ -66,7 +66,7 @@ const EventsSection = () => {
               return (
                 <div 
                     key={event.id} 
-                    className="relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm transition-all duration-300 hover:scale-[1.02]"
+                    className="relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.33rem)] max-w-sm transition-all duration-300 hover:scale-[1.02]"
                 >
                     
                     <Card 
@@ -112,7 +112,7 @@ const EventsSection = () => {
                             {/* Organization Name (Center Top) */}
                             <Link 
                                 to={`/organization/${event.organization_name}`}
-                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-purple-400/50 transition-all duration-300 hover:text-purple-300 pointer-events-auto"
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-sm font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-purple-400/50 transition-all duration-300 hover:text-purple-300 pointer-events-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {event.organization_name}
@@ -126,7 +126,7 @@ const EventsSection = () => {
                       </div>
                       
                       <CardHeader className="pb-4 pt-4">
-                        <CardTitle className="text-2xl text-purple-300 w-full break-words text-left">{event.title}</CardTitle>
+                        <CardTitle className="text-lg text-purple-300 w-full break-words text-left">{event.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 flex-grow text-left">
                         

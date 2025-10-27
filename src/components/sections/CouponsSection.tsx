@@ -163,7 +163,7 @@ const CouponsSection = () => {
               return (
                 <div 
                     key={coupon.id} 
-                    className={`relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm transition-all duration-300 ${isDisabled ? 'opacity-60 grayscale' : 'hover:scale-[1.02]'}`}
+                    className={`relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.33rem)] max-w-sm transition-all duration-300 ${isDisabled ? 'opacity-60 grayscale' : 'hover:scale-[1.02]'}`}
                 >
                     
                     <Card 
@@ -212,7 +212,7 @@ const CouponsSection = () => {
                             {/* Organization Name (Center Top) */}
                             <Link 
                                 to={`/organization/${coupon.organization_name}`}
-                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-lg font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-cyan-400/50 transition-all duration-300 hover:text-cyan-300 pointer-events-auto"
+                                className="absolute top-3 left-1/2 transform -translate-x-1/2 z-20 text-sm font-bold text-white p-2 bg-black/50 rounded-lg backdrop-blur-sm border border-cyan-400/50 transition-all duration-300 hover:text-cyan-300 pointer-events-auto"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {coupon.organization_name}
@@ -242,7 +242,7 @@ const CouponsSection = () => {
                         
                         {/* Title Overlay (Bottom Left) */}
                         <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent z-10">
-                            <CardTitle className="text-xl text-white text-left truncate">{coupon.title}</CardTitle>
+                            <CardTitle className="text-lg text-white text-left truncate">{coupon.title}</CardTitle>
                         </div>
                       </div>
                       
