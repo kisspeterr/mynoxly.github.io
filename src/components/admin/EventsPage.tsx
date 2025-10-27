@@ -13,11 +13,13 @@ interface EventEditDialogProps {
   event: Event;
   onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>;
   isLoading: boolean;
+  isOpen: boolean; // Added isOpen prop for external control
+  onOpenChange: (open: boolean) => void; // Added onOpenChange prop
 }
 
-const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading, isOpen, onOpenChange }) => {
+  // Removed internal state 'isOpen' and replaced with props
+  
   const handleSubmit = async (data: EventInsert) => {
     // We only send fields that might have changed, excluding organization_name
     const updateData: Partial<EventInsert> = {
@@ -34,17 +36,20 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
     
     const result = await onUpdate(event.id, updateData);
     if (result.success) {
-      setIsOpen(false);
+      onOpenChange(false);
     }
     return result;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
-          <Pencil className="h-4 w-4" />
-        </Button>
+        {/* Only render trigger if dialog is not already open (used for the card button) */}
+        {!isOpen && (
+            <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
+              <Pencil className="h-4 w-4" />
+            </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -55,7 +60,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
         </DialogHeader>
         <EventForm 
           onSubmit={handleSubmit} 
-          onClose={() => setIsOpen(false)} 
+          onClose={() => onOpenChange(false)} 
           isLoading={isLoading}
           initialData={event}
         />
@@ -84,7 +89,13 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
         <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
         {canManage && (
             <div className="flex space-x-2">
-              <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
+              <EventEditDialog 
+                event={event} 
+                onUpdate={onUpdate} 
+                isLoading={isLoading} 
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+              />
               <Dialog>
                 <DialogTrigger asChild>
                   <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
@@ -159,16 +170,11 @@ const EventsPage = () => {
       const result = await createEvent(dataWithoutImage);
       
       if (result.success) {
-          // 2. Find the newly created event in the local state (it should be the first one after creation, due to sorting by start_time)
-          // NOTE: Since we sort by start_time, the new event might not be the first. We need to refetch or rely on the hook's internal state update.
-          // The useEvents hook updates the state internally. We need to find the newly created event ID.
-          // Since createEvent doesn't return the ID, we rely on the hook's internal state update and find the newest event.
+          // 2. Find the newly created event in the local state (it should be the first one after creation, due to sorting by created_at)
+          // We rely on the hook having updated the state after the successful insert.
+          await fetchEvents(); // Ensure state is fresh
           
-          // A safer approach: force a refetch and then find the newest event.
-          await fetchEvents();
-          
-          // Find the newest event (assuming the hook sorts by start_time ascending, we look for the last one, or by created_at descending)
-          // Since the hook sorts by start_time ascending, we look for the one with the latest created_at time.
+          // Find the newest event (by created_at descending)
           const newestEvent = events.reduce((latest, current) => {
               if (!latest || new Date(current.created_at) > new Date(latest.created_at)) {
                   return current;
@@ -195,15 +201,16 @@ const EventsPage = () => {
       return result;
   };
   
-  // Effect to open the dedicated edit dialog when a new event is set
+  // Effect to ensure the local state is updated when the main events list changes (e.g., after creation)
   useEffect(() => {
       if (eventToEdit) {
-          // We need to ensure the dialog is open when eventToEdit is set
-          // The EventEditDialog component handles the dialog state internally, but we need to trigger it.
-          // Since the EventEditDialog is not designed to be controlled externally, we need to wrap it in a controlled dialog.
-          // We will use a dedicated controlled dialog for the newly created event.
+          // If we are currently editing a newly created event, ensure its data is up-to-date
+          const updatedEvent = events.find(e => e.id === eventToEdit.id);
+          if (updatedEvent) {
+              setEventToEdit(updatedEvent);
+          }
       }
-  }, [eventToEdit]);
+  }, [events]);
 
 
   if (isLoading && events.length === 0) {
@@ -247,7 +254,6 @@ const EventsPage = () => {
                         Hozd létre az új eseményt a {organizationName} számára.
                       </DialogDescription>
                     </DialogHeader>
-                    {/* NOTE: EventForm will show a message that image upload is only available after creation */}
                     <EventForm 
                       onSubmit={handleCreateEvent} 
                       onClose={() => setIsCreateFormOpen(false)} 
@@ -282,29 +288,12 @@ const EventsPage = () => {
               event={eventToEdit} 
               onUpdate={handleUpdateEvent} 
               isLoading={isLoading} 
-              // We need to manually control the open state here since the trigger is inside the card
-              // For simplicity, we rely on the user clicking the edit button on the newly created card, 
-              // or we modify the EventEditDialog to be controlled. Let's make it controlled here.
-              // Since EventEditDialog is not designed to be controlled externally, we need to duplicate the dialog structure.
-              
-              // Re-implementing the controlled dialog structure here:
-              <Dialog open={!!eventToEdit} onOpenChange={(open) => { if (!open) setEventToEdit(null); }}>
-                <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="text-purple-300">Esemény szerkesztése</DialogTitle>
-                    <DialogDescription className="text-gray-400">
-                      Kérjük, töltsd fel a bannert a "{eventToEdit.title}" eseményhez.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <EventForm 
-                    onSubmit={handleUpdateEvent} 
-                    onClose={() => setEventToEdit(null)} 
-                    isLoading={isLoading}
-                    initialData={eventToEdit}
-                  />
-                </DialogContent>
-              </Dialog>
-          )}
+              isOpen={true}
+              onOpenChange={(open) => {
+                  if (!open) setEventToEdit(null);
+              }}
+          />
+      )}
     </div>
   );
 };
