@@ -75,7 +75,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
             </DialogHeader>
 
             {/* Full Description - Added max-h-40 and overflow-y-auto for scrolling */}
-            <div className="space-y-3 max-h-40 overflow-y-auto pr-2">
+            <div className="space-y-3 max-h-40 overflow-y-auto pr-4"> {/* Increased pr-4 for scrollbar */}
                 <h4 className="text-lg font-semibold text-white">Teljes leírás:</h4>
                 <p className="text-gray-300 whitespace-pre-wrap">
                     {coupon.description && coupon.description.trim() !== '' ? coupon.description : 'Nincs részletes leírás megadva.'}
