@@ -17,7 +17,7 @@ export const usePublicEvents = () => {
     if (organizationNames.length === 0) return {};
     
     const { data, error } = await supabase
-      .from('profiles')
+      .from('organizations') // Use new organizations table
       .select('organization_name, logo_url')
       .in('organization_name', organizationNames);
 
@@ -26,10 +26,8 @@ export const usePublicEvents = () => {
       return {};
     }
 
-    return data.reduce((acc, profile) => {
-      if (profile.organization_name) {
-        acc[profile.organization_name] = profile.logo_url;
-      }
+    return data.reduce((acc, org) => {
+      acc[org.organization_name] = org.logo_url;
       return acc;
     }, {} as Record<string, string | null>);
   };

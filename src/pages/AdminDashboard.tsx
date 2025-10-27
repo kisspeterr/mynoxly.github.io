@@ -26,7 +26,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isAdmin, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, switchActiveOrganization } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -55,36 +55,8 @@ const AdminDashboard = () => {
     );
   }
 
-  // Combine own admin profile (if exists) and delegated memberships
-  const allOrganizations = [
-      // 1. Add the user's own profile if they are the main admin (owner)
-      ...(profile?.role === 'admin' && profile.organization_name ? [{
-          organization_id: profile.id,
-          organization_profile: {
-              organization_name: profile.organization_name,
-              logo_url: profile.logo_url,
-          },
-          roles: ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'] as MemberRole[], // Full owner rights
-          isOwner: true,
-      }] : []),
-      // 2. Add all accepted delegated memberships
-      ...allMemberships.map(m => ({
-          organization_id: m.organization_id,
-          organization_profile: m.organization_profile,
-          roles: m.roles,
-          isOwner: false,
-      })).filter(m => m.organization_profile !== null)
-  ];
-  
-  // Filter out duplicates based on organization_id
-  const uniqueOrganizations = allOrganizations.filter((org, index, self) => 
-      index === self.findIndex((t) => (
-          t.organization_id === org.organization_id
-      ))
-  );
-
-  // Check if the user is the main admin OR has any accepted membership
-  const hasAdminAccess = isAdmin || allMemberships.length > 0;
+  // Check if the user has any accepted membership (owner or delegated)
+  const hasAdminAccess = allMemberships.length > 0;
 
   if (isAuthenticated && !hasAdminAccess) {
     return <UnauthorizedAccess />;

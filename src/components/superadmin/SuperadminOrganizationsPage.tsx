@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth, Profile } from '@/hooks/use-auth';
+import { useAuth, Profile, OrganizationProfileData } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,9 +15,11 @@ import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import SuperadminMemberManager from './SuperadminMemberManager'; // NEW IMPORT
 
-// Extended Profile type for Superadmin view
-interface SuperadminProfile extends Profile {
-    email: string;
+// Extended Organization type for Superadmin view
+interface SuperadminOrganization extends OrganizationProfileData {
+    owner_username: string;
+    owner_email: string;
+    owner_role: 'user' | 'admin' | 'superadmin';
 }
 
 // --- Organization Creation/Owner Change Form ---
@@ -30,15 +32,16 @@ interface UserOption {
 }
 
 interface OrganizationFormProps {
-    initialOrg: SuperadminProfile | null; // Null for creation, data for editing
-    onSave: (userId: string, orgName: string | null, newRole: 'user' | 'admin' | 'superadmin', oldOwnerId?: string) => Promise<boolean>;
+    initialOrg: SuperadminOrganization | null; // Null for creation, data for editing
+    onSave: (orgData: { organization_name: string, owner_id: string, logo_url: string | null }, isNew: boolean) => Promise<boolean>;
     onClose: () => void;
     isSaving: boolean;
 }
 
 const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave, onClose, isSaving }) => {
     const [orgName, setOrgName] = useState(initialOrg?.organization_name || '');
-    const [ownerId, setOwnerId] = useState(initialOrg?.id || '');
+    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || '');
+    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); // Logo is now part of the organization record
     const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
     
@@ -47,7 +50,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
     const fetchAvailableUsers = useCallback(async () => {
         setIsLoadingUsers(true);
         try {
-            // Fetch all users and filter for non-admin/non-superadmin users, OR the current owner
+            // Fetch all users
             const { data: usersData, error } = await supabase.rpc('get_all_user_profiles_for_superadmin');
             
             if (error) {
@@ -56,10 +59,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 return;
             }
             
-            const options: UserOption[] = (usersData as SuperadminProfile[])
-                // Filter: Only show users (role='user') or the current owner (for editing)
-                // NOTE: We now allow selecting existing admins/superadmins as new owners, 
-                // as the logic below will handle demoting the old owner if necessary.
+            const options: UserOption[] = (usersData as (Profile & { email: string })[])
                 .map(u => ({
                     id: u.id,
                     username: u.username,
@@ -90,12 +90,18 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             return;
         }
         
-        // When creating/editing an organization, the owner's role MUST be 'admin'
-        const success = await onSave(ownerId, trimmedOrgName, 'admin', initialOrg?.id);
+        const success = await onSave({ 
+            organization_name: trimmedOrgName, 
+            owner_id: ownerId,
+            logo_url: logoUrl, // Pass logo URL
+        }, !isEditing);
+        
         if (success) {
             onClose();
         }
     };
+    
+    const selectedOwner = availableUsers.find(u => u.id === ownerId);
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -128,16 +134,30 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                                 <div className="flex items-center">
                                     <AtSign className="h-4 w-4 mr-2 text-gray-400" />
                                     @{user.username} ({user.email})
-                                    {user.role === 'admin' && user.id !== initialOrg?.id && <Badge className="ml-2 bg-yellow-600/50 text-yellow-300">Már Admin</Badge>}
+                                    {user.role === 'admin' && <Badge className="ml-2 bg-yellow-600/50 text-yellow-300">Admin</Badge>}
                                     {user.role === 'superadmin' && <Badge className="ml-2 bg-red-600/50 text-red-300">Superadmin</Badge>}
                                 </div>
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
-                {isEditing && ownerId !== initialOrg?.id && (
-                    <p className="text-sm text-yellow-400">Figyelem: A tulajdonos megváltoztatása átruházza a szervezet adminisztrációs jogait.</p>
+                {selectedOwner && selectedOwner.role !== 'admin' && selectedOwner.role !== 'superadmin' && (
+                    <p className="text-sm text-yellow-400">Figyelem: A felhasználó szerepköre 'admin'-ra változik a mentés után.</p>
                 )}
+            </div>
+            
+            {/* Simplified Logo URL display/edit (Logo Uploader is too complex to integrate here right now) */}
+            <div className="space-y-2">
+                <Label htmlFor="logoUrl" className="text-gray-300">Logó URL (opcionális)</Label>
+                <Input 
+                    id="logoUrl"
+                    type="url" 
+                    value={logoUrl || ''}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                    placeholder="https://..."
+                    disabled={isSaving}
+                />
             </div>
 
             <DialogFooter>
@@ -160,9 +180,9 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
 // --- Organization Details Modal ---
 
 interface OrganizationDetailsModalProps {
-    organization: SuperadminProfile;
+    organization: SuperadminOrganization;
     onClose: () => void;
-    onUpdate: (userId: string, orgName: string | null, newRole: 'user' | 'admin' | 'superadmin', oldOwnerId?: string) => Promise<boolean>;
+    onUpdate: (orgData: { organization_name: string, owner_id: string, logo_url: string | null }, isNew: boolean) => Promise<boolean>;
     isSaving: boolean;
     fetchOrganizations: () => void;
 }
@@ -171,49 +191,48 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
     const [activeTab, setActiveTab] = useState('details');
     
     // Function to handle owner change (uses the same logic as creation/update)
-    const handleOwnerUpdate = async (userId: string, orgName: string | null, newRole: 'user' | 'admin' | 'superadmin', oldOwnerId?: string) => {
-        // 1. Update the new owner's profile (set role='admin', org_name)
-        const success = await onUpdate(userId, orgName, newRole, oldOwnerId);
+    const handleOwnerUpdate = async (orgData: { organization_name: string, owner_id: string, logo_url: string | null }, isNew: boolean) => {
+        const oldOwnerId = organization.owner_id;
+        const newOwnerId = orgData.owner_id;
+        
+        // 1. Update the organization record
+        const success = await onUpdate(orgData, isNew);
         
         if (success) {
-            // 2. If the owner changed, we must demote the old owner
-            if (userId !== organization.id) {
-                // CRITICAL CHANGE: We only clear the organization_name and logo_url from the OLD owner's profile, 
-                // but we DO NOT demote the role if they are already an admin.
-                // This allows the old owner to retain their 'admin' role and potentially own other organizations.
+            // 2. If the owner changed, update membership and potentially demote old owner's profile role
+            if (newOwnerId !== oldOwnerId) {
+                // A. Update the new owner's profile role to 'admin' if they are currently 'user'
+                const { data: newOwnerProfile } = await supabase.from('profiles').select('role').eq('id', newOwnerId).single();
+                if (newOwnerProfile && newOwnerProfile.role === 'user') {
+                    await supabase.from('profiles').update({ role: 'admin' }).eq('id', newOwnerId);
+                }
                 
-                // Check if the old owner is NOT a superadmin before attempting to modify their profile
-                if (organization.role !== 'superadmin') {
-                    const { error } = await supabase
-                        .from('profiles')
-                        .update({ 
-                            organization_name: null, 
-                            logo_url: null,
-                            updated_at: new Date().toISOString(),
-                        })
-                        .eq('id', organization.id); // organization.id is the old owner's ID
+                // B. Remove old owner's membership record (if it exists)
+                if (oldOwnerId) {
+                    const { error: deleteMemberError } = await supabase
+                        .from('organization_members')
+                        .delete()
+                        .eq('organization_id', organization.id)
+                        .eq('user_id', oldOwnerId);
                         
-                    if (error) {
-                        console.error('Error clearing old owner organization data:', error);
-                        showError('Hiba történt a régi tulajdonos szervezeti adatainak törlésekor.');
-                        return false;
+                    if (deleteMemberError) {
+                        console.warn('Warning: Failed to delete old owner membership:', deleteMemberError);
                     }
                 }
                 
-                // 3. Remove old owner's membership record (if it exists)
-                const { error: deleteMemberError } = await supabase
+                // C. Add new owner as an accepted member (full roles)
+                const ownerRoles: MemberRole[] = ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'];
+                await supabase
                     .from('organization_members')
-                    .delete()
-                    .eq('organization_id', organization.id)
-                    .eq('user_id', organization.id);
-                    
-                if (deleteMemberError) {
-                    console.warn('Warning: Failed to delete old owner membership:', deleteMemberError);
-                }
+                    .upsert({
+                        organization_id: organization.id,
+                        user_id: newOwnerId,
+                        status: 'accepted',
+                        roles: ownerRoles,
+                    }, { onConflict: 'organization_id, user_id' });
                 
-                showSuccess(`Tulajdonos sikeresen átruházva ${orgName} szervezetre.`);
+                showSuccess(`Tulajdonos sikeresen átruházva ${orgData.organization_name} szervezetre.`);
             } else {
-                // If the owner is the same, just update the organization name/details
                 showSuccess(`Szervezet adatai sikeresen frissítve.`);
             }
             
@@ -232,7 +251,7 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
                         {organization.organization_name} Kezelése
                     </DialogTitle>
                     <DialogDescription className="text-gray-400">
-                        Tulajdonos: @{organization.username} ({organization.email})
+                        Tulajdonos: @{organization.owner_username} ({organization.owner_email})
                     </DialogDescription>
                 </DialogHeader>
                 
@@ -248,7 +267,7 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
                     
                     <div className="mt-6">
                         <TabsContent value="details">
-                            <h3 className="text-xl font-bold text-white mb-4">Tulajdonos és Név Módosítása</h3>
+                            <h3 className="text-xl font-bold text-white mb-4">Szervezet adatai és Tulajdonos Módosítása</h3>
                             <OrganizationForm 
                                 initialOrg={organization}
                                 onSave={handleOwnerUpdate}
@@ -260,7 +279,7 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
                         <TabsContent value="members">
                             <SuperadminMemberManager 
                                 organizationId={organization.id}
-                                organizationName={organization.organization_name || 'Ismeretlen Szervezet'}
+                                organizationName={organization.organization_name}
                             />
                         </TabsContent>
                     </div>
@@ -274,30 +293,44 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
 
 const SuperadminOrganizationsPage: React.FC = () => {
     const { isSuperadmin, user } = useAuth();
-    const [organizations, setOrganizations] = useState<SuperadminProfile[]>([]);
+    const [organizations, setOrganizations] = useState<SuperadminOrganization[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
-    const [selectedOrg, setSelectedOrg] = useState<SuperadminProfile | null>(null);
+    const [selectedOrg, setSelectedOrg] = useState<SuperadminOrganization | null>(null);
 
     const fetchOrganizations = useCallback(async () => {
         if (!isSuperadmin) return;
 
         setIsLoading(true);
         try {
-            // Fetch all users and filter for admins (organization owners)
-            const { data, error } = await supabase.rpc('get_all_user_profiles_for_superadmin');
+            // 1. Fetch all organizations and join the owner's profile data
+            const { data: orgData, error: orgError } = await supabase
+                .from('organizations')
+                .select(`
+                    *,
+                    owner_profile:owner_id (username, email)
+                `)
+                .order('organization_name', { ascending: true });
 
-            if (error) {
+            if (orgError) {
                 showError('Hiba történt a szervezetek betöltésekor.');
-                console.error('Fetch organizations error:', error);
+                console.error('Fetch organizations error:', orgError);
                 setOrganizations([]);
                 return;
             }
             
-            // Filter for profiles that are explicitly marked as 'admin' AND have an organization name set.
-            const orgs = (data as SuperadminProfile[])
-                .filter(p => p.role === 'admin' && p.organization_name);
+            // 2. Process data
+            const orgs: SuperadminOrganization[] = (orgData || []).map(org => ({
+                id: org.id,
+                organization_name: org.organization_name,
+                logo_url: org.logo_url,
+                is_public: org.is_public,
+                owner_id: org.owner_id,
+                owner_username: (org.owner_profile as any)?.username || 'Nincs tulajdonos',
+                owner_email: (org.owner_profile as any)?.email || 'Nincs email',
+                owner_role: (org.owner_profile as any)?.role || 'user', // Role is not directly available in RPC, but we assume admin/superadmin if they own an org
+            }));
                 
             setOrganizations(orgs);
 
@@ -310,54 +343,79 @@ const SuperadminOrganizationsPage: React.FC = () => {
         fetchOrganizations();
     }, [fetchOrganizations]);
     
-    // Handles both creation and owner change/update
-    const handleSaveOrganization = async (userId: string, orgName: string | null, newRole: 'user' | 'admin' | 'superadmin', oldOwnerId?: string): Promise<boolean> => {
+    // Handles both creation and update
+    const handleSaveOrganization = async (orgData: { organization_name: string, owner_id: string, logo_url: string | null }, isNew: boolean): Promise<boolean> => {
         if (!user || !isSuperadmin) return false;
         
         setIsSaving(true);
         try {
-            const updates: Partial<Profile> = {
-                role: newRole,
-                organization_name: orgName,
-                updated_at: new Date().toISOString(),
-            };
+            let data: OrganizationProfileData | null;
+            let error: any;
             
-            // 1. Update the target user's profile
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update(updates)
-                .eq('id', userId);
+            if (isNew) {
+                // 1. CREATE new organization record
+                const { data: newData, error: newError } = await supabase
+                    .from('organizations')
+                    .insert({ 
+                        organization_name: orgData.organization_name,
+                        owner_id: orgData.owner_id,
+                        logo_url: orgData.logo_url,
+                        is_public: true,
+                    })
+                    .select()
+                    .single();
+                data = newData;
+                error = newError;
+            } else {
+                // 1. UPDATE existing organization record
+                const { data: updateData, error: updateError } = await supabase
+                    .from('organizations')
+                    .update({ 
+                        organization_name: orgData.organization_name,
+                        owner_id: orgData.owner_id,
+                        logo_url: orgData.logo_url,
+                    })
+                    .eq('id', selectedOrg?.id)
+                    .select()
+                    .single();
+                data = updateData;
+                error = updateError;
+            }
 
-            if (profileError) {
-                if (profileError.code === '23505' && profileError.message.includes('unique_organization_name')) {
+            if (error || !data) {
+                if (error?.code === '23505' && error.message.includes('organization_name')) {
                     showError('Hiba: Ez a szervezet név már foglalt.');
                 } else {
-                    showError(`Hiba a profil frissítésekor: ${profileError.message}`);
-                    console.error('Organization profile update error:', profileError);
+                    showError(`Hiba a szervezet ${isNew ? 'létrehozásakor' : 'frissítésekor'}: ${error?.message}`);
+                    console.error('Organization save error:', error);
                 }
                 return false;
             }
             
-            // 2. Ensure owner membership is set (if organization name is present)
-            if (orgName) {
-                const ownerRoles: MemberRole[] = ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'];
-                const { error: memberError } = await supabase
-                    .from('organization_members')
-                    .upsert({
-                        organization_id: userId, // Owner's profile ID is the organization ID
-                        user_id: userId,
-                        status: 'accepted',
-                        roles: ownerRoles,
-                    }, { onConflict: 'organization_id, user_id' });
-                    
-                if (memberError) {
-                    console.error('Error ensuring owner membership:', memberError);
-                    showError('Hiba történt a tulajdonosi tagság beállításakor.');
-                    return false;
-                }
+            // 2. Ensure the owner's profile role is 'admin'
+            const { data: ownerProfile } = await supabase.from('profiles').select('role').eq('id', orgData.owner_id).single();
+            if (ownerProfile && ownerProfile.role === 'user') {
+                await supabase.from('profiles').update({ role: 'admin' }).eq('id', orgData.owner_id);
             }
             
-            showSuccess(`Szervezet sikeresen ${oldOwnerId ? 'frissítve' : 'létrehozva'}!`);
+            // 3. Ensure owner membership is set in organization_members
+            const ownerRoles: MemberRole[] = ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'];
+            const { error: memberError } = await supabase
+                .from('organization_members')
+                .upsert({
+                    organization_id: data.id, // Use the new organization ID
+                    user_id: orgData.owner_id,
+                    status: 'accepted',
+                    roles: ownerRoles,
+                }, { onConflict: 'organization_id, user_id' });
+                
+            if (memberError) {
+                console.error('Error ensuring owner membership:', memberError);
+                showError('Hiba történt a tulajdonosi tagság beállításakor.');
+                return false;
+            }
+            
+            showSuccess(`Szervezet sikeresen ${isNew ? 'létrehozva' : 'frissítve'}!`);
             fetchOrganizations();
             return true;
 
@@ -431,11 +489,11 @@ const SuperadminOrganizationsPage: React.FC = () => {
                                     </p>
                                     <p className="text-sm text-gray-400 flex items-center">
                                         <Shield className="h-4 w-4 mr-2 text-purple-400" />
-                                        Tulajdonos: <span className="ml-1 font-medium text-white">@{org.username}</span>
+                                        Tulajdonos: <span className="ml-1 font-medium text-white">@{org.owner_username}</span>
                                     </p>
                                     <p className="text-xs text-gray-500 flex items-center">
                                         <Mail className="h-3 w-3 mr-2" />
-                                        {org.email}
+                                        {org.owner_email}
                                     </p>
                                 </div>
                                 

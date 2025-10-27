@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, OrganizationProfileData } from '@/hooks/use-auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Building, CheckCircle, Loader2, Shield, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,26 +23,13 @@ const OrganizationSelector: React.FC = () => {
         isLoading 
     } = useAuth();
     
-    // Combine own admin profile (if exists) and delegated memberships
-    const allOrganizations = [
-        // 1. Add the user's own profile if they are the main admin (owner)
-        ...(profile?.role === 'admin' && profile.organization_name ? [{
-            organization_id: profile.id,
-            organization_profile: {
-                organization_name: profile.organization_name,
-                logo_url: profile.logo_url,
-            },
-            roles: ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'] as MemberRole[], // Full owner rights
-            isOwner: true,
-        }] : []),
-        // 2. Add all accepted delegated memberships
-        ...allMemberships.map(m => ({
-            organization_id: m.organization_id,
-            organization_profile: m.organization_profile,
-            roles: m.roles,
-            isOwner: false,
-        })).filter(m => m.organization_profile !== null)
-    ];
+    // Combine all accepted memberships
+    const allOrganizations = allMemberships.map(m => ({
+        organization_id: m.organization_id,
+        organization_profile: m.organization_profile,
+        roles: m.roles,
+        isOwner: m.organization_profile?.owner_id === profile?.id, // Check if the current user is the owner
+    })).filter(m => m.organization_profile !== null);
     
     // Filter out duplicates based on organization_id
     const uniqueOrganizations = allOrganizations.filter((org, index, self) => 

@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import Navigation from '@/components/sections/Navigation';
 import FooterSection from '@/components/sections/FooterSection';
 import { usePublicCoupons } from '@/hooks/use-public-coupons';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, OrganizationProfileData } from '@/hooks/use-auth';
 import RedemptionModal from '@/components/RedemptionModal';
 import CouponDetailsModal from '@/components/CouponDetailsModal'; // NEW IMPORT
 import EventDetailsModal from '@/components/EventDetailsModal'; // NEW IMPORT
@@ -21,15 +21,10 @@ import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import i
 import EventCountdown from '@/components/EventCountdown'; // Import EventCountdown
 import { Badge } from '@/components/ui/badge';
 
-interface OrganizationProfileData {
-  id: string;
-  organization_name: string;
-  logo_url: string | null;
-}
-
 // NOTE: This definition must match the one in use-public-coupons.ts
 interface PublicCoupon extends Coupon {
   logo_url: string | null;
+  organization_id: string;
   usage_count: number;
 }
 
@@ -69,7 +64,7 @@ const OrganizationProfile = () => {
   const [isRedemptionModalOpen, setIsRedemptionModalOpen] = useState(false); // For the 3-minute code modal
   const [isCouponDetailsModalOpen, setIsCouponDetailsModalOpen] = useState(false); // For the full description modal
   const [isEventDetailsModalOpen, setIsEventDetailsModalOpen] = useState(false); // NEW: For event details modal
-  const [selectedCoupon, setSelectedCoupon] = useState<PublicCoupon | null>(selectedCoupon);
+  const [selectedCoupon, setSelectedCoupon] = useState<PublicCoupon | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null); // NEW: Selected event
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
@@ -90,8 +85,8 @@ const OrganizationProfile = () => {
     let pointStatusText = '';
     
     if (isAuthenticated && isPointCoupon) {
-        const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
-        const organizationId = organizationRecord?.organization_id;
+        // Use organization_id from the coupon object
+        const organizationId = coupon.organization_id;
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
         
         if (currentPoints < coupon.points_cost) {
@@ -132,10 +127,10 @@ const OrganizationProfile = () => {
     setError(null);
     
     try {
-      // 1. Fetch Organization Profile
+      // 1. Fetch Organization Profile from the new 'organizations' table
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, organization_name, logo_url')
+        .from('organizations')
+        .select('id, organization_name, logo_url, is_public, owner_id')
         .eq('organization_name', organizationName)
         .single();
 
@@ -307,7 +302,7 @@ const OrganizationProfile = () => {
   
   // Get current user points for this organization
   const organizationRecord = points.find(p => p.profile.organization_name === organizationName);
-  const currentPoints = organizationRecord ? getPointsForOrganization(organizationRecord.organization_id) : 0;
+  const currentPoints = organizationRecord ? getPointsForOrganization(organizationRecord.profile.id) : 0;
 
 
   return (

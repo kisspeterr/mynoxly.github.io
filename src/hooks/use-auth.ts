@@ -5,33 +5,37 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useQuery } from '@tanstack/react-query';
 import { MemberRole } from '@/types/organization'; // Import MemberRole
 
-// 🔹 Profile tábla definíció
+// 🔹 Profile tábla definíció (SZEMÉLYES ADATOK)
 export interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
   role: 'user' | 'admin' | 'superadmin'; // ADDED superadmin
-  organization_name: string | null;
-  logo_url: string | null;
-  is_public: boolean | null;
+  // organization_name, logo_url, is_public removed from here
   username: string; // NEW FIELD: Must be present
   last_username_change: string | null; // NEW FIELD: Timestamp
   username_change_count: number; // NEW FIELD: Change count
 }
 
+// 🔹 Szervezeti adatok (ÚJ TÁBLA)
+export interface OrganizationProfileData {
+    id: string; // organizations.id (Unique Organization ID)
+    organization_name: string;
+    logo_url: string | null;
+    is_public: boolean;
+    owner_id: string | null; // The user ID of the owner
+}
+
 // 🔹 Szervezeti tagság adatok
 export interface OrganizationMembership {
     id: string; // organization_members ID
-    organization_id: string; // profiles ID
+    organization_id: string; // organizations ID
     roles: MemberRole[];
     status: 'pending' | 'accepted';
     
     // Joined organization profile data
-    organization_profile: {
-        organization_name: string;
-        logo_url: string | null;
-    } | null;
+    organization_profile: OrganizationProfileData | null;
 }
 
 // 🔹 Profil lekérdezése profile táblából
@@ -39,7 +43,7 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, first_name, last_name, avatar_url, role, organization_name, logo_url, is_public, username, last_username_change, username_change_count') // Include new fields
+      .select('id, first_name, last_name, avatar_url, role, username, last_username_change, username_change_count') // Removed organization fields
       .eq('id', userId)
       .single();
 
@@ -57,11 +61,12 @@ const fetchProfile = async (userId: string): Promise<Profile | null> => {
 // 🔹 Összes elfogadott szervezeti tagság lekérdezése
 const fetchAllAcceptedMemberships = async (userId: string): Promise<OrganizationMembership[]> => {
     try {
+        // Fetch memberships and join the new 'organizations' table
         const { data, error } = await supabase
             .from('organization_members')
             .select(`
                 id, organization_id, roles, status,
-                organization_profile:organization_id (organization_name, logo_url, is_public)
+                organization_profile:organization_id (id, organization_name, logo_url, is_public, owner_id)
             `)
             .eq('user_id', userId)
             .eq('status', 'accepted');
@@ -71,8 +76,8 @@ const fetchAllAcceptedMemberships = async (userId: string): Promise<Organization
             return [];
         }
         
-        // Ensure is_public is fetched for delegated profiles
-        return data as OrganizationMembership[];
+        // Filter out memberships where the organization profile join failed
+        return (data as OrganizationMembership[]).filter(m => m.organization_profile !== null);
     } catch (e) {
         console.error('Unexpected error during membership fetch:', e);
         return [];
@@ -119,7 +124,7 @@ export const useAuth = () => {
     retryDelay: 1000,
   });
   
-  // NEW STATE: Aktív tagság ID-je (profiles.id)
+  // NEW STATE: Aktív tagság ID-je (organizations.id)
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   
   // 🔹 Aktív tagság meghatározása
@@ -127,50 +132,24 @@ export const useAuth = () => {
       return data?.allMemberships.find(m => m.organization_id === activeOrganizationId) || null;
   }, [data?.allMemberships, activeOrganizationId]);
   
-  // 🔹 Aktív szervezet profiljának meghatározása (a profiles táblából)
+  // 🔹 Aktív szervezet profiljának meghatározása (az organizations táblából)
   const activeOrganizationProfile = useMemo(() => {
-      if (!activeOrganizationId || !data?.profile) return null;
+      if (!activeOrganizationId) return null;
       
-      // 1. Check if the active ID is the user's own admin/superadmin profile ID
-      if ((data.profile.role === 'admin' || data.profile.role === 'superadmin') && data.profile.id === activeOrganizationId) {
-          // Return the user's own profile data, mapped to the expected structure
-          return {
-              organization_name: data.profile.organization_name,
-              logo_url: data.profile.logo_url,
-              is_public: data.profile.is_public,
-              id: data.profile.id,
-          };
-      }
+      const membership = data?.allMemberships.find(m => m.organization_id === activeOrganizationId);
       
-      // 2. Check if the active ID is a delegated membership
-      const membership = data.allMemberships.find(m => m.organization_id === activeOrganizationId);
       if (membership && membership.organization_profile) {
-          // We rely on the JOIN in fetchAllAcceptedMemberships to bring back organization_name, logo_url, and is_public
-          return {
-              organization_name: membership.organization_profile.organization_name,
-              logo_url: membership.organization_profile.logo_url,
-              id: membership.organization_id,
-              is_public: (membership.organization_profile as any).is_public ?? true, 
-          };
+          return membership.organization_profile;
       }
       
       return null;
-  }, [activeOrganizationId, data?.profile, data?.allMemberships]);
+  }, [activeOrganizationId, data?.allMemberships]);
   
-  // 🔹 Kezdeti aktív szervezet beállítása (első tagság vagy a fő admin profilja)
+  // 🔹 Kezdeti aktív szervezet beállítása (első tagság)
   useEffect(() => {
-    if (data && !activeOrganizationId) {
-        // 1. Próbáljuk meg beállítani a fő admin/superadmin profilját, ha az létezik és van szervezet neve
-        const mainAdminProfile = (data.profile?.role === 'admin' || data.profile?.role === 'superadmin') && data.profile.organization_name 
-            ? data.profile 
-            : null;
-            
-        if (mainAdminProfile) {
-            setActiveOrganizationId(mainAdminProfile.id);
-        } else if (data.allMemberships.length > 0) {
-            // 2. Különben az első elfogadott tagságot állítjuk be aktívnak.
-            setActiveOrganizationId(data.allMemberships[0].organization_id);
-        }
+    if (data && !activeOrganizationId && data.allMemberships.length > 0) {
+        // Az első elfogadott tagságot állítjuk be aktívnak.
+        setActiveOrganizationId(data.allMemberships[0].organization_id);
     }
   }, [data, activeOrganizationId]);
   
@@ -193,8 +172,6 @@ export const useAuth = () => {
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
     
-    // Always perform local cleanup and refetch, even if the API call failed (e.g., expired token)
-    // This ensures the UI reflects the logged-out state immediately.
     if (error) {
       showError('Hiba történt a kijelentkezés során, de a helyi munkamenet törölve lett.');
       console.error('Sign out error:', error);
@@ -216,46 +193,28 @@ export const useAuth = () => {
         return true;
     }
     
-    // 1. Fő admin (régi rendszer) - ha a saját profilja aktív, mindent megtehet
-    if (data?.profile?.role === 'admin' && data?.profile?.id === activeOrganizationId) {
-        return true;
-    }
-    
-    // 2. Delegált tag ellenőrzése
+    // 1. Delegált tag ellenőrzése
     const roles = activeMembership?.roles;
     if (roles && roles.includes(requiredRole)) {
         return true;
     }
     
     return false;
-  }, [data?.profile?.role, data?.profile?.id, activeOrganizationId, activeMembership?.roles]);
+  }, [data?.profile?.role, activeMembership?.roles]);
   
   // 🔹 Aktív szervezet váltása
   const switchActiveOrganization = useCallback((organizationId: string) => {
-      // Check if the organizationId is either the user's own profile ID (if they are admin/superadmin) 
-      // OR if it matches one of their accepted memberships.
-      const isOwnAdminProfile = (data?.profile?.role === 'admin' || data?.profile?.role === 'superadmin') && data?.profile?.id === organizationId;
-      const isAcceptedMember = data?.allMemberships.some(m => m.organization_id === organizationId);
+      const membership = data?.allMemberships.find(m => m.organization_id === organizationId);
       
-      if (isOwnAdminProfile || isAcceptedMember) {
+      if (membership) {
           setActiveOrganizationId(organizationId);
           
-          // Determine organization name for success message
-          let orgName = 'Ismeretlen szervezet';
-          if (isOwnAdminProfile && data?.profile?.organization_name) {
-              orgName = data.profile.organization_name;
-          } else {
-              const memberOrg = data?.allMemberships.find(m => m.organization_id === organizationId)?.organization_profile?.organization_name;
-              if (memberOrg) {
-                  orgName = memberOrg;
-              }
-          }
-              
+          const orgName = membership.organization_profile?.organization_name || 'Ismeretlen szervezet';
           showSuccess(`Aktív szervezet váltva: ${orgName}`);
       } else {
           showError('Érvénytelen szervezet azonosító.');
       }
-  }, [data?.allMemberships, data?.profile]);
+  }, [data?.allMemberships]);
 
 
   // 🔹 Visszatérő értékek
@@ -272,7 +231,7 @@ export const useAuth = () => {
     
     isLoading: isLoading,
     signOut,
-    isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status
+    isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status (now means they own at least one org)
     isSuperadmin: data?.profile?.role === 'superadmin', // NEW
     isAuthenticated: !!data?.user,
     fetchProfile: forceProfileRefetch,

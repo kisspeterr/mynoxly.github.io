@@ -19,13 +19,14 @@ interface CouponUsage {
 // Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
   logo_url: string | null; // Simplified: logo_url directly on coupon object
+  organization_id: string; // NEW: Organization ID
   usage_count: number; // New field for total successful usages
 }
 
 // Helper function to get the organization ID from its name
 const getOrganizationId = async (organizationName: string): Promise<string | null> => {
     const { data, error } = await supabase
-        .from('profiles')
+        .from('organizations') // Use new organizations table
         .select('id')
         .eq('organization_name', organizationName)
         .single();
@@ -44,12 +45,12 @@ export const usePublicCoupons = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   // Helper to fetch organization logos
-  const fetchOrganizationLogos = async (organizationNames: string[]) => {
+  const fetchOrganizationLogos = async (organizationNames: string[]): Promise<Record<string, { id: string, logo_url: string | null }>> => {
     if (organizationNames.length === 0) return {};
     
     const { data, error } = await supabase
-      .from('profiles')
-      .select('organization_name, logo_url')
+      .from('organizations') // Use new organizations table
+      .select('id, organization_name, logo_url')
       .in('organization_name', organizationNames);
 
     if (error) {
@@ -57,12 +58,10 @@ export const usePublicCoupons = () => {
       return {};
     }
 
-    return data.reduce((acc, profile) => {
-      if (profile.organization_name) {
-        acc[profile.organization_name] = profile.logo_url;
-      }
+    return data.reduce((acc, org) => {
+      acc[org.organization_name] = { id: org.id, logo_url: org.logo_url };
       return acc;
-    }, {} as Record<string, string | null>);
+    }, {} as Record<string, { id: string, logo_url: string | null }>);
   };
 
   // Function to manually refresh usages (called after successful redemption or modal close)
@@ -93,7 +92,7 @@ export const usePublicCoupons = () => {
       const rawCoupons = couponData as Coupon[];
       const organizationNames = Array.from(new Set(rawCoupons.map(c => c.organization_name)));
       
-      // 2. Fetch organization logos separately
+      // 2. Fetch organization logos and IDs separately
       const logoMap = await fetchOrganizationLogos(organizationNames);
       
       // 3. Fetch usage counts for all coupons concurrently
@@ -104,13 +103,16 @@ export const usePublicCoupons = () => {
       
       const couponsWithLogos: PublicCoupon[] = rawCoupons.map((coupon, index) => {
         const usageCount = usageCountResults[index].data || 0;
+        const orgInfo = logoMap[coupon.organization_name];
+        
         return {
           ...coupon,
-          logo_url: logoMap[coupon.organization_name] || null,
+          logo_url: orgInfo?.logo_url || null,
+          organization_id: orgInfo?.id || '', // CRITICAL: Store organization ID
           usage_count: Number(usageCount), // Ensure it's a number
         };
-      });
-      
+      }).filter(c => c.organization_id !== ''); // Filter out coupons whose organization profile is missing
+
       setCoupons(couponsWithLogos);
 
       // 4. Fetch current user's ALL usages if authenticated

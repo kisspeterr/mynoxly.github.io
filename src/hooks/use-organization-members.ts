@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth } from './use-auth';
+import { useAuth, OrganizationProfileData } from './use-auth';
 import { OrganizationMember, Invitation, MemberRole } from '@/types/organization';
 
 // Helper to fetch user profile by username
@@ -45,7 +45,7 @@ const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string,
 
 
 export const useOrganizationMembers = () => {
-  const { activeOrganizationId, activeOrganizationProfile, isAuthenticated, isAdmin, user, checkPermission } = useAuth();
+  const { activeOrganizationId, activeOrganizationProfile, isAuthenticated, user, checkPermission } = useAuth();
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +57,7 @@ export const useOrganizationMembers = () => {
 
   const fetchMembers = useCallback(async () => {
     // Only fetch if the user has permission to manage members AND an organization is active
-    if (!isAuthenticated || !organizationId || !checkPermission('coupon_manager')) { // Using coupon_manager as a proxy for admin rights here, but ideally we'd check for 'admin' role or a specific 'member_manager' role. For now, we rely on the RLS policy which checks for 'admin' role in profiles table.
+    if (!isAuthenticated || !organizationId || !checkPermission('coupon_manager')) { 
       setMembers([]);
       return;
     }
@@ -92,7 +92,6 @@ export const useOrganizationMembers = () => {
       
       // 3. Combine data and filter out the owner
       const processedMembers: OrganizationMember[] = rawMembers
-        .filter(m => m.user_id !== user?.id)
         .map(m => {
             const userProfile = profileMap[m.user_id];
             return {
@@ -110,7 +109,7 @@ export const useOrganizationMembers = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationId, user?.id, checkPermission]);
+  }, [isAuthenticated, organizationId, checkPermission]);
   
   const inviteMember = async (username: string, roles: MemberRole[]) => {
     if (!organizationId || !organizationName || !checkPermission('coupon_manager')) { // Only managers can invite
@@ -127,8 +126,10 @@ export const useOrganizationMembers = () => {
             return { success: false };
         }
         
-        if (userId === user?.id) {
-            showError('Nem hívhatod meg saját magadat.');
+        // Check if the user is the owner of this organization
+        const { data: orgData } = await supabase.from('organizations').select('owner_id').eq('id', organizationId).single();
+        if (orgData?.owner_id === userId) {
+            showError('A felhasználó már a szervezet tulajdonosa.');
             return { success: false };
         }
 

@@ -11,11 +11,17 @@ import { Badge } from '@/components/ui/badge';
 // Extended Profile type for Superadmin view
 interface SuperadminProfile extends Profile {
     email: string;
+    // organization_name is now fetched separately or via RPC if needed, but removed from this type for clarity
+}
+
+// Interface to hold user and their organizations
+interface UserWithOrgs extends SuperadminProfile {
+    organizations: { id: string, organization_name: string }[];
 }
 
 const SuperadminUsersPage: React.FC = () => {
     const { isSuperadmin } = useAuth();
-    const [users, setUsers] = useState<SuperadminProfile[]>([]);
+    const [users, setUsers] = useState<UserWithOrgs[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -24,17 +30,45 @@ const SuperadminUsersPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // Fetch all user profiles including email and organization data
-            const { data, error } = await supabase.rpc('get_all_user_profiles_for_superadmin');
-
-            if (error) {
+            // 1. Fetch all user profiles including email
+            const { data: profilesData, error: profilesError } = await supabase.rpc('get_all_user_profiles_for_superadmin');
+            
+            if (profilesError) {
                 showError('Hiba történt a felhasználók betöltésekor.');
-                console.error('Fetch users error:', error);
+                console.error('Fetch users error:', profilesError);
                 setUsers([]);
                 return;
             }
             
-            setUsers(data as SuperadminProfile[]);
+            const rawUsers = profilesData as (SuperadminProfile & { organization_name: string | null })[];
+
+            // 2. Fetch all organization ownerships
+            const { data: orgData, error: orgError } = await supabase
+                .from('organizations')
+                .select('id, organization_name, owner_id');
+                
+            if (orgError) {
+                console.error('Error fetching organizations:', orgError);
+            }
+            
+            const organizations = orgData || [];
+            
+            // 3. Map organizations to users
+            const usersMap: Record<string, UserWithOrgs> = rawUsers.reduce((acc, user) => {
+                acc[user.id] = {
+                    ...user,
+                    organizations: [],
+                };
+                return acc;
+            }, {} as Record<string, UserWithOrgs>);
+            
+            organizations.forEach(org => {
+                if (org.owner_id && usersMap[org.owner_id]) {
+                    usersMap[org.owner_id].organizations.push({ id: org.id, organization_name: org.organization_name });
+                }
+            });
+            
+            setUsers(Object.values(usersMap));
 
         } finally {
             setIsLoading(false);
@@ -48,10 +82,8 @@ const SuperadminUsersPage: React.FC = () => {
     const filteredUsers = users.filter(u => 
         u.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
         u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        u.organization_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        u.organizations.some(org => org.organization_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
-    
-    // Removed: handleSetOrganization, handleUpdateOrganization, isUpdating, isOrgFormOpen, selectedUser, newOrgName, newRole states and functions.
 
     return (
         <div>
@@ -106,15 +138,21 @@ const SuperadminUsersPage: React.FC = () => {
                                         <Mail className="h-4 w-4 mr-2 text-purple-400" />
                                         {user.email}
                                     </p>
-                                    <p className="text-sm text-gray-400 flex items-center">
-                                        <Building className="h-4 w-4 mr-2 text-purple-400" />
-                                        Szervezet: <span className={`ml-1 font-medium ${user.organization_name ? 'text-white' : 'text-gray-500'}`}>
-                                            {user.organization_name || 'Nincs'}
+                                    <p className="text-sm text-gray-400 flex items-start">
+                                        <Building className="h-4 w-4 mr-2 mt-1 text-purple-400 flex-shrink-0" />
+                                        Szervezetek: 
+                                        <span className="ml-1 font-medium text-white flex flex-wrap gap-1">
+                                            {user.organizations.length > 0 ? (
+                                                user.organizations.map(org => (
+                                                    <Badge key={org.id} className="bg-cyan-600/50 text-cyan-300">{org.organization_name}</Badge>
+                                                ))
+                                            ) : (
+                                                <span className="text-gray-500">Nincs</span>
+                                            )}
                                         </span>
                                     </p>
                                 </div>
                                 
-                                {/* Removed: Button to modify organization/role */}
                                 <div className="flex-shrink-0">
                                     <Shield className="h-6 w-6 text-gray-600" />
                                 </div>
@@ -123,8 +161,6 @@ const SuperadminUsersPage: React.FC = () => {
                     ))}
                 </div>
             )}
-            
-            {/* Removed: Organization and Role Management Modal */}
         </div>
     );
 };

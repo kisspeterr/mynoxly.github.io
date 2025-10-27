@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth } from './use-auth';
+import { useAuth, OrganizationProfileData } from './use-auth';
 
 export interface LoyaltyPointRecord {
   id: string;
@@ -10,11 +10,8 @@ export interface LoyaltyPointRecord {
   points: number;
   updated_at: string;
   
-  // Joined profile data for display
-  profile: {
-    organization_name: string;
-    logo_url: string | null;
-  };
+  // Joined organization data for display
+  profile: OrganizationProfileData;
 }
 
 export const useLoyaltyPoints = () => {
@@ -31,7 +28,7 @@ export const useLoyaltyPoints = () => {
 
     setIsLoading(true);
     try {
-      // Fetch points, joining the organization profile data
+      // Fetch points, joining the organization profile data from the new 'organizations' table
       const { data, error } = await supabase
         .from('loyalty_points')
         .select(`
@@ -40,7 +37,7 @@ export const useLoyaltyPoints = () => {
           organization_id,
           points,
           updated_at,
-          profile:organization_id (organization_name, logo_url)
+          profile:organization_id (id, organization_name, logo_url, is_public, owner_id)
         `)
         .eq('user_id', user.id) // RLS ensures this is safe
         .order('points', { ascending: false });
@@ -52,7 +49,14 @@ export const useLoyaltyPoints = () => {
         return;
       }
       
-      const validPoints = (data as LoyaltyPointRecord[]).filter(p => p.profile !== null);
+      // Ensure profile data is present and correctly typed
+      const validPoints = (data as (Omit<LoyaltyPointRecord, 'profile'> & { profile: OrganizationProfileData | null })[])
+        .filter(p => p.profile !== null)
+        .map(p => ({
+            ...p,
+            profile: p.profile as OrganizationProfileData,
+        }));
+        
       setPoints(validPoints);
 
     } finally {
