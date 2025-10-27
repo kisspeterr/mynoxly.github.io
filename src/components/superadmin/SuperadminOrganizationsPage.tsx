@@ -33,7 +33,7 @@ interface UserOption {
 
 interface OrganizationFormProps {
     initialOrg: SuperadminOrganization | null; // Null for creation, data for editing
-    onSave: (orgData: { organization_name: string, owner_id: string, logo_url: string | null }, isNew: boolean) => Promise<boolean>;
+    onSave: (orgData: { organization_name: string, owner_id: string }, isNew: boolean) => Promise<boolean>;
     onClose: () => void;
     isSaving: boolean;
 }
@@ -42,7 +42,6 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
     // Initialize ownerId to 'null' string if not set, to handle Select placeholder correctly
     const [orgName, setOrgName] = useState(initialOrg?.organization_name || '');
     const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || 'null'); 
-    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); 
     const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
     
@@ -91,10 +90,11 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             return;
         }
         
+        // Pass null for logo_url as it's managed elsewhere
         const success = await onSave({ 
             organization_name: trimmedOrgName, 
             owner_id: ownerId,
-            logo_url: logoUrl, // Pass logo URL
+            logo_url: null, 
         }, !isEditing);
         
         if (success) {
@@ -148,19 +148,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 )}
             </div>
             
-            {/* Simplified Logo URL display/edit (Logo Uploader is too complex to integrate here right now) */}
-            <div className="space-y-2">
-                <Label htmlFor="logoUrl" className="text-gray-300">Logó URL (opcionális)</Label>
-                <Input 
-                    id="logoUrl"
-                    type="url" 
-                    value={logoUrl || ''}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-                    placeholder="https://..."
-                    disabled={isSaving}
-                />
-            </div>
+            {/* Removed Logo URL Input */}
 
             <DialogFooter>
                 <DialogClose asChild>
@@ -198,7 +186,13 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
         const newOwnerId = orgData.owner_id;
         
         // 1. Update the organization record
-        const success = await onUpdate(orgData, isNew);
+        // CRITICAL: When updating, we must preserve the existing logo_url if the form doesn't provide one (which it won't now)
+        const updatedOrgData = {
+            ...orgData,
+            logo_url: organization.logo_url, // Preserve existing logo URL
+        };
+        
+        const success = await onUpdate(updatedOrgData, isNew);
         
         if (success) {
             // 2. If the owner changed, update membership and potentially demote old owner's profile role
@@ -365,14 +359,17 @@ const SuperadminOrganizationsPage: React.FC = () => {
             let data: OrganizationProfileData | null;
             let error: any;
             
+            // Ensure logo_url is explicitly set to null if not provided (which is the case now)
+            const finalOrgData = { ...orgData, logo_url: orgData.logo_url || null };
+            
             if (isNew) {
                 // 1. CREATE new organization record
                 const { data: newData, error: newError } = await supabase
                     .from('organizations')
                     .insert({ 
-                        organization_name: orgData.organization_name,
-                        owner_id: orgData.owner_id,
-                        logo_url: orgData.logo_url,
+                        organization_name: finalOrgData.organization_name,
+                        owner_id: finalOrgData.owner_id,
+                        logo_url: finalOrgData.logo_url,
                         is_public: true,
                     })
                     .select()
@@ -384,9 +381,9 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 const { data: updateData, error: updateError } = await supabase
                     .from('organizations')
                     .update({ 
-                        organization_name: orgData.organization_name,
-                        owner_id: orgData.owner_id,
-                        logo_url: orgData.logo_url,
+                        organization_name: finalOrgData.organization_name,
+                        owner_id: finalOrgData.owner_id,
+                        logo_url: finalOrgData.logo_url,
                     })
                     .eq('id', selectedOrg?.id)
                     .select()
