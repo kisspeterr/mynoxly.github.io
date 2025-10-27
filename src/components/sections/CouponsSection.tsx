@@ -81,7 +81,9 @@ const CouponsSection = () => {
     return { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem };
   };
 
-  const handleRedeemClick = async (coupon: PublicCoupon) => {
+  const handleRedeemClick = async (coupon: PublicCoupon, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation(); // Prevent opening details modal
+    
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return;
@@ -176,7 +178,8 @@ const CouponsSection = () => {
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm cursor-pointer hover:scale-[1.02] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  onClick={() => openDetailsModal(coupon)} // Make card clickable for details
                 >
                   {/* Card Content Area */}
                   <div className="flex flex-col flex-grow">
@@ -196,6 +199,7 @@ const CouponsSection = () => {
                           <Link 
                               to={`/organization/${coupon.organization_name}`}
                               className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
+                              onClick={(e) => e.stopPropagation()} // Prevent opening details modal
                           >
                               {logoUrl ? (
                                   <img 
@@ -217,6 +221,7 @@ const CouponsSection = () => {
                       <Link 
                         to={`/organization/${coupon.organization_name}`}
                         className="flex items-center justify-center text-gray-400 hover:text-cyan-300 transition-colors duration-300 group"
+                        onClick={(e) => e.stopPropagation()} // Prevent opening details modal
                       >
                         <CardDescription className="text-gray-400 group-hover:text-cyan-300 transition-colors duration-300">
                           {coupon.organization_name}
@@ -274,17 +279,17 @@ const CouponsSection = () => {
                   </div>
                   
                   {/* Action Buttons (Details + Redeem) */}
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
                     <div className="pt-4 space-y-2 border-t border-gray-700/50">
-                      {/* NEW: Details Button */}
-                      <Button 
+                      {/* Details Button (Now redundant, but kept for visual consistency if needed) */}
+                      {/* <Button 
                         onClick={() => openDetailsModal(coupon)}
                         variant="outline"
                         className="w-full border-gray-700 text-gray-400 hover:bg-gray-800"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Részletek
-                      </Button>
+                      </Button> */}
                       
                       {isAuthenticated ? (
                         <>
@@ -294,6 +299,7 @@ const CouponsSection = () => {
                               <Button 
                                 className="flex-grow bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
                                 disabled
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 <Clock className="h-4 w-4 mr-2" />
                                 <span className="hidden sm:inline">Kód generálva</span>
@@ -304,6 +310,7 @@ const CouponsSection = () => {
                                 variant="outline"
                                 size="icon" // Small, circular button
                                 className="flex-shrink-0 rounded-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                                onClick={(e) => e.stopPropagation()}
                               >
                                 <Link to="/profile" className="flex items-center justify-center">
                                   <User className="h-5 w-5" />
@@ -312,7 +319,7 @@ const CouponsSection = () => {
                             </div>
                           ) : (
                             <Button 
-                              onClick={() => handleRedeemClick(coupon)}
+                              onClick={(e) => handleRedeemClick(coupon, e)}
                               className={`w-full text-white ${buttonClasses}`}
                               disabled={isDisabled}
                             >
@@ -344,6 +351,7 @@ const CouponsSection = () => {
                         <Button 
                           asChild
                           className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+                          onClick={(e) => e.stopPropagation()}
                         >
                           <Link to="/login" className="flex items-center justify-center">
                             <LogIn className="h-4 w-4 mr-2 sm:mr-2" />
