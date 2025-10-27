@@ -99,13 +99,23 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
   const statusClasses = isArchived ? 'opacity-50 border-gray-700/50' : isActive ? 'border-cyan-500/30' : 'border-red-500/30';
 
   return (
-    <Card className={`bg-black/50 backdrop-blur-sm text-white transition-shadow duration-300 ${statusClasses}`}>
+    <Card className={`bg-black/50 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col ${statusClasses}`}>
+      {coupon.image_url && (
+        <div className="h-40 w-full overflow-hidden rounded-t-xl">
+          <img 
+            src={coupon.image_url} 
+            alt={coupon.title} 
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+          />
+        </div>
+      )}
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <CardTitle className="text-xl text-cyan-300">{coupon.title}</CardTitle>
         {statusBadge()}
       </CardHeader>
       <CardContent className="space-y-3">
-        <CardDescription className="text-gray-400">{coupon.description || 'Nincs leírás.'}</CardDescription>
+        {/* Added whitespace-normal and break-words to ensure responsiveness */}
+        <CardDescription className="text-gray-400 whitespace-normal break-words">{coupon.description || 'Nincs leírás.'}</CardDescription>
         
         <div className="flex items-center text-sm text-gray-300">
           <Tag className="h-4 w-4 mr-2 text-purple-400" />
