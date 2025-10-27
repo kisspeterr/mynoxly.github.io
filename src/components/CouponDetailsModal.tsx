@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Gift, Calendar, Tag, MapPin, Coins, XCircle, Building } from 'lucide-react';
+import { Gift, Calendar, Tag, MapPin, Coins, XCircle, Building, Loader2 } from 'lucide-react';
 import { Coupon } from '@/types/coupons';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -78,7 +78,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
             <div className="space-y-3">
                 <h4 className="text-lg font-semibold text-white">Teljes leírás:</h4>
                 <p className="text-gray-300 whitespace-pre-wrap">
-                    {coupon.description || 'Nincs részletes leírás megadva.'}
+                    {coupon.description && coupon.description.trim() !== '' ? coupon.description : 'Nincs részletes leírás megadva.'}
                 </p>
             </div>
             

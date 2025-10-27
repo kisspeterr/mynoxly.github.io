@@ -405,8 +405,10 @@ const OrganizationProfile = () => {
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm flex-grow">
-                          {/* Use short_description here */}
-                          <p className="text-gray-300 flex-grow">{coupon.short_description}</p>
+                          {/* Use short_description here, only if it exists */}
+                          {coupon.short_description && (
+                            <p className="text-gray-300 flex-grow">{coupon.short_description}</p>
+                          )}
                           
                           {/* Redemption Type Badge */}
                           <div className="flex items-center text-sm">
