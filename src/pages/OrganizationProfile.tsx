@@ -376,10 +376,10 @@ const OrganizationProfile = () => {
                         )}
                         
                         {/* Overlay Content (Top Left) */}
-                        <div className="absolute inset-0 p-3 flex items-start justify-between">
+                        <div className="absolute inset-0 p-3 flex items-start justify-between bg-gradient-to-b from-black/50 to-transparent">
                             <Link 
                                 to={`/organization/${coupon.organization_name}`}
-                                className="flex items-center space-x-2 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors -mt-2 -ml-2" // Negative margin to make it slightly overlap
+                                className="flex items-center space-x-2 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {/* Logo */}
@@ -388,7 +388,7 @@ const OrganizationProfile = () => {
                                         <img 
                                             src={logoUrl} 
                                             alt={coupon.organization_name} 
-                                            className="h-full w-full object-cover"
+                                            className="w-full h-full object-cover"
                                         />
                                     ) : (
                                         <Building className="h-4 w-4 text-cyan-400" />
@@ -401,25 +401,23 @@ const OrganizationProfile = () => {
                             </Link>
                             
                             {/* Status Badge (Top Right) */}
-                            <div className="mt-1 mr-1">
-                                {pending ? (
-                                    <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
-                                        <QrCode className="h-3 w-3" /> Aktív kód
-                                    </Badge>
-                                ) : usedUp ? (
-                                    <Badge className="bg-red-600/70 text-white flex items-center gap-1">
-                                        Limit elérve
-                                    </Badge>
-                                ) : coupon.points_cost > 0 ? (
-                                    <Badge className="bg-red-600/70 text-white flex items-center gap-1">
-                                        <Coins className="h-3 w-3" /> {coupon.points_cost} pont
-                                    </Badge>
-                                ) : coupon.points_reward > 0 ? (
-                                    <Badge className="bg-green-600/70 text-white flex items-center gap-1">
-                                        <Coins className="h-3 w-3" /> +{coupon.points_reward} pont
-                                    </Badge>
-                                ) : null}
-                            </div>
+                            {pending ? (
+                                <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
+                                    <QrCode className="h-3 w-3" /> Aktív kód
+                                </Badge>
+                            ) : usedUp ? (
+                                <Badge className="bg-red-600/70 text-white flex items-center gap-1">
+                                    Limit elérve
+                                </Badge>
+                            ) : coupon.points_cost > 0 ? (
+                                <Badge className="bg-red-600/70 text-white flex items-center gap-1">
+                                    <Coins className="h-3 w-3" /> {coupon.points_cost} pont
+                                </Badge>
+                            ) : coupon.points_reward > 0 ? (
+                                <Badge className="bg-green-600/70 text-white flex items-center gap-1">
+                                    <Coins className="h-3 w-3" /> +{coupon.points_reward} pont
+                                </Badge>
+                            ) : null}
                         </div>
                         
                         {/* Title Overlay (Bottom Left) */}
