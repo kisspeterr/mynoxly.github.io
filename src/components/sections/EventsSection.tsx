@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, MapPin, Clock, Tag, Loader2, Building, Heart, Loader2 as Spinner } from 'lucide-react';
+import { Calendar, MapPin, Clock, Tag, Loader2, Building, Heart, Loader2 as Spinner, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Event } from '@/types/events';
 import EventCountdown from '@/components/EventCountdown'; // Import Countdown
+import EventDetailsModal from '@/components/EventDetailsModal'; // NEW IMPORT
 
 // Extend Event type to include organization profile data
 interface PublicEvent extends Event {
@@ -20,16 +21,18 @@ const EventsSection = () => {
   const { events, isLoading } = usePublicEvents();
   const { isAuthenticated } = useAuth();
   const { isInterested, toggleInterest } = useInterestedEvents();
-  const [isToggling, setIsToggling] = useState<string | null>(null);
+  
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null);
 
-  const handleToggleInterest = async (event: PublicEvent) => {
-    if (!isAuthenticated) {
-      // Error handling is done inside toggleInterest hook
-      return;
-    }
-    setIsToggling(event.id);
-    await toggleInterest(event.id, event.title);
-    setIsToggling(null);
+  const openDetailsModal = (event: PublicEvent) => {
+      setSelectedEvent(event);
+      setIsDetailsModalOpen(true);
+  };
+  
+  const closeDetailsModal = () => {
+      setIsDetailsModalOpen(false);
+      setSelectedEvent(null);
   };
 
   return (
@@ -60,7 +63,6 @@ const EventsSection = () => {
             {events.map((event) => {
               const logoUrl = (event as PublicEvent).logo_url;
               const interested = isInterested(event.id);
-              const isCurrentToggling = isToggling === event.id;
               
               return (
                 <div 
@@ -69,14 +71,15 @@ const EventsSection = () => {
                 >
                     
                     <Card 
-                      className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col w-full"
+                      className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col w-full cursor-pointer"
+                      onClick={() => openDetailsModal(event)}
                     >
                       <div className="relative h-40 w-full overflow-hidden rounded-t-xl">
                         {event.image_url ? (
                           <img 
                             src={event.image_url} 
                             alt={event.title} 
-                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
                         ) : (
                             <div className="w-full h-full bg-gray-800 flex items-center justify-center">
@@ -88,6 +91,7 @@ const EventsSection = () => {
                         <Link 
                             to={`/organization/${event.organization_name}`}
                             className="absolute top-3 left-3 z-10 flex items-center p-2 bg-black/50 rounded-full backdrop-blur-sm border border-purple-400/50 group-hover:bg-black/70 transition-all duration-300"
+                            onClick={(e) => e.stopPropagation()}
                         >
                             {/* Logo */}
                             <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-purple-400 overflow-hidden flex-shrink-0">
@@ -119,14 +123,10 @@ const EventsSection = () => {
                         <CardTitle className="text-2xl text-purple-300 w-full break-words text-left">{event.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 flex-grow text-left">
-                        <p className="text-gray-300 text-sm">{event.description || 'Nincs leírás.'}</p>
                         
-                        <div className="flex items-center text-sm text-gray-300 pt-2 border-t border-gray-700/50">
+                        <div className="flex items-center text-sm text-gray-300">
                           <Clock className="h-4 w-4 mr-2 text-cyan-400" />
                           Kezdés: <span className="font-semibold ml-1 text-white">{format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}</span>
-                          {event.end_time && (
-                            <span className="ml-2 text-gray-500"> - {format(new Date(event.end_time), 'HH:mm')}</span>
-                          )}
                         </div>
                         
                         {event.location && (
@@ -139,36 +139,33 @@ const EventsSection = () => {
                         {event.coupon && (
                           <div className="flex items-center text-sm text-green-400">
                             <Tag className="h-4 w-4 mr-2" />
-                            Kupon: <span className="font-semibold ml-1">{event.coupon.title}</span>
+                            Kupon csatolva
                           </div>
                         )}
                         
-                        {/* Interest Button */}
-                        {isAuthenticated && (
-                            <Button
-                                variant="outline"
-                                onClick={() => handleToggleInterest(event)}
-                                disabled={isCurrentToggling}
-                                className={`w-full mt-4 transition-colors duration-300 ${
-                                    interested 
-                                        ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
-                                        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
-                                }`}
-                            >
-                                {isCurrentToggling ? (
-                                    <Spinner className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
-                                )}
-                                {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
-                            </Button>
-                        )}
+                        {/* Details Button */}
+                        <Button
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); openDetailsModal(event); }}
+                            className="w-full mt-4 border-purple-400 text-purple-400 hover:bg-purple-400/10"
+                        >
+                            Részletek <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
                       </CardContent>
                     </Card>
                 </div>
               );
             })}
           </div>
+        )}
+        
+        {/* Event Details Modal */}
+        {selectedEvent && (
+            <EventDetailsModal
+                event={selectedEvent}
+                isOpen={isDetailsModalOpen}
+                onClose={closeDetailsModal}
+            />
         )}
       </div>
     </section>

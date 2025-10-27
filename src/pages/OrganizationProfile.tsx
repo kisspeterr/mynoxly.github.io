@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart, QrCode, Eye } from 'lucide-react';
+import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart, QrCode, Eye, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';
@@ -14,6 +14,7 @@ import { usePublicCoupons } from '@/hooks/use-public-coupons';
 import { useAuth } from '@/hooks/use-auth';
 import RedemptionModal from '@/components/RedemptionModal';
 import CouponDetailsModal from '@/components/CouponDetailsModal'; // NEW IMPORT
+import EventDetailsModal from '@/components/EventDetailsModal'; // NEW IMPORT
 import FavoriteButton from '@/components/FavoriteButton';
 import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
@@ -66,8 +67,10 @@ const OrganizationProfile = () => {
   
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isRedemptionModalOpen, setIsRedemptionModalOpen] = useState(false); // For the 3-minute code modal
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false); // For the full description modal
+  const [isCouponDetailsModalOpen, setIsCouponDetailsModalOpen] = useState(false); // For the full description modal
+  const [isEventDetailsModalOpen, setIsEventDetailsModalOpen] = useState(false); // NEW: For event details modal
   const [selectedCoupon, setSelectedCoupon] = useState<PublicCoupon | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<PublicEvent | null>(null); // NEW: Selected event
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
   const [isTogglingInterest, setIsTogglingInterest] = useState<string | null>(null); // Local state for interest button loading
@@ -236,14 +239,24 @@ const OrganizationProfile = () => {
     refreshUsages();
   };
   
-  const openDetailsModal = (coupon: PublicCoupon) => {
+  const openCouponDetailsModal = (coupon: PublicCoupon) => {
       setSelectedCoupon(coupon);
-      setIsDetailsModalOpen(true);
+      setIsCouponDetailsModalOpen(true);
   };
   
-  const closeDetailsModal = () => {
-      setIsDetailsModalOpen(false);
+  const closeCouponDetailsModal = () => {
+      setIsCouponDetailsModalOpen(false);
       setSelectedCoupon(null);
+  };
+  
+  const openEventDetailsModal = (event: PublicEvent) => {
+      setSelectedEvent(event);
+      setIsEventDetailsModalOpen(true);
+  };
+  
+  const closeEventDetailsModal = () => {
+      setIsEventDetailsModalOpen(false);
+      setSelectedEvent(null);
   };
   
   // --- Interest Toggle Logic ---
@@ -361,7 +374,7 @@ const OrganizationProfile = () => {
                     
                     <Card 
                       className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full cursor-pointer ${isDisabled ? '' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}
-                      onClick={() => openDetailsModal(coupon)}
+                      onClick={() => openCouponDetailsModal(coupon)}
                     >
                       
                       {/* Card Content starts below the space reserved for the logo */}
@@ -435,7 +448,7 @@ const OrganizationProfile = () => {
                       {/* Card Content (Button) */}
                       <CardContent className="p-3 text-center">
                         <Button 
-                            onClick={() => openDetailsModal(coupon)}
+                            onClick={() => openCouponDetailsModal(coupon)}
                             variant="outline"
                             className="w-full border-purple-400 text-purple-400 hover:bg-purple-400/10"
                         >
@@ -471,7 +484,8 @@ const OrganizationProfile = () => {
                   >
                     
                     <Card 
-                        className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white flex flex-col w-full"
+                        className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white flex flex-col w-full cursor-pointer"
+                        onClick={() => openEventDetailsModal(event)}
                     >
                       <div className="relative h-40 w-full overflow-hidden rounded-t-xl">
                         {event.image_url ? (
@@ -486,6 +500,7 @@ const OrganizationProfile = () => {
                         <Link 
                             to={`/organization/${event.organization_name}`}
                             className="absolute top-3 left-3 z-10 flex items-center p-2 bg-black/50 rounded-full backdrop-blur-sm border border-cyan-400/50 group-hover:bg-black/70 transition-all duration-300"
+                            onClick={(e) => e.stopPropagation()}
                         >
                             {/* Logo */}
                             <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-cyan-400 overflow-hidden flex-shrink-0">
@@ -517,14 +532,10 @@ const OrganizationProfile = () => {
                         <CardTitle className="text-2xl text-purple-300 w-full break-words text-left">{event.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-3 text-sm flex-grow">
-                        <p className="text-gray-300">{event.description || 'Nincs leírás.'}</p>
                         
-                        <div className="flex items-center text-gray-400 pt-2 border-t border-gray-700/50">
+                        <div className="flex items-center text-gray-400">
                           <Clock className="h-4 w-4 mr-2 text-cyan-400" />
                           Kezdés: {format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm')}
-                          {event.end_time && (
-                            <span className="ml-2 text-gray-500"> - {format(new Date(event.end_time), 'HH:mm')}</span>
-                          )}
                         </div>
                         
                         {event.location && (
@@ -541,37 +552,14 @@ const OrganizationProfile = () => {
                           </div>
                         )}
                         
-                        {/* Interest Button */}
-                        {isAuthenticated && (
-                            <Button
-                                variant="outline"
-                                onClick={() => handleToggleInterest(event)}
-                                disabled={isCurrentToggling}
-                                className={`w-full mt-4 transition-colors duration-300 ${
-                                    interested 
-                                        ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
-                                        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
-                                }`}
-                            >
-                                {isCurrentToggling ? (
-                                    <Spinner className="h-4 w-4 mr-2 animate-spin" />
-                                ) : (
-                                    <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
-                                )}
-                                {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
-                            </Button>
-                        )}
-                        {!isAuthenticated && (
-                            <Button 
-                              asChild
-                              className="w-full mt-4 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                            >
-                              <Link to="/login" className="flex items-center justify-center">
-                                <LogIn className="h-4 w-4 mr-2" />
-                                Bejelentkezés
-                              </Link>
-                            </Button>
-                        )}
+                        {/* Details Button */}
+                        <Button
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); openEventDetailsModal(event); }}
+                            className="w-full mt-4 border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                        >
+                            Részletek <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
                       </CardContent>
                     </Card>
                   </div>
@@ -594,16 +582,25 @@ const OrganizationProfile = () => {
         />
       )}
       
-      {/* Details Modal (Full description) */}
+      {/* Coupon Details Modal (Full description) */}
       {selectedCoupon && (
           <CouponDetailsModal
             coupon={selectedCoupon}
-            isOpen={isDetailsModalOpen}
-            onClose={closeDetailsModal}
+            isOpen={isCouponDetailsModalOpen}
+            onClose={closeCouponDetailsModal}
             onRedeemClick={handleRedeemClick}
             isRedeeming={isRedeeming}
             isDisabled={modalProps.isDisabled}
             buttonText={modalProps.buttonText}
+          />
+      )}
+      
+      {/* Event Details Modal */}
+      {selectedEvent && (
+          <EventDetailsModal
+            event={selectedEvent}
+            isOpen={isEventDetailsModalOpen}
+            onClose={closeEventDetailsModal}
           />
       )}
     </div>
