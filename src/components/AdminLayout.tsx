@@ -8,7 +8,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Card, CardContent } from '@/components/ui/card';
 import { MemberRole } from '@/types/organization';
 import OrganizationSelectionPage from './admin/OrganizationSelectionPage';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // ADDED IMPORT
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge'; // ADDED IMPORT
 
 interface AdminLayoutProps {
     children: React.ReactNode;
