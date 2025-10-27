@@ -75,10 +75,12 @@ export const usePublicCoupons = () => {
   const fetchCouponsAndUsages = async () => {
     setIsLoading(true);
     try {
-      // 1. Fetch all coupons
+      // 1. Fetch all ACTIVE and NON-ARCHIVED coupons
       const { data: couponData, error: couponError } = await supabase
         .from('coupons')
         .select(`*`)
+        .eq('is_active', true) // <-- NEW FILTER
+        .eq('is_archived', false) // <-- NEW FILTER
         .order('created_at', { ascending: false });
 
       if (couponError) {
@@ -364,8 +366,6 @@ export const usePublicCoupons = () => {
             console.error('Insert usage error:', error);
             return { success: false };
           }
-          
-          // 6. REMOVED: Point deduction logic removed here. It will be handled by RPC on finalization.
           
           // Refresh usages immediately after successful insertion to update local state
           await refreshUsages();

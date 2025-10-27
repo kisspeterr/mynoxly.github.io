@@ -151,7 +151,7 @@ const OrganizationProfile = () => {
         return;
       }
       
-      // 2. Fetch Events
+      // 2. Fetch Events (Only ACTIVE and NON-ARCHIVED)
       const { data: eventData, error: eventError } = await supabase
         .from('events')
         .select(`
@@ -159,6 +159,8 @@ const OrganizationProfile = () => {
           coupon:coupon_id (id, title, coupon_code)
         `)
         .eq('organization_name', organizationName)
+        .eq('is_active', true) // <-- NEW FILTER
+        .eq('is_archived', false) // <-- NEW FILTER
         .order('start_time', { ascending: true });
 
       if (eventError) {

@@ -38,10 +38,12 @@ export const usePublicEvents = () => {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch all events (without join)
+        // 1. Fetch all ACTIVE and NON-ARCHIVED events
         const { data: eventData, error: eventError } = await supabase
           .from('events')
           .select(`*, coupon:coupon_id (id, title, coupon_code)`)
+          .eq('is_active', true) // <-- NEW FILTER
+          .eq('is_archived', false) // <-- NEW FILTER
           .order('start_time', { ascending: true });
 
         if (eventError) {
