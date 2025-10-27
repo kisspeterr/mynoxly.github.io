@@ -145,14 +145,59 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
     }
   };
   
-  const handleRemoveClick = () => {
+  const handleRemoveClick = async () => {
       if (fileInputRef.current) {
           fileInputRef.current.value = ''; // Clear file input
       }
+      
+      // If there is a current URL, attempt to delete it from storage
+      if (currentLogoUrl && user) {
+          setIsUploading(true);
+          try {
+              const { data: { session } } = await supabase.auth.getSession();
+              if (!session) {
+                  showError('Nincs aktív munkamenet a törléshez.');
+                  return;
+              }
+              
+              const edgeFunctionUrl = `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/delete-storage-file`;
+              
+              const response = await fetch(
+                edgeFunctionUrl,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    publicUrl: currentLogoUrl,
+                  }),
+                }
+              );
+              
+              if (!response.ok) {
+                  const errorBody = await response.json();
+                  showError(`Törlési hiba: ${errorBody.error || 'Ismeretlen hiba'}`);
+                  console.error('Delete Edge Function Error:', errorBody);
+                  return;
+              }
+              
+              showSuccess('Logó sikeresen törölve a tárhelyről.');
+              
+          } catch (e) {
+              showError('Váratlan hiba történt a törlés során.');
+              console.error('Unexpected delete error:', e);
+              return;
+          } finally {
+              setIsUploading(false);
+          }
+      }
+      
       setFile(null);
       setCroppedFile(null);
       setPreviewUrl(null);
-      onRemove(); // Notify parent to clear URL
+      onRemove(); // Notify parent to clear URL in form state
       showSuccess('Logó eltávolítva. Ne felejtsd el menteni a beállításokat!');
   };
 
