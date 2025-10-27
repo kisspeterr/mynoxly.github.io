@@ -210,7 +210,7 @@ export const useUsageStatistics = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission, activeOrganizationId]); // Added activeOrganizationId to dependencies
+  }, [isAuthenticated, organizationName, checkPermission]); // organizationName added to dependencies
 
   return {
     stats,

@@ -21,19 +21,20 @@ const timeRangeLabels: Record<TimeRange, string> = {
 
 const UsageStatisticsPage: React.FC = () => {
   const { stats, detailedUsages, isLoading, fetchStatistics } = useUsageStatistics();
-  const { checkPermission } = useAuth();
+  const { checkPermission, activeOrganizationProfile } = useAuth(); // Get activeOrganizationProfile
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [emailFilter, setEmailFilter] = useState('');
   
   const canViewStatistics = checkPermission('viewer');
+  const organizationName = activeOrganizationProfile?.organization_name; // Get organization name
 
-  // Fetch data whenever date, timeRange, or filter changes
+  // Fetch data whenever date, timeRange, filter, OR organizationName changes
   useEffect(() => {
-    if (canViewStatistics) {
+    if (canViewStatistics && organizationName) {
         fetchStatistics(selectedDate, timeRange, emailFilter);
     }
-  }, [selectedDate, timeRange, emailFilter, fetchStatistics, canViewStatistics]);
+  }, [selectedDate, timeRange, emailFilter, organizationName, fetchStatistics, canViewStatistics]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
