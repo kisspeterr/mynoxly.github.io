@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
-import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
@@ -26,7 +25,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, checkPermission } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -68,6 +67,26 @@ const AdminDashboard = () => {
   
   // Determine if the user has an active organization selected (needed for most tabs)
   const isOrganizationActive = !!activeOrganizationProfile;
+  
+  // Define tabs based on permissions for the ACTIVE organization
+  const tabs = [
+    { id: 'coupons', label: 'Kuponok', icon: Tag, component: CouponsPage, requiredPermission: 'coupon_manager' as MemberRole },
+    { id: 'events', label: 'Események', icon: Calendar, component: EventsPage, requiredPermission: 'event_manager' as MemberRole },
+    { id: 'usages', label: 'Beváltások', icon: ListChecks, component: CouponUsagesPage, requiredPermission: 'redemption_agent' as MemberRole },
+    { id: 'statistics', label: 'Statisztikák', icon: BarChart, component: UsageStatisticsPage, requiredPermission: 'viewer' as MemberRole },
+    { id: 'members', label: 'Tagok', icon: Users, component: OrganizationMembersPage, requiredPermission: 'coupon_manager' as MemberRole }, // Only coupon_manager can manage members
+    { id: 'settings', label: 'Beállítások', icon: Settings, component: ProfileSettingsPage, requiredPermission: 'coupon_manager' as MemberRole }, // Only coupon_manager can manage settings
+  ];
+  
+  const visibleTabs = tabs.filter(tab => checkPermission(tab.requiredPermission));
+  
+  // Ensure activeTab is visible, otherwise default to the first visible tab
+  useEffect(() => {
+      if (visibleTabs.length > 0 && !visibleTabs.some(tab => tab.id === activeTab)) {
+          setActiveTab(visibleTabs[0].id);
+      }
+  }, [activeOrganizationProfile, visibleTabs]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
@@ -94,12 +113,14 @@ const AdminDashboard = () => {
                 Személyes Profil
               </Link>
             </Button>
-            <Button asChild variant="outline" className="border-green-400 text-green-400 hover:bg-green-400/10">
-              <Link to="/code">
-                <QrCode className="h-4 w-4 mr-2" />
-                Beváltás
-              </Link>
-            </Button>
+            {checkPermission('redemption_agent') && (
+                <Button asChild variant="outline" className="border-green-400 text-green-400 hover:bg-green-400/10">
+                  <Link to="/code">
+                    <QrCode className="h-4 w-4 mr-2" />
+                    Beváltás
+                  </Link>
+                </Button>
+            )}
             <Button onClick={handleSignOut} variant="destructive">
               <LogOut className="h-4 w-4 mr-2" />
               Kijelentkezés
@@ -127,18 +148,14 @@ const AdminDashboard = () => {
                     Személyes Profil
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/code" className="flex items-center">
-                    <QrCode className="h-4 w-4 mr-2 text-green-400" />
-                    Beváltás
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/dashboard?tab=statistics" className="flex items-center">
-                    <BarChart className="h-4 w-4 mr-2 text-pink-400" />
-                    Statisztikák
-                  </Link>
-                </DropdownMenuItem>
+                {checkPermission('redemption_agent') && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/code" className="flex items-center">
+                        <QrCode className="h-4 w-4 mr-2 text-green-400" />
+                        Beváltás
+                      </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 flex items-center">
                   <LogOut className="h-4 w-4 mr-2" />
                   Kijelentkezés
@@ -164,46 +181,25 @@ const AdminDashboard = () => {
             </Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {/* Tabs List - Full width on mobile (6 tabs now) */}
-              <TabsList className="grid w-full grid-cols-6 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
-                <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
-                  <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
-                </TabsTrigger>
-                <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base">
-                  <Calendar className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Események</span>
-                </TabsTrigger>
-                <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
-                  <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
-                </TabsTrigger>
-                <TabsTrigger value="statistics" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                  <BarChart className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Statisztikák</span>
-                </TabsTrigger>
-                <TabsTrigger value="members" className="data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 py-2 text-sm md:text-base">
-                  <Users className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Tagok</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                  <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
-                </TabsTrigger>
+              {/* Tabs List - Dynamically generated based on permissions */}
+              <TabsList className={`grid w-full grid-cols-${visibleTabs.length} bg-gray-800/50 border border-gray-700/50 h-auto p-1`}>
+                {visibleTabs.map(tab => (
+                    <TabsTrigger 
+                        key={tab.id} 
+                        value={tab.id} 
+                        className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base"
+                    >
+                        <tab.icon className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                ))}
               </TabsList>
               <div className="mt-6">
-                <TabsContent value="coupons">
-                  <CouponsPage />
-                </TabsContent>
-                <TabsContent value="events">
-                  <EventsPage />
-                </TabsContent>
-                <TabsContent value="usages">
-                  <CouponUsagesPage />
-                </TabsContent>
-                <TabsContent value="statistics">
-                  <UsageStatisticsPage />
-                </TabsContent>
-                <TabsContent value="members">
-                  <OrganizationMembersPage />
-                </TabsContent>
-                <TabsContent value="settings">
-                  <ProfileSettingsPage />
-                </TabsContent>
+                {/* Tabs Content - Render only the active component */}
+                {visibleTabs.map(tab => (
+                    <TabsContent key={tab.id} value={tab.id}>
+                        <tab.component />
+                    </TabsContent>
+                ))}
               </div>
             </Tabs>
           )}
