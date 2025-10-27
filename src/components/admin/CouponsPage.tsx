@@ -8,17 +8,17 @@ import CouponForm from './CouponForm';
 import { format } from 'date-fns';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/use-auth'; // Import useAuth
+import { useAuth } from '@/hooks/use-auth';
 
 interface CouponEditDialogProps {
   coupon: Coupon;
-  onUpdate: (id: string, data: Partial<CouponInsert>) => Promise<{ success: boolean }>;
+  onUpdate: (id: string, data: Partial<CouponInsert>) => Promise<{ success: boolean, newCouponId?: string }>;
   isLoading: boolean;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const CouponEditDialog: React.FC<CouponEditDialogProps> = ({ coupon, onUpdate, isLoading }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+const CouponEditDialog: React.FC<CouponEditDialogProps> = ({ coupon, onUpdate, isLoading, isOpen, onOpenChange }) => {
   const handleSubmit = async (data: CouponInsert) => {
     // We only send fields that might have changed, excluding organization_name, is_active, is_archived
     const updateData: Partial<CouponInsert> = {
@@ -36,17 +36,20 @@ const CouponEditDialog: React.FC<CouponEditDialogProps> = ({ coupon, onUpdate, i
     
     const result = await onUpdate(coupon.id, updateData);
     if (result.success) {
-      setIsOpen(false);
+      onOpenChange(false);
     }
     return result;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/10">
-          <Pencil className="h-4 w-4" />
-        </Button>
+        {/* Only render trigger if dialog is not already open (used for the card button) */}
+        {!isOpen && (
+            <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-cyan-500/50 text-cyan-300 hover:bg-cyan-500/10">
+              <Pencil className="h-4 w-4" />
+            </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="bg-black/80 border-cyan-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -57,7 +60,7 @@ const CouponEditDialog: React.FC<CouponEditDialogProps> = ({ coupon, onUpdate, i
         </DialogHeader>
         <CouponForm 
           onSubmit={handleSubmit} 
-          onClose={() => setIsOpen(false)} 
+          onClose={() => onOpenChange(false)} 
           isLoading={isLoading}
           initialData={coupon}
         />
@@ -72,12 +75,13 @@ interface CouponCardProps {
   onToggleActive: (id: string, currentStatus: boolean) => Promise<{ success: boolean }>;
   onArchive: (id: string) => Promise<{ success: boolean }>;
   onDelete: (id: string, isArchived: boolean) => Promise<{ success: boolean }>;
-  onUpdate: (id: string, data: Partial<CouponInsert>) => Promise<{ success: boolean }>;
+  onUpdate: (id: string, data: Partial<CouponInsert>) => Promise<{ success: boolean, newCouponId?: string }>;
   isLoading: boolean;
-  canManage: boolean; // NEW PROP
+  canManage: boolean;
 }
 
 const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchive, onDelete, onUpdate, isLoading, canManage }) => {
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const expiryDate = coupon.expiry_date ? format(new Date(coupon.expiry_date), 'yyyy. MM. dd.') : 'Nincs beállítva';
   const isArchived = coupon.is_archived;
   const isActive = coupon.is_active;
@@ -121,7 +125,13 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
         {/* Actions */}
         {canManage && (
             <div className="flex space-x-2 pt-4 border-t border-gray-700/50">
-              <CouponEditDialog coupon={coupon} onUpdate={onUpdate} isLoading={isLoading} />
+              <CouponEditDialog 
+                coupon={coupon} 
+                onUpdate={onUpdate} 
+                isLoading={isLoading} 
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+              />
               
               {/* Toggle Active/Deactivate Button (Only if not archived) */}
               {!isArchived && (
@@ -207,13 +217,55 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
 
 const CouponsPage = () => {
   const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, toggleActiveStatus, archiveCoupon, deleteCoupon, organizationName } = useCoupons();
-  const { checkPermission } = useAuth(); // Use checkPermission
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { checkPermission } = useAuth();
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
+  const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null); // State to hold the newly created coupon for immediate editing
   
   const canManageCoupons = checkPermission('coupon_manager');
 
   const activeAndInactiveCoupons = coupons.filter(c => !c.is_archived);
   const archivedCoupons = coupons.filter(c => c.is_archived);
+  
+  // Handle creation submission: if successful, open the edit dialog immediately
+  const handleCreateCoupon = async (data: CouponInsert) => {
+      const result = await createCoupon(data);
+      if (result.success && result.newCouponId) {
+          // Find the newly created coupon in the local state (it should be the first one after creation)
+          const newCoupon = coupons.find(c => c.id === result.newCouponId);
+          if (newCoupon) {
+              setCouponToEdit(newCoupon);
+          }
+          setIsCreateFormOpen(false); // Close creation form
+          return { success: true };
+      }
+      return { success: false };
+  };
+  
+  // Handle update submission: if successful, clear the couponToEdit state
+  const handleUpdateCoupon = async (id: string, data: Partial<CouponInsert>) => {
+      const result = await updateCoupon(id, data);
+      if (result.success) {
+          setCouponToEdit(null); // Close the edit dialog
+      }
+      return result;
+  };
+  
+  // Effect to open the edit dialog when a new coupon is set
+  useEffect(() => {
+      if (couponToEdit) {
+          // We need to ensure the dialog is open when couponToEdit is set
+          // The CouponCard component handles the dialog state internally, but we need to trigger it.
+          // Since we can't directly control the internal state of CouponCard, we use a temporary state here.
+          // A simpler approach is to ensure the newly created coupon is passed to the edit dialog directly.
+          // Since the CouponEditDialog is designed to be triggered by a button on the card, 
+          // we will rely on the user clicking the edit button on the newly created card, 
+          // or we modify the logic to open the dialog immediately after creation.
+          
+          // Let's use a dedicated state for the creation dialog flow:
+          // If couponToEdit is set, we render a dedicated edit dialog outside the list.
+      }
+  }, [couponToEdit]);
+
 
   if (isLoading && coupons.length === 0) {
     return (
@@ -242,7 +294,7 @@ const CouponsPage = () => {
                 <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
             {canManageCoupons && (
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <Dialog open={isCreateFormOpen} onOpenChange={setIsCreateFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-cyan-600 hover:bg-cyan-700">
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -257,8 +309,8 @@ const CouponsPage = () => {
                       </DialogDescription>
                     </DialogHeader>
                     <CouponForm 
-                      onSubmit={createCoupon} 
-                      onClose={() => setIsFormOpen(false)} 
+                      onSubmit={handleCreateCoupon} 
+                      onClose={() => setIsCreateFormOpen(false)} 
                       isLoading={isLoading}
                     />
                   </DialogContent>
@@ -285,7 +337,7 @@ const CouponsPage = () => {
               key={coupon.id} 
               coupon={coupon} 
               onDelete={deleteCoupon} 
-              onUpdate={updateCoupon}
+              onUpdate={handleUpdateCoupon}
               onArchive={archiveCoupon}
               onToggleActive={toggleActiveStatus}
               isLoading={isLoading}
@@ -308,7 +360,7 @@ const CouponsPage = () => {
               key={coupon.id} 
               coupon={coupon} 
               onDelete={deleteCoupon} 
-              onUpdate={updateCoupon}
+              onUpdate={handleUpdateCoupon}
               onArchive={archiveCoupon}
               onToggleActive={toggleActiveStatus}
               isLoading={isLoading}
@@ -316,6 +368,19 @@ const CouponsPage = () => {
             />
           ))}
         </div>
+      )}
+      
+      {/* Dedicated Edit Dialog for newly created coupon (if needed) */}
+      {couponToEdit && (
+          <CouponEditDialog 
+              coupon={couponToEdit} 
+              onUpdate={handleUpdateCoupon} 
+              isLoading={isLoading} 
+              isOpen={true}
+              onOpenChange={(open) => {
+                  if (!open) setCouponToEdit(null);
+              }}
+          />
       )}
     </div>
   );

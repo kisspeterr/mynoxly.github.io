@@ -57,7 +57,7 @@ export const useCoupons = () => {
     }
   }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
-  const createCoupon = async (couponData: CouponInsert) => {
+  const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
       showError('Nincs jogosultságod kupon létrehozásához, vagy hiányzik a szervezet neve.');
       return { success: false };
@@ -77,15 +77,16 @@ export const useCoupons = () => {
         return { success: false };
       }
 
-      setCoupons(prev => [data as Coupon, ...prev]);
+      const newCoupon = data as Coupon;
+      setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva!');
-      return { success: true };
+      return { success: true, newCouponId: newCoupon.id };
     } finally {
       setIsLoading(false);
     }
   };
   
-  const updateCoupon = async (id: string, couponData: Partial<CouponInsert>) => {
+  const updateCoupon = async (id: string, couponData: Partial<CouponInsert>): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
         showError('Nincs jogosultságod kupon frissítéséhez.');
         return { success: false };
@@ -205,12 +206,12 @@ export const useCoupons = () => {
   return {
     coupons,
     isLoading,
-    fetchCoupons, // Keep exported for manual refresh if needed
+    fetchCoupons,
     createCoupon,
     updateCoupon,
-    toggleActiveStatus, // New action
-    archiveCoupon,      // New action
-    deleteCoupon,       // Modified action
+    toggleActiveStatus,
+    archiveCoupon,
+    deleteCoupon,
     organizationName,
   };
 };

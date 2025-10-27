@@ -12,14 +12,15 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { Switch } from '@/components/ui/switch'; // Import Switch
+import { Switch } from '@/components/ui/switch';
+import CouponBannerUploader from './CouponBannerUploader'; // Import the new uploader
 
 // Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
   description: z.string().nullable().optional().transform(e => e === "" ? null : e),
   coupon_code: z.string().nullable().optional(), // Now optional, validated conditionally below
-  image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e),
+  image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e), // image_url is now managed by the uploader
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
   max_uses_per_user: z.coerce.number().int().min(1, 'Minimum 1 használat.'),
   total_max_uses: z.coerce.number().int().min(0, 'Minimum 0.').nullable().optional().transform(e => e === 0 ? null : e),
@@ -53,7 +54,7 @@ const couponSchema = z.object({
 type CouponFormData = z.infer<typeof couponSchema>;
 
 interface CouponFormProps {
-  onSubmit: (data: CouponInsert) => Promise<{ success: boolean }>;
+  onSubmit: (data: CouponInsert) => Promise<{ success: boolean, newCouponId?: string }>;
   onClose: () => void;
   isLoading: boolean;
   initialData?: Coupon; // Optional data for editing
@@ -82,7 +83,9 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
 
   const expiryDate = watch('expiry_date');
   const isCodeRequired = watch('is_code_required');
+  const imageUrl = watch('image_url');
   const isEditing = !!initialData;
+  const couponId = initialData?.id; // Get ID for uploader if editing
 
   const handleFormSubmit = async (data: CouponFormData) => {
     // Ensure coupon_code is null if not required
@@ -91,12 +94,22 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
     const insertData: CouponInsert = {
         ...data,
         coupon_code: finalCouponCode,
+        // Ensure image_url is passed from the form state (which is updated by the uploader)
+        image_url: imageUrl, 
     };
     
     const result = await onSubmit(insertData);
     if (result.success) {
       onClose();
     }
+  };
+  
+  const handleImageUploadSuccess = (url: string) => {
+      setValue('image_url', url, { shouldValidate: true });
+  };
+  
+  const handleImageRemove = () => {
+      setValue('image_url', null, { shouldValidate: true });
   };
 
   return (
@@ -111,7 +124,23 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {errors.title && <p className="text-red-400 text-sm">{errors.title.message}</p>}
       </div>
 
-      {/* NEW: Code Requirement Switch */}
+      {/* NEW: Coupon Banner Uploader */}
+      {isEditing && couponId ? (
+        <CouponBannerUploader
+            couponId={couponId}
+            currentImageUrl={imageUrl}
+            onUploadSuccess={handleImageUploadSuccess}
+            onRemove={handleImageRemove}
+        />
+      ) : (
+        <div className="p-4 bg-yellow-900/30 border border-yellow-500/50 rounded-lg text-sm text-yellow-300">
+            Képfeltöltés csak a kupon létrehozása után, a szerkesztőben lehetséges.
+        </div>
+      )}
+      {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
+
+
+      {/* Code Requirement Switch */}
       <div className="flex items-center justify-between space-x-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
         <div className="flex items-center space-x-2">
             {isCodeRequired ? (
@@ -153,16 +182,6 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
         />
         {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="image_url" className="text-gray-300">Kép URL (opcionális)</Label>
-        <Input 
-          id="image_url"
-          {...register('image_url')}
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-        {errors.image_url && <p className="text-red-400 text-sm">{errors.image_url.message}</p>}
       </div>
 
       {/* Loyalty Points Configuration */}
