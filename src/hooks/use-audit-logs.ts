@@ -27,6 +27,29 @@ export type AuditFilter = {
     action?: string;
 };
 
+// Helper to fetch user profiles (username, email, first_name, last_name) securely via RPC
+const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string, { username: string, first_name: string | null, last_name: string | null }>> => {
+    if (userIds.length === 0) return {};
+    
+    // Use the existing RPC function
+    const { data: usersData, error } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+    
+    if (error) {
+        console.error('Error fetching user profiles via RPC:', error);
+        return {};
+    }
+    
+    return (usersData || []).reduce((acc, user) => {
+        acc[user.id] = {
+            username: user.username,
+            first_name: user.first_name || null,
+            last_name: user.last_name || null,
+        };
+        return acc;
+    }, {} as Record<string, { username: string, first_name: string | null, last_name: string | null }>);
+};
+
+
 export const useAuditLogs = () => {
   const { isSuperadmin } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -43,14 +66,12 @@ export const useAuditLogs = () => {
 
     setIsLoading(true);
     try {
+      // 1. Fetch raw audit logs (without JOIN)
       let query = supabase
         .from('audit_logs')
-        .select(`
-          *,
-          user_profile:user_id (username, first_name, last_name)
-        `)
+        .select(`*`) // Select all columns from audit_logs only
         .order('created_at', { ascending: false })
-        .limit(100); // Limit to 100 recent logs for performance
+        .limit(100); 
 
       // Apply filters
       if (filters.user_id) {
@@ -63,7 +84,7 @@ export const useAuditLogs = () => {
         query = query.eq('action', filters.action);
       }
 
-      const { data, error } = await query;
+      const { data: rawLogs, error } = await query;
 
       if (error) {
         showError('Hiba történt az audit logok betöltésekor.');
@@ -72,7 +93,24 @@ export const useAuditLogs = () => {
         return;
       }
       
-      setLogs(data as AuditLog[]);
+      if (!rawLogs || rawLogs.length === 0) {
+          setLogs([]);
+          return;
+      }
+      
+      // 2. Collect unique user IDs
+      const userIds = Array.from(new Set(rawLogs.map(log => log.user_id).filter((id): id is string => id !== null)));
+      
+      // 3. Fetch user profiles securely
+      const profileMap = await fetchUserProfilesByIds(userIds);
+      
+      // 4. Combine data
+      const processedLogs: AuditLog[] = rawLogs.map(log => ({
+          ...log,
+          user_profile: log.user_id ? profileMap[log.user_id] || null : null,
+      }));
+      
+      setLogs(processedLogs);
     } finally {
       setIsLoading(false);
     }
