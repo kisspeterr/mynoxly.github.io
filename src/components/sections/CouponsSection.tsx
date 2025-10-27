@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
-import { Gift, Tag, Loader2, LogIn, CheckCircle, Calendar, Clock, User, Building, BarChart2, Coins, QrCode, Eye } from 'lucide-react';
+import { Gift, Loader2, LogIn, Building, QrCode, CheckCircle, Coins } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { usePublicCoupons } from '@/hooks/use-public-coupons';
 import { useAuth } from '@/hooks/use-auth';
 import { Link } from 'react-router-dom';
-import { format } from 'date-fns';
 import RedemptionModal from '@/components/RedemptionModal';
-import CouponDetailsModal from '@/components/CouponDetailsModal'; // NEW IMPORT
+import CouponDetailsModal from '@/components/CouponDetailsModal';
 import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons';
 import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
@@ -27,14 +26,13 @@ const CouponsSection = () => {
     isCouponUsedUp, 
     isCouponPending, 
     refreshUsages, 
-    deletePendingUsage 
   } = usePublicCoupons();
-  const { isAuthenticated, profile } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
   
-  const [isRedeeming, setIsRedeeming] = useState(false); // Local loading state for redemption
-  const [isRedemptionModalOpen, setIsRedemptionModalOpen] = useState(false); // For the 3-minute code modal
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false); // For the full description modal
+  const [isRedeeming, setIsRedeeming] = useState(false);
+  const [isRedemptionModalOpen, setIsRedemptionModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<PublicCoupon | null>(null);
   const [currentUsageId, setCurrentUsageId] = useState<string | undefined>(undefined);
   const [currentRedemptionCode, setCurrentRedemptionCode] = useState<string | undefined>(undefined);
@@ -56,8 +54,6 @@ const CouponsSection = () => {
         if (currentPoints < coupon.points_cost) {
             canRedeem = false;
             pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
-        } else {
-            pointStatusText = `Pontok levonása: ${coupon.points_cost}`;
         }
     }
     
@@ -82,41 +78,33 @@ const CouponsSection = () => {
   };
 
   const handleRedeemClick = async (coupon: PublicCoupon, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); // Prevent opening details modal
+    if (e) e.stopPropagation();
     
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return;
     }
     
-    if (isRedeeming) return; // Prevent double click
+    if (isRedeeming) return;
 
-    // Re-check status before starting redemption
     const { isDisabled: preCheckDisabled } = getRedemptionStatus(coupon);
     if (preCheckDisabled) {
-        // If disabled, the status text should already be set by getRedemptionStatus
         showError(getRedemptionStatus(coupon).buttonText);
         return;
     }
 
     setIsRedeeming(true);
     try {
-      // 1. Attempt to record usage and generate code/redeem immediately
       const result = await redeemCoupon(coupon);
 
       if (result.success) {
         if (coupon.is_code_required && result.usageId && result.redemptionCode) {
-            // Code Redemption: Open modal
             setSelectedCoupon(coupon);
             setCurrentUsageId(result.usageId);
             setCurrentRedemptionCode(result.redemptionCode);
             setIsRedemptionModalOpen(true);
-        } else if (!coupon.is_code_required) {
-            // Simple Redemption: Success message already shown by hook, just refresh UI
-            // No modal needed
         }
       }
-      // Error handling is done inside redeemCoupon hook
     } finally {
       setIsRedeeming(false);
     }
@@ -140,7 +128,6 @@ const CouponsSection = () => {
       setSelectedCoupon(null);
   };
   
-  // Calculate modal props based on selectedCoupon state
   const modalProps = selectedCoupon ? getRedemptionStatus(selectedCoupon) : { isDisabled: false, buttonText: '', buttonClasses: '', usedUp: false, pending: false, canRedeem: true };
 
 
@@ -170,189 +157,91 @@ const CouponsSection = () => {
         ) : (
           <div className="flex flex-wrap justify-center gap-8">
             {coupons.map((coupon) => {
-              const { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem } = getRedemptionStatus(coupon);
+              const { isDisabled, usedUp, pending } = getRedemptionStatus(coupon);
               const logoUrl = (coupon as PublicCoupon).logo_url;
-              const isPointCoupon = coupon.points_cost > 0;
-              const isRewardCoupon = coupon.points_reward > 0;
               
               return (
                 <Card 
                   key={coupon.id} 
                   className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm cursor-pointer hover:scale-[1.02] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
-                  onClick={() => openDetailsModal(coupon)} // Make card clickable for details
+                  onClick={() => openDetailsModal(coupon)}
                 >
-                  {/* 1. Kép (Kívül a CardHeader-en) */}
-                  {coupon.image_url && (
-                    <div className="h-40 w-full overflow-hidden rounded-t-xl">
+                  
+                  {/* NEW CARD DESIGN: Banner Image with Overlay */}
+                  <div className="relative w-full aspect-video overflow-hidden rounded-xl">
+                    {/* Banner Image (16:9 aspect ratio) */}
+                    {coupon.image_url ? (
                       <img 
                         src={coupon.image_url} 
                         alt={coupon.title} 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
+                    ) : (
+                      <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                        <Gift className="h-12 w-12 text-cyan-400" />
+                      </div>
+                    )}
+                    
+                    {/* Overlay Content (Top Left) */}
+                    <div className="absolute inset-0 p-3 flex items-start justify-between bg-gradient-to-b from-black/50 to-transparent">
+                        <Link 
+                            to={`/organization/${coupon.organization_name}`}
+                            className="flex items-center space-x-2 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Logo */}
+                            <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center border border-cyan-400 overflow-hidden">
+                                {logoUrl ? (
+                                    <img 
+                                        src={logoUrl} 
+                                        alt={coupon.organization_name} 
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <Building className="h-4 w-4 text-cyan-400" />
+                                )}
+                            </div>
+                            {/* Organization Name */}
+                            <span className="text-sm font-semibold text-white truncate max-w-[100px] md:max-w-[150px]">
+                                {coupon.organization_name}
+                            </span>
+                        </Link>
+                        
+                        {/* Status Badge (Top Right) */}
+                        {pending ? (
+                            <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
+                                <QrCode className="h-3 w-3" /> Aktív kód
+                            </Badge>
+                        ) : usedUp ? (
+                            <Badge className="bg-red-600/70 text-white flex items-center gap-1">
+                                Limit elérve
+                            </Badge>
+                        ) : coupon.points_cost > 0 ? (
+                            <Badge className="bg-red-600/70 text-white flex items-center gap-1">
+                                <Coins className="h-3 w-3" /> {coupon.points_cost} pont
+                            </Badge>
+                        ) : coupon.points_reward > 0 ? (
+                            <Badge className="bg-green-600/70 text-white flex items-center gap-1">
+                                <Coins className="h-3 w-3" /> +{coupon.points_reward} pont
+                            </Badge>
+                        ) : null}
                     </div>
-                  )}
-                  
-                  <div className="flex flex-col flex-grow">
-                    <CardHeader className="pb-4 pt-6"> {/* Adjusted padding top */}
-                      
-                      {/* 2. Logó (negatív margóval a kép fölé húzva) */}
-                      <div className={`flex justify-center mb-4 ${coupon.image_url ? '-mt-10' : 'mt-0'}`}>
-                          <Link 
-                              to={`/organization/${coupon.organization_name}`}
-                              className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
-                              onClick={(e) => e.stopPropagation()} // Prevent opening details modal
-                          >
-                              {logoUrl ? (
-                                  <img 
-                                      src={logoUrl} 
-                                      alt={coupon.organization_name} 
-                                      className="h-full w-full rounded-full object-cover"
-                                  />
-                              ) : (
-                                  <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                      <Building className="h-8 w-8 text-cyan-400" />
-                                  </div>
-                              )}
-                          </Link>
-                      </div>
-                      
-                      <CardTitle className="text-2xl text-cyan-300">{coupon.title}</CardTitle>
-                      
-                      {/* Organization Name Link (now below the title) */}
-                      <Link 
-                        to={`/organization/${coupon.organization_name}`}
-                        className="flex items-center justify-center text-gray-400 hover:text-cyan-300 transition-colors duration-300 group"
-                        onClick={(e) => e.stopPropagation()} // Prevent opening details modal
-                      >
-                        <CardDescription className="text-gray-400 group-hover:text-cyan-300 transition-colors duration-300">
-                          {coupon.organization_name}
-                        </CardDescription>
-                      </Link>
-                    </CardHeader>
-                    <CardContent className="space-y-3 flex-grow text-left">
-                      {/* Use short_description here, only if it exists */}
-                      {coupon.short_description && coupon.short_description.trim() !== '' && (
-                        <p className="text-gray-300 flex-grow truncate">{coupon.short_description}</p>
-                      )}
-                      
-                      {/* Redemption Type Badge */}
-                      <div className="flex items-center text-sm">
-                          {coupon.is_code_required ? (
-                              <Badge variant="outline" className="bg-cyan-900/50 text-cyan-300 border-cyan-500/50">
-                                  <QrCode className="h-3 w-3 mr-1" /> Kódos beváltás
-                              </Badge>
-                          ) : (
-                              <Badge variant="outline" className="bg-green-900/50 text-green-300 border-green-500/50">
-                                  <CheckCircle className="h-3 w-3 mr-1" /> Azonnali beváltás
-                              </Badge>
-                          )}
-                      </div>
-                      
-                      {/* Loyalty Status/Reward */}
-                      {(isPointCoupon || isRewardCoupon) && (
-                          <div className="flex items-center text-sm pt-2 border-t border-gray-700/50">
-                              <Coins className={`h-4 w-4 mr-2 ${isPointCoupon ? 'text-red-400' : 'text-green-400'}`} />
-                              {isPointCoupon ? (
-                                  <span className={`font-semibold ${canRedeem ? 'text-red-300' : 'text-red-500'}`}>
-                                      Költség: {coupon.points_cost} pont
-                                  </span>
-                              ) : (
-                                  <span className="font-semibold text-green-300">
-                                      Jutalom: +{coupon.points_reward} pont
-                                  </span>
-                              )}
-                          </div>
-                      )}
-                      
-                      {/* Usage Count Display */}
-                      <div className="flex items-center text-sm text-gray-300">
-                        <BarChart2 className="h-4 w-4 mr-2 text-pink-400" />
-                        Beváltva: <span className="font-semibold ml-1 text-white">{coupon.usage_count} alkalommal</span>
-                      </div>
-                      
-                      {coupon.expiry_date && (
-                        <div className="flex items-center text-sm text-gray-300">
-                          <Calendar className="h-4 w-4 mr-2 text-purple-400" />
-                          Lejárat: {format(new Date(coupon.expiry_date), 'yyyy. MM. dd.')}
-                        </div>
-                      )}
-                    </CardContent>
+                    
+                    {/* Title Overlay (Bottom Left) */}
+                    <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+                        <CardTitle className="text-xl text-white text-left truncate">{coupon.title}</CardTitle>
+                    </div>
                   </div>
                   
-                  {/* Action Buttons (Details + Redeem) */}
-                  <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
-                    <div className="pt-4 space-y-2 border-t border-gray-700/50">
-                      
-                      {isAuthenticated ? (
-                        <>
-                          {pending ? (
-                            // Horizontal layout for pending buttons (only for code-required coupons)
-                            <div className="flex gap-2 items-center">
-                              <Button 
-                                className="flex-grow bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
-                                disabled
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Clock className="h-4 w-4 mr-2" />
-                                <span className="hidden sm:inline">Kód generálva</span>
-                                <span className="sm:hidden">Aktív kód</span>
-                              </Button>
-                              <Button 
-                                asChild
-                                variant="outline"
-                                size="icon" // Small, circular button
-                                className="flex-shrink-0 rounded-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Link to="/profile" className="flex items-center justify-center">
-                                  <User className="h-5 w-5" />
-                                </Link>
-                              </Button>
-                            </div>
-                          ) : (
-                            <Button 
-                              onClick={(e) => handleRedeemClick(coupon, e)}
-                              className={`w-full text-white ${buttonClasses}`}
-                              disabled={isDisabled}
-                            >
-                              {isRedeeming ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  {buttonText}
-                                </>
-                              ) : usedUp || !canRedeem ? (
-                                <>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  {buttonText}
-                                </>
-                              ) : coupon.is_code_required ? (
-                                <>
-                                  <QrCode className="h-4 w-4 mr-2" />
-                                  {buttonText}
-                                </>
-                              ) : (
-                                <>
-                                  <CheckCircle className="h-4 w-4 mr-2" />
-                                  {buttonText}
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </>
-                      ) : (
-                        <Button 
-                          asChild
-                          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Link to="/login" className="flex items-center justify-center">
-                            <LogIn className="h-4 w-4 mr-2 sm:mr-2" />
-                            <span className="hidden sm:inline">Bejelentkezés a beváltáshoz</span>
-                            <span className="sm:hidden">Bejelentkezés</span>
-                          </Link>
-                        </Button>
-                      )}
-                    </div>
+                  {/* Card Content (Empty, only for padding/structure) */}
+                  <CardContent className="p-3 text-center">
+                    <Button 
+                        onClick={() => openDetailsModal(coupon)}
+                        variant="outline"
+                        className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                    >
+                        <Gift className="h-4 w-4 mr-2" /> Részletek & Beváltás
+                    </Button>
                   </CardContent>
                 </Card>
               );
@@ -380,8 +269,8 @@ const CouponsSection = () => {
             onClose={closeDetailsModal}
             onRedeemClick={handleRedeemClick}
             isRedeeming={isRedeeming}
-            isDisabled={modalProps.isDisabled} // Use calculated modal prop
-            buttonText={modalProps.buttonText} // Use calculated modal prop
+            isDisabled={modalProps.isDisabled}
+            buttonText={modalProps.buttonText}
           />
       )}
     </section>

@@ -94,8 +94,6 @@ const OrganizationProfile = () => {
         if (currentPoints < coupon.points_cost) {
             canRedeem = false;
             pointStatusText = `Nincs elegendő pont (${currentPoints}/${coupon.points_cost})`;
-        } else {
-            pointStatusText = `Pontok levonása: ${coupon.points_cost}`;
         }
     }
     
@@ -352,185 +350,91 @@ const OrganizationProfile = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {organizationCoupons.map(coupon => {
-                const { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem } = getRedemptionStatus(coupon);
+                const { isDisabled, usedUp, pending } = getRedemptionStatus(coupon);
                 const logoUrl = profile.logo_url; // Use organization profile logo
-                const isPointCoupon = coupon.points_cost > 0;
-                const isRewardCoupon = coupon.points_reward > 0;
                 
                 return (
                   <Card 
                     key={coupon.id} 
                     className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col cursor-pointer hover:scale-[1.05] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-purple-500/20'}`}
-                    onClick={() => openDetailsModal(coupon)} // Make card clickable for details
+                    onClick={() => openDetailsModal(coupon)}
                   >
                     
-                    {/* 1. Kép (Kívül a CardHeader-en) */}
-                    {coupon.image_url && (
-                      <div className="h-40 w-full overflow-hidden rounded-t-xl">
-                        <img 
-                          src={coupon.image_url} 
-                          alt={coupon.title} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                      
-                    {/* Card Content Area (No longer clickable for details) */}
-                    <div className="flex flex-col flex-grow">
-                        <CardHeader className="pb-4 pt-6"> {/* Adjusted padding top */}
-                          
-                          {/* 2. Logó (negatív margóval a kép fölé húzva) */}
-                          <div className={`flex justify-center mb-4 ${coupon.image_url ? '-mt-10' : 'mt-0'}`}>
-                              <Link 
-                                  to={`/organization/${coupon.organization_name}`}
-                                  className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
-                                  onClick={(e) => e.stopPropagation()} // Prevent opening details modal
-                              >
-                                  {profile.logo_url ? (
-                                      <img 
-                                          src={profile.logo_url} 
-                                          alt={profile.organization_name} 
-                                          className="h-full w-full rounded-full object-cover"
-                                      />
-                                  ) : (
-                                      <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                          <Building className="h-8 w-8 text-cyan-400" />
-                                      </div>
-                                  )}
-                              </Link>
-                          </div>
-                          
-                          {/* Centered Title */}
-                          <CardTitle className="text-2xl text-cyan-300 text-center">{coupon.title}</CardTitle>
-                          <CardDescription className="text-gray-400 text-center">
-                            {coupon.organization_name}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm flex-grow">
-                          {/* Use short_description here, only if it exists */}
-                          {coupon.short_description && coupon.short_description.trim() !== '' && (
-                            <p className="text-gray-300 flex-grow truncate">{coupon.short_description}</p>
-                          )}
-                          
-                          {/* Redemption Type Badge */}
-                          <div className="flex items-center text-sm">
-                              {coupon.is_code_required ? (
-                                  <Badge variant="outline" className="bg-cyan-900/50 text-cyan-300 border-cyan-500/50">
-                                      <QrCode className="h-3 w-3 mr-1" /> Kódos beváltás
-                                  </Badge>
-                              ) : (
-                                  <Badge variant="outline" className="bg-green-900/50 text-green-300 border-green-500/50">
-                                      <CheckCircle className="h-3 w-3 mr-1" /> Azonnali beváltás
-                                  </Badge>
-                              )}
-                          </div>
-                          
-                          {/* Loyalty Status/Reward */}
-                          {(isPointCoupon || isRewardCoupon) && (
-                              <div className="flex items-center text-sm pt-2 border-t border-gray-700/50">
-                                  <Coins className={`h-4 w-4 mr-2 ${isPointCoupon ? 'text-red-400' : 'text-green-400'}`} />
-                                  {isPointCoupon ? (
-                                      <span className={`font-semibold ${canRedeem ? 'text-red-300' : 'text-red-500'}`}>
-                                          Költség: {coupon.points_cost} pont
-                                      </span>
-                                  ) : (
-                                      <span className="font-semibold text-green-300">
-                                          Jutalom: +{coupon.points_reward} pont
-                                      </span>
-                                  )}
-                              </div>
-                          )}
-                          
-                          {/* Usage Count Display */}
-                          <div className="flex items-center text-sm text-gray-300">
-                            <BarChart2 className="h-4 w-4 mr-2 text-pink-400" />
-                            Beváltva: <span className="font-semibold ml-1 text-white">{coupon.usage_count} alkalommal</span>
-                          </div>
-                          
-                          {coupon.expiry_date && (
-                            <div className="flex items-center text-gray-400">
-                              <Calendar className="h-4 w-4 mr-2 text-purple-400" />
-                              Lejárat: {format(new Date(coupon.expiry_date), 'yyyy. MM. dd.')}
-                            </div>
-                          )}
-                        </CardContent>
-                    </div>
-                      
-                    {/* Redemption Button (Outside clickable area) */}
-                    <CardContent className="pt-0" onClick={(e) => e.stopPropagation()}>
-                      <div className="pt-4 space-y-2 border-t border-gray-700/50">
-                        {isAuthenticated ? (
-                          <>
-                            {pending ? (
-                              <div className="flex gap-2 items-center">
-                                <Button 
-                                  className="flex-grow bg-gray-600/50 text-gray-300 border border-gray-700 cursor-not-allowed"
-                                  disabled
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Clock className="h-4 w-4 mr-2" />
-                                  Aktív kód
-                                </Button>
-                                <Button 
-                                  asChild
-                                  variant="outline"
-                                  size="icon"
-                                  className="flex-shrink-0 rounded-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <Link to="/profile" className="flex items-center justify-center">
-                                    <User className="h-5 w-5" />
-                                  </Link>
-                                </Button>
-                              </div>
-                            ) : (
-                              <Button 
-                                onClick={(e) => handleRedeemClick(coupon, e)}
-                                className={`w-full text-white ${buttonClasses}`}
-                                disabled={isDisabled}
-                              >
-                                {isRedeeming ? (
-                                  <>
-                                    <Spinner className="h-4 w-4 mr-2 animate-spin" />
-                                    {buttonText}
-                                  </>
-                                ) : usedUp ? (
-                                  <>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    {buttonText}
-                                  </>
-                                ) : !canRedeem ? (
-                                  <>
-                                    <Coins className="h-4 w-4 mr-2" />
-                                    {buttonText}
-                                  </>
-                                ) : coupon.is_code_required ? (
-                                  <>
-                                    <QrCode className="h-4 w-4 mr-2" />
-                                    {buttonText}
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    {buttonText}
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </>
+                    {/* NEW CARD DESIGN: Banner Image with Overlay */}
+                    <div className="relative w-full aspect-video overflow-hidden rounded-xl">
+                        {/* Banner Image (16:9 aspect ratio) */}
+                        {coupon.image_url ? (
+                          <img 
+                            src={coupon.image_url} 
+                            alt={coupon.title} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
                         ) : (
-                          <Button 
-                            asChild
-                            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Link to="/login" className="flex items-center justify-center">
-                              <LogIn className="h-4 w-4 mr-2" />
-                              Bejelentkezés a beváltáshoz
-                            </Link>
-                          </Button>
+                          <div className="w-full h-full bg-gray-800 flex items-center justify-center">
+                            <Gift className="h-12 w-12 text-cyan-400" />
+                          </div>
                         )}
-                      </div>
+                        
+                        {/* Overlay Content (Top Left) */}
+                        <div className="absolute inset-0 p-3 flex items-start justify-between bg-gradient-to-b from-black/50 to-transparent">
+                            <Link 
+                                to={`/organization/${coupon.organization_name}`}
+                                className="flex items-center space-x-2 p-2 rounded-full bg-black/50 backdrop-blur-sm hover:bg-black/70 transition-colors"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Logo */}
+                                <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center border border-cyan-400 overflow-hidden">
+                                    {logoUrl ? (
+                                        <img 
+                                            src={logoUrl} 
+                                            alt={coupon.organization_name} 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <Building className="h-4 w-4 text-cyan-400" />
+                                    )}
+                                </div>
+                                {/* Organization Name */}
+                                <span className="text-sm font-semibold text-white truncate max-w-[100px] md:max-w-[150px]">
+                                    {coupon.organization_name}
+                                </span>
+                            </Link>
+                            
+                            {/* Status Badge (Top Right) */}
+                            {pending ? (
+                                <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
+                                    <QrCode className="h-3 w-3" /> Aktív kód
+                                </Badge>
+                            ) : usedUp ? (
+                                <Badge className="bg-red-600/70 text-white flex items-center gap-1">
+                                    Limit elérve
+                                </Badge>
+                            ) : coupon.points_cost > 0 ? (
+                                <Badge className="bg-red-600/70 text-white flex items-center gap-1">
+                                    <Coins className="h-3 w-3" /> {coupon.points_cost} pont
+                                </Badge>
+                            ) : coupon.points_reward > 0 ? (
+                                <Badge className="bg-green-600/70 text-white flex items-center gap-1">
+                                    <Coins className="h-3 w-3" /> +{coupon.points_reward} pont
+                                </Badge>
+                            ) : null}
+                        </div>
+                        
+                        {/* Title Overlay (Bottom Left) */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent">
+                            <CardTitle className="text-xl text-white text-left truncate">{coupon.title}</CardTitle>
+                        </div>
+                    </div>
+                    
+                    {/* Card Content (Empty, only for padding/structure) */}
+                    <CardContent className="p-3 text-center">
+                        <Button 
+                            onClick={() => openDetailsModal(coupon)}
+                            variant="outline"
+                            className="w-full border-purple-400 text-purple-400 hover:bg-purple-400/10"
+                        >
+                            <Gift className="h-4 w-4 mr-2" /> Részletek & Beváltás
+                        </Button>
                     </CardContent>
                   </Card>
                 );
@@ -678,8 +582,8 @@ const OrganizationProfile = () => {
             onClose={closeDetailsModal}
             onRedeemClick={handleRedeemClick}
             isRedeeming={isRedeeming}
-            isDisabled={modalProps.isDisabled} // Use calculated modal prop
-            buttonText={modalProps.buttonText} // Use calculated modal prop
+            isDisabled={modalProps.isDisabled}
+            buttonText={modalProps.buttonText}
           />
       )}
     </div>
