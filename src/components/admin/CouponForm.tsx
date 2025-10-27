@@ -18,7 +18,13 @@ import CouponBannerUploader from './CouponBannerUploader'; // Import the new upl
 // Define the schema for form validation
 const couponSchema = z.object({
   title: z.string().min(3, 'A cím túl rövid.'),
-  description: z.string().nullable().optional().transform(e => e === "" ? null : e),
+  
+  // NEW: Short Description (Max 50 chars)
+  short_description: z.string().min(1, 'A rövid leírás kötelező.').max(50, 'A rövid leírás maximum 50 karakter lehet.'),
+  
+  // Updated: Full Description (Max 500 chars)
+  description: z.string().max(500, 'A teljes leírás maximum 500 karakter lehet.').nullable().optional().transform(e => e === "" ? null : e),
+  
   coupon_code: z.string().nullable().optional(), // Now optional, validated conditionally below
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e), // image_url is now managed by the uploader
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
@@ -65,6 +71,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
   // Prepare default values for editing
   const defaultValues: CouponFormData = {
     title: initialData?.title || '',
+    short_description: initialData?.short_description || '', // NEW default
     description: initialData?.description || null,
     coupon_code: initialData?.coupon_code || null, // Use null for empty code
     image_url: initialData?.image_url || null,
@@ -123,6 +130,30 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         />
         {errors.title && <p className="text-red-400 text-sm">{errors.title.message}</p>}
       </div>
+      
+      {/* NEW: Short Description */}
+      <div className="space-y-2">
+        <Label htmlFor="short_description" className="text-gray-300">Rövid leírás (Max. 50 karakter) *</Label>
+        <Input 
+          id="short_description"
+          {...register('short_description')}
+          maxLength={50}
+          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+        />
+        {errors.short_description && <p className="text-red-400 text-sm">{errors.short_description.message}</p>}
+      </div>
+
+      {/* Full Description */}
+      <div className="space-y-2">
+        <Label htmlFor="description" className="text-gray-300">Teljes leírás (Max. 500 karakter, opcionális)</Label>
+        <Textarea 
+          id="description"
+          {...register('description')}
+          maxLength={500}
+          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+        />
+        {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
+      </div>
 
       {/* NEW: Coupon Banner Uploader */}
       {isEditing && couponId ? (
@@ -174,16 +205,7 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
         {isEditing && isCodeRequired && <p className="text-gray-500 text-xs">A kódos kupon kódja nem szerkeszthető.</p>}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="description" className="text-gray-300">Leírás (opcionális)</Label>
-        <Textarea 
-          id="description"
-          {...register('description')}
-          className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-        />
-        {errors.description && <p className="text-red-400 text-sm">{errors.description.message}</p>}
-      </div>
-
+      
       {/* Loyalty Points Configuration */}
       <div className="pt-4 border-t border-gray-700/50">
         <h3 className="text-lg font-semibold text-purple-300 mb-3 flex items-center">

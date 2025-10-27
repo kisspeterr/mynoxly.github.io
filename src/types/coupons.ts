@@ -2,7 +2,8 @@ export interface Coupon {
   id: string;
   organization_name: string;
   title: string;
-  description: string | null;
+  short_description: string; // NEW: Max 50 chars
+  description: string | null; // Max 500 chars
   coupon_code: string | null; // Can be null if not required
   image_url: string | null;
   expiry_date: string | null; // ISO string
@@ -16,6 +17,7 @@ export interface Coupon {
 
 export interface CouponInsert {
   title: string;
+  short_description: string; // NEW
   description: string | null;
   coupon_code: string | null; // Can be null if not required
   image_url: string | null;
