@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, AlertTriangle } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -14,8 +14,7 @@ import OrganizationMembersPage from '@/components/admin/OrganizationMembersPage'
 import OrganizationSelector from '@/components/OrganizationSelector'; // NEW IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { MemberRole } from '@/types/organization';
 
 const ROLE_MAP: Record<MemberRole, string> = {
@@ -26,7 +25,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, checkPermission } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -56,7 +55,7 @@ const AdminDashboard = () => {
   }
 
   // Check if the user has any accepted membership (owner or delegated)
-  const hasAdminAccess = allMemberships.length > 0;
+  const has AdminAccess = allMemberships.length > 0;
 
   if (isAuthenticated && !hasAdminAccess) {
     return <UnauthorizedAccess />;
@@ -68,6 +67,27 @@ const AdminDashboard = () => {
   
   // Determine if the user has an active organization selected (needed for most tabs)
   const isOrganizationActive = !!activeOrganizationProfile;
+  
+  // Define tabs and required permissions
+  const tabs = [
+    { value: 'coupons', label: 'Kuponok', icon: Tag, component: CouponsPage, requiredPermission: 'coupon_manager' as MemberRole },
+    { value: 'events', label: 'Események', icon: Calendar, component: EventsPage, requiredPermission: 'event_manager' as MemberRole },
+    { value: 'usages', label: 'Beváltások', icon: ListChecks, component: CouponUsagesPage, requiredPermission: 'viewer' as MemberRole },
+    { value: 'statistics', label: 'Statisztikák', icon: BarChart, component: UsageStatisticsPage, requiredPermission: 'viewer' as MemberRole },
+    { value: 'members', label: 'Tagok', icon: Users, component: OrganizationMembersPage, requiredPermission: 'coupon_manager' as MemberRole },
+    { value: 'settings', label: 'Beállítások', icon: Settings, component: ProfileSettingsPage, requiredPermission: 'coupon_manager' as MemberRole },
+  ];
+  
+  // Filter tabs based on user permissions (if an organization is active)
+  const visibleTabs = tabs.filter(tab => isOrganizationActive ? checkPermission(tab.requiredPermission) : true);
+  
+  // Ensure activeTab is visible, otherwise default to the first visible tab
+  useEffect(() => {
+      if (isOrganizationActive && !visibleTabs.some(tab => tab.value === activeTab)) {
+          setActiveTab(visibleTabs[0]?.value || 'coupons');
+      }
+  }, [isOrganizationActive, visibleTabs, activeTab]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
@@ -164,46 +184,25 @@ const AdminDashboard = () => {
             </Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {/* Tabs List - Full width on mobile (6 tabs now) */}
-              <TabsList className="grid w-full grid-cols-6 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
-                <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
-                  <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
-                </TabsTrigger>
-                <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base">
-                  <Calendar className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Események</span>
-                </TabsTrigger>
-                <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
-                  <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
-                </TabsTrigger>
-                <TabsTrigger value="statistics" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                  <BarChart className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Statisztikák</span>
-                </TabsTrigger>
-                <TabsTrigger value="members" className="data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 py-2 text-sm md:text-base">
-                  <Users className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Tagok</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                  <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
-                </TabsTrigger>
+              {/* Tabs List - Filtered by permissions */}
+              <TabsList className={`grid w-full grid-cols-${visibleTabs.length} bg-gray-800/50 border border-gray-700/50 h-auto p-1`}>
+                {visibleTabs.map(tab => (
+                    <TabsTrigger 
+                        key={tab.value}
+                        value={tab.value} 
+                        className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base"
+                    >
+                        <tab.icon className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                ))}
               </TabsList>
               <div className="mt-6">
-                <TabsContent value="coupons">
-                  <CouponsPage />
-                </TabsContent>
-                <TabsContent value="events">
-                  <EventsPage />
-                </TabsContent>
-                <TabsContent value="usages">
-                  <CouponUsagesPage />
-                </TabsContent>
-                <TabsContent value="statistics">
-                  <UsageStatisticsPage />
-                </TabsContent>
-                <TabsContent value="members">
-                  <OrganizationMembersPage />
-                </TabsContent>
-                <TabsContent value="settings">
-                  <ProfileSettingsPage />
-                </TabsContent>
+                {/* Tabs Content - Render only if active and visible */}
+                {visibleTabs.map(tab => (
+                    <TabsContent key={tab.value} value={tab.value}>
+                        <tab.component />
+                    </TabsContent>
+                ))}
               </div>
             </Tabs>
           )}
