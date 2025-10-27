@@ -193,9 +193,7 @@ const OrganizationProfile = () => {
   }, [fetchOrganizationData, organizationName]);
   
   // --- Redemption Logic ---
-  const handleRedeemClick = async (coupon: PublicCoupon, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation(); // Prevent opening details modal
-    
+  const handleRedeemClick = async (coupon: PublicCoupon) => {
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       navigate('/login');
@@ -366,21 +364,23 @@ const OrganizationProfile = () => {
                     onClick={() => openDetailsModal(coupon)} // Make card clickable for details
                   >
                     
+                    {/* 1. Kép (Kívül a CardHeader-en) */}
+                    {coupon.image_url && (
+                      <div className="h-40 w-full overflow-hidden rounded-t-xl">
+                        <img 
+                          src={coupon.image_url} 
+                          alt={coupon.title} 
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                      
                     {/* Card Content Area (No longer clickable for details) */}
                     <div className="flex flex-col flex-grow">
-                        <CardHeader>
-                          {coupon.image_url && (
-                            <div className="h-40 w-full overflow-hidden rounded-t-xl">
-                              <img 
-                                src={coupon.image_url} 
-                                alt={coupon.title} 
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          )}
+                        <CardHeader className="pb-4 pt-6"> {/* Adjusted padding top */}
                           
-                          {/* Centered Logo */}
-                          <div className="flex justify-center -mt-10 mb-4">
+                          {/* 2. Logó (negatív margóval a kép fölé húzva) */}
+                          <div className={`flex justify-center mb-4 ${coupon.image_url ? '-mt-10' : 'mt-0'}`}>
                               <Link 
                                   to={`/organization/${coupon.organization_name}`}
                                   className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"

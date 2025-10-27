@@ -178,24 +178,25 @@ const CouponsSection = () => {
               return (
                 <Card 
                   key={coupon.id} 
-                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm cursor-pointer hover:scale-[1.05] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                  className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-all duration-300 flex flex-col w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm cursor-pointer hover:scale-[1.02] ${isDisabled ? 'opacity-60 grayscale' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                   onClick={() => openDetailsModal(coupon)} // Make card clickable for details
                 >
-                  {/* Card Content Area */}
+                  {/* 1. Kép (Kívül a CardHeader-en) */}
+                  {coupon.image_url && (
+                    <div className="h-40 w-full overflow-hidden rounded-t-xl">
+                      <img 
+                        src={coupon.image_url} 
+                        alt={coupon.title} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  
                   <div className="flex flex-col flex-grow">
-                    <CardHeader className="pb-4">
-                      {coupon.image_url && (
-                        <div className="h-40 w-full overflow-hidden rounded-t-xl">
-                          <img 
-                            src={coupon.image_url} 
-                            alt={coupon.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
+                    <CardHeader className="pb-4 pt-6"> {/* Adjusted padding top */}
                       
-                      {/* NEW: Centered Logo */}
-                      <div className="flex justify-center -mt-10 mb-4">
+                      {/* 2. Logó (negatív margóval a kép fölé húzva) */}
+                      <div className={`flex justify-center mb-4 ${coupon.image_url ? '-mt-10' : 'mt-0'}`}>
                           <Link 
                               to={`/organization/${coupon.organization_name}`}
                               className="relative w-20 h-20 rounded-full bg-gray-900 p-1 border-4 border-cyan-400 shadow-lg group hover:scale-105 transition-transform duration-300"
