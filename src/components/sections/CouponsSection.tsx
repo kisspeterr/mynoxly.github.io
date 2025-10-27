@@ -165,39 +165,14 @@ const CouponsSection = () => {
                     key={coupon.id} 
                     className={`relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(25%-1.5rem)] max-w-sm transition-all duration-300 ${isDisabled ? 'opacity-60 grayscale' : 'hover:scale-[1.02]'}`}
                 >
-                    {/* Organization Header (Above Card) */}
-                    <Link 
-                        to={`/organization/${coupon.organization_name}`}
-                        className="absolute -top-10 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center group"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Logo */}
-                        <div className="w-12 h-12 rounded-full bg-gray-900 p-1 border-2 border-cyan-400 overflow-hidden shadow-lg group-hover:scale-110 transition-transform duration-300">
-                            {logoUrl ? (
-                                <img 
-                                    src={logoUrl} 
-                                    alt={coupon.organization_name} 
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
-                                    <Building className="h-6 w-6 text-cyan-400" />
-                                </div>
-                            )}
-                        </div>
-                        {/* Organization Name */}
-                        <span className="text-xs font-semibold text-gray-300 mt-1 group-hover:text-cyan-300 transition-colors truncate max-w-[100px]">
-                            {coupon.organization_name}
-                        </span>
-                    </Link>
                     
                     <Card 
-                      className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full mt-8 cursor-pointer ${isDisabled ? '' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
+                      className={`bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full cursor-pointer ${isDisabled ? '' : 'hover:shadow-lg hover:shadow-cyan-500/20'}`}
                       onClick={() => openDetailsModal(coupon)}
                     >
                       
                       {/* Card Content starts below the space reserved for the logo */}
-                      <div className="relative w-full aspect-video overflow-hidden rounded-xl">
+                      <div className="relative w-full aspect-video overflow-hidden rounded-t-xl">
                         {/* Banner Image (16:9 aspect ratio) - object-cover ensures fixed ratio and no excessive zoom */}
                         {coupon.image_url ? (
                           <img 
@@ -210,6 +185,32 @@ const CouponsSection = () => {
                             <Gift className="h-12 w-12 text-cyan-400" />
                           </div>
                         )}
+                        
+                        {/* Organization Info Overlay (Top Left) */}
+                        <Link 
+                            to={`/organization/${coupon.organization_name}`}
+                            className="absolute top-3 left-3 z-10 flex items-center p-2 bg-black/50 rounded-full backdrop-blur-sm border border-cyan-400/50 group-hover:bg-black/70 transition-all duration-300"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            {/* Logo */}
+                            <div className="w-8 h-8 rounded-full bg-gray-900 p-0.5 border border-cyan-400 overflow-hidden flex-shrink-0">
+                                {logoUrl ? (
+                                    <img 
+                                        src={logoUrl} 
+                                        alt={coupon.organization_name} 
+                                        className="w-full h-full object-cover rounded-full"
+                                    />
+                                ) : (
+                                    <div className="h-full w-full rounded-full bg-gray-800 flex items-center justify-center">
+                                        <Building className="h-4 w-4 text-cyan-400" />
+                                    </div>
+                                )}
+                            </div>
+                            {/* Organization Name */}
+                            <span className="text-sm font-semibold text-gray-300 ml-2 group-hover:text-cyan-300 transition-colors truncate max-w-[100px] hidden sm:block">
+                                {coupon.organization_name}
+                            </span>
+                        </Link>
                         
                         {/* Overlay Content (Top Right - Status Badge) */}
                         <div className="absolute top-3 right-3 p-1 flex items-start justify-end">
