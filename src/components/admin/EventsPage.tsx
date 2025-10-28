@@ -304,6 +304,11 @@ const EventsPage = () => {
     );
   }
 
+  // Check if the user has permission to view the list
+  if (!checkPermission('event_manager') && !checkPermission('viewer')) {
+      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod az események megtekintéséhez.</p>;
+  }
+
   if (isLoading && events.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">

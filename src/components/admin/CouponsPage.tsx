@@ -263,6 +263,7 @@ const CouponsPage = () => {
   const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null); 
   
   const canManageCoupons = checkPermission('coupon_manager');
+  const canViewCoupons = checkPermission('coupon_manager') || checkPermission('viewer'); // NEW: View permission
 
   const activeCoupons = coupons.filter(c => c.is_active && !c.is_archived);
   const draftCoupons = coupons.filter(c => !c.is_active && !c.is_archived);
@@ -307,6 +308,10 @@ const CouponsPage = () => {
             <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején a kuponok kezeléséhez.</p>
         </Card>
     );
+  }
+  
+  if (!canViewCoupons) {
+      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a kuponok megtekintéséhez.</p>;
   }
 
   if (isLoading && coupons.length === 0) {
