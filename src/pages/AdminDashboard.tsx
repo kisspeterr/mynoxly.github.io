@@ -11,7 +11,6 @@ import CouponUsagesPage from '@/components/admin/CouponUsagesPage';
 import ProfileSettingsPage from '@/components/admin/ProfileSettingsPage';
 import UsageStatisticsPage from '@/components/admin/UsageStatisticsPage'; // Import Statistics Page
 import OrganizationMembersPage from '@/components/admin/OrganizationMembersPage'; // NEW IMPORT
-import OrganizationSelector from '@/components/OrganizationSelector'; // NEW IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,7 +25,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, activeMembership } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -66,8 +65,12 @@ const AdminDashboard = () => {
       return null;
   }
   
-  // Determine if the user has an active organization selected (needed for most tabs)
+  // Determine if the user has an active organization selected (which should be the first one now)
   const isOrganizationActive = !!activeOrganizationProfile;
+  
+  const activeOrg = activeOrganizationProfile;
+  const activeRoles = activeMembership?.roles || [];
+  const isOwner = activeOrg?.owner_id === profile?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
@@ -151,18 +154,41 @@ const AdminDashboard = () => {
         <div className="bg-black/30 border border-purple-500/30 rounded-xl p-4 md:p-6 shadow-2xl backdrop-blur-sm">
           <p className="text-lg md:text-xl text-gray-300 mb-4">Üdvözöllek, {profile?.first_name || 'Admin'}!</p>
           
-          {/* Organization Selector is always visible here */}
+          {/* Organization Status Display (Replaces Selector) */}
           <div className="mb-6">
-            <OrganizationSelector />
+            {isOrganizationActive ? (
+                <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm p-3">
+                    <CardContent className="p-0 text-sm text-gray-500">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <Building className="h-5 w-5 mr-3 text-purple-400" />
+                                <span className="font-semibold text-white text-lg">{activeOrg?.organization_name}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                                <span className="font-medium text-white">Szerepkör:</span>
+                                {isOwner ? (
+                                    <Badge className="bg-red-600/50 text-red-300 flex items-center gap-1">
+                                        <Shield className="h-3 w-3" /> Tulajdonos
+                                    </Badge>
+                                ) : (
+                                    activeRoles.map(r => (
+                                        <Badge key={r} className="bg-cyan-600/50 text-cyan-300">{ROLE_MAP[r]}</Badge>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+                    <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
+                    <p className="text-gray-400">Nincs elfogadott szervezeti tagságod. Kérjük, ellenőrizd a profilodat a függőben lévő meghívásokért.</p>
+                </Card>
+            )}
           </div>
           
-          {!isOrganizationActive ? (
-            <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
-                <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet kiválasztva</h3>
-                <p className="text-gray-400">Kérjük, válassz egy szervezetet a fenti legördülő menüből a Dashboard eléréséhez.</p>
-            </Card>
-          ) : (
+          {isOrganizationActive && (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               {/* Tabs List - Full width on mobile (6 tabs now) */}
               <TabsList className="grid w-full grid-cols-6 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
