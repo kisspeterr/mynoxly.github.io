@@ -29,7 +29,7 @@ interface UsageDetails {
 // Helper function to get the organization ID from its name (No longer needed in finalizeRedemption, but kept for checkCode)
 const getOrganizationId = async (organizationName: string): Promise<string | null> => {
     const { data, error } = await supabase
-        .from('organizations') // Use new organizations table
+        .from('profiles')
         .select('id')
         .eq('organization_name', organizationName)
         .single();
@@ -39,6 +39,12 @@ const getOrganizationId = async (organizationName: string): Promise<string | nul
         return null;
     }
     return data?.id || null;
+};
+
+// Helper function to update loyalty points (REMOVED: Logic moved to RPC)
+const rewardLoyaltyPoints = async (userId: string, organizationId: string, pointsReward: number) => {
+    // This function is now obsolete as the logic is in the RPC.
+    return { success: true };
 };
 
 
@@ -54,7 +60,7 @@ export const useRedemption = () => {
     // 1. Fetch Profile (Name, Username, and Organization)
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
-      .select('first_name, last_name, username') // Removed organization_name
+      .select('first_name, last_name, organization_name, username') // Include username
       .eq('id', userId)
       .single();
 
@@ -78,11 +84,7 @@ export const useRedemption = () => {
     }
 
     return {
-      profile: {
-          ...(profileData as Omit<ProfileDetails, 'organization_name'> || {}),
-          organization_name: null, // Organization name is no longer on user profile
-          username: username,
-      } as ProfileDetails,
+      profile: profileData as ProfileDetails || null,
       username: username,
       user_email: userEmail,
     };

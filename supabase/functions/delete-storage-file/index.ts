@@ -37,7 +37,7 @@ serve(async (req) => {
     }
     
     // 1. Extract bucket name and file path from the public URL
-    // Expected format: https://[project_id].supabase.co/storage/v1/object/public/[bucket_name]/[organization_id]/[file_name]
+    // Expected format: https://[project_id].supabase.co/storage/v1/object/public/[bucket_name]/[user_id]/[file_name]
     const urlParts = publicUrl.split('/');
     const bucketIndex = urlParts.indexOf('public') + 1;
     
@@ -48,27 +48,10 @@ serve(async (req) => {
     const bucketName = urlParts[bucketIndex];
     const filePath = urlParts.slice(bucketIndex + 1).join('/');
     
-    // The first segment of the file path is the organization ID (or user ID for old logos)
-    const pathSegments = filePath.split('/');
-    const organizationId = pathSegments[0];
-    
-    // 2. Security Check: Ensure the user has permission to delete this file.
-    // We check if the user is the owner of the organization associated with the path.
-    
-    const { data: orgData, error: orgError } = await supabaseClient
-        .from('organizations')
-        .select('owner_id')
-        .eq('id', organizationId)
-        .single();
-        
-    // If the organization doesn't exist or the user is not the owner, deny access.
-    if (orgError || orgData?.owner_id !== userId) {
-        // Fallback check for old user-based logo paths (where organizationId == userId)
-        if (bucketName === 'logos' && organizationId === userId) {
-            // Allow deletion if it's the user's old logo path
-        } else {
-            return new Response(JSON.stringify({ error: 'Forbidden: You do not have permission to delete this file.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-        }
+    // 2. Security Check: Ensure the file path starts with the user's ID (folder name)
+    // This prevents users from deleting files outside their own folder.
+    if (!filePath.startsWith(userId)) {
+        return new Response(JSON.stringify({ error: 'Forbidden: Cannot delete files outside your designated folder.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // 3. Delete the file
@@ -90,13 +73,13 @@ serve(async (req) => {
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     
-    // Determine record ID based on bucket (for logos/banners, it's the organization ID or coupon/event ID)
-    let recordId = organizationId;
-    if (bucketName === 'coupon_banners' || bucketName === 'event_banners') {
-        // The file path is expected to be organizationId/couponId.jpg or organizationId/eventId.jpg
-        const fileName = pathSegments.pop();
+    // Determine record ID based on bucket (for logos, it's the user ID; for banners, it's the coupon ID)
+    let recordId = userId;
+    if (bucketName === 'coupon_banners') {
+        // The file path is expected to be userId/couponId.jpg
+        const fileName = filePath.split('/').pop();
         if (fileName) {
-            recordId = fileName.split('.')[0]; // couponId or eventId
+            recordId = fileName.split('.')[0]; // couponId
         }
     }
 

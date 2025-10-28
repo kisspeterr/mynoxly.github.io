@@ -34,10 +34,10 @@ serve(async (req) => {
     }
     const userId = user.id;
 
-    const { base64Data, mimeType, oldLogoPath, organizationId } = await req.json();
+    const { base64Data, mimeType, oldLogoPath } = await req.json();
 
-    if (!base64Data || !mimeType || !organizationId) {
-      return new Response(JSON.stringify({ error: 'Missing file data or organization ID' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!base64Data || !mimeType) {
+      return new Response(JSON.stringify({ error: 'Missing file data' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     let fileBuffer: Uint8Array;
@@ -58,9 +58,8 @@ serve(async (req) => {
     }
 
     // 2. Define new file path (using JPG extension as client-side cropper outputs JPEG)
-    // CRITICAL: Use organizationId as the folder name for RLS/path security
     const fileExt = 'jpg';
-    const filePath = `${organizationId}/${Date.now()}.${fileExt}`;
+    const filePath = `${userId}/${Date.now()}.${fileExt}`;
     const bucketName = 'logos';
 
     // 3. Upload new file
@@ -82,7 +81,7 @@ serve(async (req) => {
 
     // 4. Delete old file if path is provided
     if (oldLogoPath) {
-        // Extract the path within the bucket (e.g., 'organization_id/timestamp.jpg')
+        // Extract the path within the bucket (e.g., 'user_id/timestamp.jpg')
         const urlParts = oldLogoPath.split('/');
         const bucketIndex = urlParts.indexOf(bucketName);
         
@@ -90,8 +89,8 @@ serve(async (req) => {
         if (bucketIndex !== -1) {
             const oldFilePath = urlParts.slice(bucketIndex + 1).join('/');
             
-            // Double check that the path starts with the organization ID for security
-            if (oldFilePath && oldFilePath.startsWith(organizationId)) {
+            // Double check that the path starts with the user ID for security
+            if (oldFilePath && oldFilePath.startsWith(userId)) {
                 const { error: deleteError } = await supabaseClient.storage
                     .from(bucketName)
                     .remove([oldFilePath]);
@@ -125,7 +124,7 @@ serve(async (req) => {
         user_id: userId,
         action: 'STORAGE_UPLOAD',
         table_name: 'logos',
-        record_id: organizationId, // Use organization ID as record ID for logos
+        record_id: userId, // Use user ID as record ID for logos
         payload: { 
             new_url: publicUrlData.publicUrl, 
             old_url: oldLogoPath || null,

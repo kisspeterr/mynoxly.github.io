@@ -1,14 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
-import { useAuth, OrganizationProfileData } from './use-auth';
+import { useAuth } from './use-auth';
 
 export interface FavoriteOrganization {
   id: string; // favorite_organizations ID
-  organization_id: string; // organizations ID
+  organization_id: string; // profiles ID
   
-  // Joined organization data
-  profile: OrganizationProfileData;
+  // Joined profile data
+  profile: {
+    id: string;
+    organization_name: string;
+    logo_url: string | null;
+  };
 }
 
 export const useFavorites = () => {
@@ -25,13 +29,13 @@ export const useFavorites = () => {
 
     setIsLoading(true);
     try {
-      // Fetch favorites, joining the organization profile data from the new 'organizations' table
+      // Fetch favorites, joining the organization profile data
       const { data, error } = await supabase
         .from('favorite_organizations')
         .select(`
           id,
           organization_id,
-          profile:organization_id (id, organization_name, logo_url, is_public, owner_id)
+          profile:organization_id (id, organization_name, logo_url)
         `)
         .eq('user_id', user.id); // RLS ensures this is safe
 
@@ -42,14 +46,8 @@ export const useFavorites = () => {
         return;
       }
       
-      // Filter out any records where the profile join failed
-      const validFavorites = (data as (Omit<FavoriteOrganization, 'profile'> & { profile: OrganizationProfileData | null })[])
-        .filter(fav => fav.profile !== null)
-        .map(fav => ({
-            ...fav,
-            profile: fav.profile as OrganizationProfileData,
-        }));
-        
+      // Filter out any records where the profile join failed (shouldn't happen with ON DELETE CASCADE)
+      const validFavorites = (data as FavoriteOrganization[]).filter(fav => fav.profile !== null);
       setFavorites(validFavorites);
 
     } finally {

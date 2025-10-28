@@ -17,7 +17,7 @@ export const usePublicEvents = () => {
     if (organizationNames.length === 0) return {};
     
     const { data, error } = await supabase
-      .from('organizations') // Use new organizations table
+      .from('profiles')
       .select('organization_name, logo_url')
       .in('organization_name', organizationNames);
 
@@ -26,8 +26,10 @@ export const usePublicEvents = () => {
       return {};
     }
 
-    return data.reduce((acc, org) => {
-      acc[org.organization_name] = org.logo_url;
+    return data.reduce((acc, profile) => {
+      if (profile.organization_name) {
+        acc[profile.organization_name] = profile.logo_url;
+      }
       return acc;
     }, {} as Record<string, string | null>);
   };
@@ -36,12 +38,10 @@ export const usePublicEvents = () => {
     const fetchEvents = async () => {
       setIsLoading(true);
       try {
-        // 1. Fetch all ACTIVE and NON-ARCHIVED events
+        // 1. Fetch all events (without join)
         const { data: eventData, error: eventError } = await supabase
           .from('events')
           .select(`*, coupon:coupon_id (id, title, coupon_code)`)
-          .eq('is_active', true) // <-- NEW FILTER
-          .eq('is_archived', false) // <-- NEW FILTER
           .order('start_time', { ascending: true });
 
         if (eventError) {

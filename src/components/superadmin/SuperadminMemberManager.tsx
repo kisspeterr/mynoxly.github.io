@@ -315,21 +315,14 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
 const SuperadminMemberManager: React.FC<SuperadminMemberManagerProps> = ({ organizationId, organizationName }) => {
     const [members, setMembers] = useState<OrganizationMember[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [ownerId, setOwnerId] = useState<string | null>(null); // Store owner ID
+    
+    // The owner's ID is the organizationId itself in the profiles table
+    const ownerId = organizationId;
 
     const fetchMembers = useCallback(async () => {
         setIsLoading(true);
         try {
-            // 1. Fetch owner ID from organizations table
-            const { data: orgData } = await supabase
-                .from('organizations')
-                .select('owner_id')
-                .eq('id', organizationId)
-                .single();
-            
-            setOwnerId(orgData?.owner_id || null);
-            
-            // 2. Fetch raw members data (Superadmin RLS allows this)
+            // 1. Fetch raw members data (Superadmin RLS allows this)
             const { data: rawMembers, error } = await supabase
                 .from('organization_members')
                 .select(`
@@ -351,11 +344,11 @@ const SuperadminMemberManager: React.FC<SuperadminMemberManagerProps> = ({ organ
                 return;
             }
             
-            // 3. Collect user IDs and fetch profiles securely
+            // 2. Collect user IDs and fetch profiles securely
             const userIds = rawMembers.map(m => m.user_id);
             const profileMap = await fetchUserProfilesByIds(userIds);
             
-            // 4. Combine data
+            // 3. Combine data
             const processedMembers: OrganizationMember[] = rawMembers
                 .map(m => {
                     const userProfile = profileMap[m.user_id];
