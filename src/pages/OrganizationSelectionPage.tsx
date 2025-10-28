@@ -121,7 +121,12 @@ const OrganizationSelectionPage: React.FC = () => {
                                 className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:border-cyan-500/50 transition-all duration-300"
                             >
                                 <CardContent className="p-4 flex items-center justify-between">
-                                    <div className="flex items-center space-x-4 flex-grow min-w-0">
+                                    
+                                    {/* Organization Info (Linked to Public Profile) */}
+                                    <Link 
+                                        to={`/organization/${org.organization_name}`} 
+                                        className="flex items-center space-x-4 flex-grow min-w-0 hover:opacity-80 transition-opacity"
+                                    >
                                         {org.logo_url ? (
                                             <img 
                                                 src={org.logo_url} 
@@ -147,8 +152,9 @@ const OrganizationSelectionPage: React.FC = () => {
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
+                                    </Link>
                                     
+                                    {/* Dashboard Button (Action) */}
                                     <Button 
                                         onClick={() => handleSelectOrganization(org.id)}
                                         className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white flex-shrink-0 ml-4"
