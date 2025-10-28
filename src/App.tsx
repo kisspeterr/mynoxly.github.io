@@ -7,11 +7,10 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminDashboard from "./pages/AdminDashboard";
-import SuperadminDashboard from "./pages/SuperadminDashboard"; 
+import SuperadminDashboard from "./pages/SuperadminDashboard"; // NEW IMPORT
 import Profile from "./pages/Profile";
 import RedemptionPage from "./pages/RedemptionPage";
 import OrganizationProfile from "./pages/OrganizationProfile"; 
-import OrganizationSelectionPage from "./pages/OrganizationSelectionPage"; // NEW IMPORT
 
 const queryClient = new QueryClient();
 
@@ -26,11 +25,10 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/select-organization" element={<OrganizationSelectionPage />} /> {/* NEW ROUTE */}
-          <Route path="/superadmin/dashboard" element={<SuperadminDashboard />} /> 
+          <Route path="/superadmin/dashboard" element={<SuperadminDashboard />} /> {/* NEW ROUTE */}
           <Route path="/code" element={<RedemptionPage />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> 
+          <Route path="/organization/:organizationName" element={<OrganizationProfile />} /> {/* New dynamic route */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
