@@ -147,9 +147,17 @@ export const useAuth = () => {
   
   // 🔹 Kezdeti aktív szervezet beállítása (első tagság)
   useEffect(() => {
-    if (data && !activeOrganizationId && data.allMemberships.length > 0) {
-        // Az első elfogadott tagságot állítjuk be aktívnak.
-        setActiveOrganizationId(data.allMemberships[0].organization_id);
+    if (data && data.allMemberships.length > 0) {
+        const firstOrgId = data.allMemberships[0].organization_id;
+        const currentOrgExists = data.allMemberships.some(m => m.organization_id === activeOrganizationId);
+        
+        // Ha nincs aktív ID, vagy a jelenlegi aktív ID már nem létezik a tagságok között, állítsuk be az elsőt.
+        if (!activeOrganizationId || !currentOrgExists) {
+            setActiveOrganizationId(firstOrgId);
+        }
+    } else if (data && data.allMemberships.length === 0 && activeOrganizationId) {
+        // Ha nincs tagság, töröljük az aktív ID-t
+        setActiveOrganizationId(null);
     }
   }, [data, activeOrganizationId]);
   
@@ -183,7 +191,8 @@ export const useAuth = () => {
   
   // 🔹 Profil frissítésének kényszerítése (pl. beállítások mentése után)
   const forceProfileRefetch = useCallback(async (userId: string) => {
-      refetch();
+      // Refetch the main query to update profile and memberships
+      await refetch();
   }, [refetch]);
   
   // 🔹 Jogosultság ellenőrzése
@@ -193,16 +202,26 @@ export const useAuth = () => {
         return true;
     }
     
-    // 1. Delegált tag ellenőrzése
+    // 1. Ellenőrizzük, hogy van-e aktív tagság
+    if (!activeMembership) {
+        return false;
+    }
+    
+    // 2. Ellenőrizzük, hogy a felhasználó a tulajdonos-e (a tulajdonos minden jogosultsággal rendelkezik)
+    if (activeOrganizationProfile?.owner_id === data?.user?.id) {
+        return true;
+    }
+    
+    // 3. Delegált tag ellenőrzése
     const roles = activeMembership?.roles;
     if (roles && roles.includes(requiredRole)) {
         return true;
     }
     
     return false;
-  }, [data?.profile?.role, activeMembership?.roles]);
+  }, [data?.profile?.role, activeMembership, activeOrganizationProfile?.owner_id, data?.user?.id]);
   
-  // 🔹 Aktív szervezet váltása
+  // 🔹 Aktív szervezet váltása (VISSZAÁLLÍTVA)
   const switchActiveOrganization = useCallback((organizationId: string) => {
       const membership = data?.allMemberships.find(m => m.organization_id === organizationId);
       
@@ -231,11 +250,12 @@ export const useAuth = () => {
     
     isLoading: isLoading,
     signOut,
-    isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status (now means they own at least one org)
-    isSuperadmin: data?.profile?.role === 'superadmin', // NEW
+    // isAdmin: true, ha van legalább egy elfogadott tagsága
+    isAdmin: (data?.profile?.role === 'admin' || data?.profile?.role === 'superadmin' || (data?.allMemberships && data.allMemberships.length > 0)), 
+    isSuperadmin: data?.profile?.role === 'superadmin',
     isAuthenticated: !!data?.user,
     fetchProfile: forceProfileRefetch,
     checkPermission,
-    switchActiveOrganization, // NEW
+    switchActiveOrganization, // VISSZAÁLLÍTVA
   };
 };
