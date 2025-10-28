@@ -67,8 +67,8 @@ export const useCoupons = () => {
     try {
       const { data, error } = await supabase
         .from('coupons')
-        // Ensure new coupons are active and not archived by default
-        .insert({ ...couponData, organization_name: organizationName, is_active: true, is_archived: false })
+        // Ensure new coupons are INACTIVE and not archived by default
+        .insert({ ...couponData, organization_name: organizationName, is_active: false, is_archived: false })
         .select()
         .single();
 
@@ -79,7 +79,7 @@ export const useCoupons = () => {
 
       const newCoupon = data as Coupon;
       setCoupons(prev => [newCoupon, ...prev]);
-      showSuccess('Kupon sikeresen létrehozva!');
+      showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
     } finally {
       setIsLoading(false);
@@ -120,9 +120,20 @@ export const useCoupons = () => {
         showError('Nincs jogosultságod a kupon állapotának módosításához.');
         return { success: false };
     }
+    
+    const newStatus = !currentStatus;
+    
+    // CRITICAL CHECK: Prevent publishing if image_url is missing
+    if (newStatus === true) {
+        const couponToPublish = coupons.find(c => c.id === id);
+        if (!couponToPublish || !couponToPublish.image_url) {
+            showError('A kupon publikálásához kötelező feltölteni egy bannert!');
+            return { success: false };
+        }
+    }
+    
     setIsLoading(true);
     try {
-      const newStatus = !currentStatus;
       const { data, error } = await supabase
         .from('coupons')
         .update({ is_active: newStatus })
@@ -138,7 +149,7 @@ export const useCoupons = () => {
       }
 
       setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
-      showSuccess(`Kupon sikeresen ${newStatus ? 'aktiválva' : 'deaktiválva'}!`);
+      showSuccess(`Kupon sikeresen ${newStatus ? 'publikálva' : 'inaktiválva'}!`);
       return { success: true };
     } finally {
       setIsLoading(false);
@@ -169,6 +180,37 @@ export const useCoupons = () => {
 
       setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
       showSuccess('Kupon sikeresen archiválva!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // NEW: Function to unarchive a coupon
+  const unarchiveCoupon = async (id: string) => {
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon visszaállításához.');
+        return { success: false };
+    }
+    setIsLoading(true);
+    try {
+      // Unarchiving sets is_archived to false, but keeps is_active as false (draft state)
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({ is_archived: false, is_active: false })
+        .eq('id', id)
+        .eq('organization_name', organizationName)
+        .select()
+        .single();
+
+      if (error || !data) {
+        showError('Hiba történt a kupon visszaállításakor.');
+        console.error('Unarchive coupon error:', error);
+        return { success: false };
+      }
+
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess('Kupon sikeresen visszaállítva a piszkozatok közé!');
       return { success: true };
     } finally {
       setIsLoading(false);
@@ -215,6 +257,7 @@ export const useCoupons = () => {
     updateCoupon,
     toggleActiveStatus,
     archiveCoupon,
+    unarchiveCoupon, // NEW
     deleteCoupon,
     organizationName,
   };

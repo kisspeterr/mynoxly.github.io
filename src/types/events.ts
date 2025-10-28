@@ -13,6 +13,8 @@ export interface Event {
   longitude: number | null;
   event_link: string | null;
   link_title: string | null; // NEW FIELD
+  is_active: boolean; // NEW FIELD
+  is_archived: boolean; // NEW FIELD
   
   // Optional relation data (fetched via join)
   coupon?: {

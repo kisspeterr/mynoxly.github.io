@@ -1,48 +1,54 @@
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '@/hooks/use-events';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil, RefreshCw } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil, RefreshCw, CheckCircle, XCircle, Archive, Upload, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import EventForm from './EventForm';
 import { format } from 'date-fns';
 import { Event, EventInsert } from '@/types/events';
-import { useAuth } from '@/hooks/use-auth'; // Import useAuth
+import { useAuth } from '@/hooks/use-auth';
+import { Badge } from '@/components/ui/badge';
 
 interface EventEditDialogProps {
   event: Event;
   onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>;
   isLoading: boolean;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading }) => {
-  const [isOpen, setIsOpen] = useState(false);
-
+const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLoading, isOpen, onOpenChange }) => {
   const handleSubmit = async (data: EventInsert) => {
-    // We only send fields that might have changed, excluding organization_name
+    // We only send fields that might have changed, excluding organization_name, is_active, is_archived
     const updateData: Partial<EventInsert> = {
       title: data.title,
       description: data.description,
       start_time: data.start_time,
-      end_time: data.end_time, // Ensure end_time is included
+      end_time: data.end_time,
       location: data.location,
       image_url: data.image_url,
       coupon_id: data.coupon_id,
+      event_link: data.event_link,
+      link_title: data.link_title,
     };
     
     const result = await onUpdate(event.id, updateData);
     if (result.success) {
-      setIsOpen(false);
+      onOpenChange(false);
     }
     return result;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
-          <Pencil className="h-4 w-4" />
-        </Button>
+        {/* Only render trigger if dialog is not already open */}
+        {!isOpen && (
+            <Button variant="outline" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100 border-purple-500/50 text-purple-300 hover:bg-purple-500/10">
+              <Pencil className="h-4 w-4" />
+            </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="bg-black/80 border-purple-500/30 backdrop-blur-sm max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -53,7 +59,7 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
         </DialogHeader>
         <EventForm 
           onSubmit={handleSubmit} 
-          onClose={() => setIsOpen(false)} 
+          onClose={() => onOpenChange(false)} 
           isLoading={isLoading}
           initialData={event}
         />
@@ -63,11 +69,38 @@ const EventEditDialog: React.FC<EventEditDialogProps> = ({ event, onUpdate, isLo
 };
 
 
-const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>, isLoading: boolean, canManage: boolean }> = ({ event, onDelete, onUpdate, isLoading, canManage }) => {
+interface EventCardProps {
+  event: Event;
+  onDelete: (id: string, isArchived: boolean) => Promise<{ success: boolean }>;
+  onUpdate: (id: string, data: Partial<EventInsert>) => Promise<{ success: boolean }>;
+  onToggleActive: (id: string, currentStatus: boolean) => Promise<{ success: boolean }>;
+  onArchive: (id: string) => Promise<{ success: boolean }>;
+  onUnarchive: (id: string) => Promise<{ success: boolean }>;
+  isLoading: boolean;
+  canManage: boolean;
+}
+
+const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onUpdate, onToggleActive, onArchive, onUnarchive, isLoading, canManage }) => {
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const startTime = format(new Date(event.start_time), 'yyyy. MM. dd. HH:mm');
+  const isArchived = event.is_archived;
+  const isActive = event.is_active;
+  
+  const statusBadge = () => {
+    if (isArchived) {
+      return <Badge className="bg-gray-600 text-white">Archiválva</Badge>;
+    }
+    if (isActive) {
+      return <Badge className="bg-green-600 text-white">Aktív (Publikálva)</Badge>;
+    }
+    return <Badge className="bg-yellow-600 text-white">Piszkozat (Inaktív)</Badge>;
+  };
+  
+  const statusClasses = isArchived ? 'opacity-50 border-gray-700/50' : isActive ? 'border-green-500/30' : 'border-yellow-500/30';
+
 
   return (
-    <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col">
+    <Card className={`bg-black/50 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col ${statusClasses}`}>
       {event.image_url && (
         <div className="h-40 w-full overflow-hidden rounded-t-xl">
           <img 
@@ -79,40 +112,10 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
       )}
       <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
         <CardTitle className="text-xl text-purple-300">{event.title}</CardTitle>
-        {canManage && (
-            <div className="flex space-x-2">
-              <EventEditDialog event={event} onUpdate={onUpdate} isLoading={isLoading} />
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="destructive" size="icon" className="h-8 w-8 opacity-70 hover:opacity-100">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
-                  <DialogHeader>
-                    <DialogTitle className="text-red-400">Esemény törlése</DialogTitle>
-                    <DialogDescription className="text-gray-300">
-                      Biztosan törölni szeretnéd a "{event.title}" eseményt? Ez a művelet nem visszavonható.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
-                    </DialogClose>
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => onDelete(event.id)}
-                    >
-                      Törlés megerősítése
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-        )}
+        {statusBadge()}
       </CardHeader>
       <CardContent className="space-y-3 flex-grow">
-        <CardDescription className="text-gray-400">{event.description || 'Nincs leírás.'}</CardDescription>
+        <CardDescription className="text-gray-400 whitespace-normal break-words">{event.description || 'Nincs leírás.'}</CardDescription>
         
         <div className="flex items-center text-sm text-gray-300">
           <Clock className="h-4 w-4 mr-2 text-cyan-400" />
@@ -136,19 +139,163 @@ const EventCard: React.FC<{ event: Event, onDelete: (id: string) => void, onUpda
             <p className="text-sm text-gray-500">Nincs kupon csatolva.</p>
           )}
         </div>
+        
+        {/* Actions */}
+        {canManage && (
+            <div className="flex space-x-2 pt-4 border-t border-gray-700/50">
+              <EventEditDialog 
+                event={event} 
+                onUpdate={onUpdate} 
+                isLoading={isLoading}
+                isOpen={isEditOpen}
+                onOpenChange={setIsEditOpen}
+              />
+              
+              {/* Publish / Deactivate / Archive Button */}
+              {!isArchived && (
+                <>
+                  {isActive ? (
+                    // Active -> Deactivate
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      onClick={() => onToggleActive(event.id, isActive)}
+                      disabled={isLoading}
+                      className="h-8 w-8 bg-red-600/50 hover:bg-red-600/70"
+                      title="Inaktiválás (Piszkozat)"
+                    >
+                      <XCircle className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    // Inactive (Draft) -> Publish
+                    <Button 
+                      variant="default" 
+                      size="icon" 
+                      onClick={() => onToggleActive(event.id, isActive)}
+                      disabled={isLoading}
+                      className="h-8 w-8 bg-green-600/50 hover:bg-green-600/70"
+                      title="Publikálás (Aktiválás)"
+                    >
+                      <Upload className="h-4 w-4" />
+                    </Button>
+                  )}
+                  
+                  {/* Archive Button (Only if not archived) */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8 border-gray-500/50 text-gray-400 hover:bg-gray-500/10" disabled={isLoading}>
+                        <Archive className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-black/80 border-gray-500/30 backdrop-blur-sm max-w-sm">
+                      <DialogHeader>
+                        <DialogTitle className="text-gray-400">Esemény archiválása</DialogTitle>
+                        <DialogDescription className="text-gray-300">
+                          Biztosan archiválni szeretnéd a "{event.title}" eseményt? Ez inaktiválja és elrejti a nyilvános nézetből.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                        </DialogClose>
+                        <Button 
+                          variant="default" 
+                          onClick={() => onArchive(event.id)}
+                          disabled={isLoading}
+                          className="bg-gray-600 hover:bg-gray-700"
+                        >
+                          Archiválás megerősítése
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              )}
+              
+              {/* Unarchive Button (Only if archived) */}
+              {isArchived && (
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  onClick={() => onUnarchive(event.id)}
+                  disabled={isLoading}
+                  className="h-8 w-8 border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10"
+                  title="Visszaállítás a piszkozatok közé"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              )}
+              
+              {/* Permanent Delete Button (Only if archived) */}
+              {isArchived && (
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="destructive" size="icon" className="h-8 w-8" disabled={isLoading}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="text-red-400">Végleges törlés</DialogTitle>
+                      <DialogDescription className="text-gray-300">
+                        Biztosan VÉGLEGESEN törölni szeretnéd a "{event.title}" archivált eseményt? Ez a művelet nem visszavonható.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                      </DialogClose>
+                      <Button 
+                        variant="destructive" 
+                        onClick={() => onDelete(event.id, true)}
+                        disabled={isLoading}
+                      >
+                        Végleges Törlés
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+        )}
       </CardContent>
     </Card>
   );
 };
 
 const EventsPage = () => {
-  const { events, isLoading, fetchEvents, createEvent, updateEvent, deleteEvent, organizationName } = useEvents();
-  const { checkPermission } = useAuth(); // Use checkPermission
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { events, isLoading, fetchEvents, createEvent, updateEvent, toggleActiveStatus, archiveEvent, unarchiveEvent, deleteEvent, organizationName } = useEvents();
+  const { checkPermission } = useAuth();
+  const [isCreateFormOpen, setIsFormOpen] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   
   const canManageEvents = checkPermission('event_manager');
 
-  // Removed redundant useEffect, relying on useEvents hook's internal dependency on activeOrganizationId
+  const activeEvents = events.filter(e => e.is_active && !e.is_archived);
+  const draftEvents = events.filter(e => !e.is_active && !e.is_archived);
+  const archivedEvents = events.filter(e => e.is_archived);
+  
+  const handleCreateEvent = async (data: EventInsert) => {
+      const result = await createEvent(data);
+      if (result.success && result.newEventId) {
+          // Find the newly created event in the local state
+          const newEvent = events.find(e => e.id === result.newEventId);
+          if (newEvent) {
+              setEventToEdit(newEvent);
+          }
+          setIsFormOpen(false);
+          return { success: true };
+      }
+      return { success: false };
+  };
+  
+  const handleUpdateEvent = async (id: string, data: Partial<EventInsert>) => {
+      const result = await updateEvent(id, data);
+      if (result.success) {
+          setEventToEdit(null);
+      }
+      return result;
+  };
 
   if (isLoading && events.length === 0) {
     return (
@@ -177,7 +324,7 @@ const EventsPage = () => {
                 <RefreshCw className={isLoading ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
             </Button>
             {canManageEvents && (
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                <Dialog open={isCreateFormOpen} onOpenChange={setIsFormOpen}>
                   <DialogTrigger asChild>
                     <Button className="bg-purple-600 hover:bg-purple-700">
                       <PlusCircle className="h-4 w-4 mr-2" />
@@ -192,7 +339,7 @@ const EventsPage = () => {
                       </DialogDescription>
                     </DialogHeader>
                     <EventForm 
-                      onSubmit={createEvent} 
+                      onSubmit={handleCreateEvent} 
                       onClose={() => setIsFormOpen(false)} 
                       isLoading={isLoading}
                     />
@@ -201,22 +348,86 @@ const EventsPage = () => {
             )}
         </div>
       </div>
-
-      {events.length === 0 && !isLoading ? (
-        <p className="text-gray-400 text-center mt-10">Még nincsenek események ehhez a szervezethez.</p>
+      
+      {/* Active Events */}
+      <h3 className="text-2xl font-bold text-green-300 mb-4">Aktív (Publikált) Események ({activeEvents.length})</h3>
+      {activeEvents.length === 0 && !isLoading ? (
+        <p className="text-gray-400 text-center mt-10 mb-12">Jelenleg nincsenek publikált események.</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {events.map(event => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {activeEvents.map(event => (
             <EventCard 
               key={event.id} 
               event={event} 
               onDelete={deleteEvent} 
-              onUpdate={updateEvent}
+              onUpdate={handleUpdateEvent}
+              onToggleActive={toggleActiveStatus}
+              onArchive={archiveEvent}
+              onUnarchive={unarchiveEvent}
               isLoading={isLoading}
               canManage={canManageEvents}
             />
           ))}
         </div>
+      )}
+      
+      {/* Draft Events */}
+      <h3 className="text-2xl font-bold text-yellow-300 mb-4">Piszkozatok ({draftEvents.length})</h3>
+      {draftEvents.length === 0 && !isLoading ? (
+        <p className="text-gray-400 text-center mt-10 mb-12">Nincsenek piszkozat állapotú események.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          {draftEvents.map(event => (
+            <EventCard 
+              key={event.id} 
+              event={event} 
+              onDelete={deleteEvent} 
+              onUpdate={handleUpdateEvent}
+              onToggleActive={toggleActiveStatus}
+              onArchive={archiveEvent}
+              onUnarchive={unarchiveEvent}
+              isLoading={isLoading}
+              canManage={canManageEvents}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Archived Events */}
+      <h3 className="text-2xl font-bold text-gray-400 mb-4 flex items-center gap-2">
+        <Archive className="h-5 w-5" /> Archivált Események ({archivedEvents.length})
+      </h3>
+      {archivedEvents.length === 0 ? (
+        <p className="text-gray-400 text-center mt-10">Nincsenek archivált események.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {archivedEvents.map(event => (
+            <EventCard 
+              key={event.id} 
+              event={event} 
+              onDelete={deleteEvent} 
+              onUpdate={handleUpdateEvent}
+              onToggleActive={toggleActiveStatus}
+              onArchive={archiveEvent}
+              onUnarchive={unarchiveEvent}
+              isLoading={isLoading}
+              canManage={canManageEvents}
+            />
+          ))}
+        </div>
+      )}
+      
+      {/* Dedicated Edit Dialog for newly created event (if needed) */}
+      {eventToEdit && (
+          <EventEditDialog 
+              event={eventToEdit} 
+              onUpdate={handleUpdateEvent} 
+              isLoading={isLoading} 
+              isOpen={true}
+              onOpenChange={(open) => {
+                  if (!open) setEventToEdit(null);
+              }}
+          />
       )}
     </div>
   );

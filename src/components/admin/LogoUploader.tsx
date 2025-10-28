@@ -20,7 +20,7 @@ const MAX_INPUT_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 // Max output size: 200 KB (This is enforced by the Cropper/Edge Function)
 
 const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuccess, onRemove }) => {
-  const { user } = useAuth();
+  const { user, activeOrganizationId } = useAuth();
   const [file, setFile] = useState<File | null>(null); // The file selected by the user (up to 2MB)
   const [croppedFile, setCroppedFile] = useState<File | null>(null); // The final, compressed file (max 200KB)
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentLogoUrl);
@@ -80,7 +80,10 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
   };
 
   const handleUpload = async () => {
-    if (!croppedFile || !user) return;
+    if (!croppedFile || !user || !activeOrganizationId) {
+        showError('Hiányzó adatok a feltöltéshez.');
+        return;
+    }
 
     setIsUploading(true);
     
@@ -110,6 +113,7 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
             base64Data: base64Data,
             mimeType: croppedFile.type,
             oldLogoPath: currentLogoUrl, // Pass current URL for deletion
+            organizationId: activeOrganizationId, // Pass organization ID for path
           }),
         }
       );

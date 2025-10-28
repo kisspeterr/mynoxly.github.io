@@ -36,9 +36,10 @@ const ProfileSettingsPage: React.FC = () => {
     }
   }, [activeOrganizationProfile]);
   
-  // Check if the user is the owner (main admin) of the active organization
-  // NOTE: For simplicity, we allow anyone with coupon_manager rights to edit settings, 
-  // but the RLS on profiles table should restrict this to the owner (role='admin').
+  // Check if the user is the owner of the active organization
+  const isOwner = activeOrganizationProfile?.owner_id === user?.id;
+  
+  // Check if the user has permission to manage settings (owner or high-level admin)
   const canManageSettings = checkPermission('coupon_manager'); 
 
   const handleSave = async (e: React.FormEvent) => {
@@ -50,49 +51,28 @@ const ProfileSettingsPage: React.FC = () => {
     const trimmedOrgName = organizationName.trim();
     
     const updates = {
-      // Organization fields
       organization_name: trimmedOrgName || null, 
       logo_url: logoUrl || null,
       is_public: isPublic,
-      updated_at: new Date().toISOString(),
     };
 
     try {
-      // 1. Update the active organization's profile record
-      const { error: profileError } = await supabase
-        .from('profiles')
+      // 1. Update the active organization's record in the new 'organizations' table
+      const { error: orgError } = await supabase
+        .from('organizations')
         .update(updates)
         .eq('id', activeOrganizationId);
 
-      if (profileError) {
-        if (profileError.code === '23505' && profileError.message.includes('unique_organization_name')) {
+      if (orgError) {
+        if (orgError.code === '23505' && orgError.message.includes('organization_name')) {
             showError('Hiba: Ez a szervezet név már foglalt. Kérjük, válassz másikat.');
         } else {
-            showError(`Hiba a szervezet profil frissítésekor: ${profileError.message}`);
-            console.error('Organization profile update error:', profileError);
+            showError(`Hiba a szervezet profil frissítésekor: ${orgError.message}`);
+            console.error('Organization profile update error:', orgError);
         }
         return;
       }
       
-      // 2. CRITICAL: Ensure the owner is a member of their own organization (if organization_name is set)
-      if (trimmedOrgName) {
-          const ownerRoles: MemberRole[] = ['coupon_manager', 'event_manager', 'redemption_agent', 'viewer'];
-          const { error: memberError } = await supabase
-              .from('organization_members')
-              .upsert({
-                  organization_id: activeOrganizationId,
-                  user_id: user.id,
-                  status: 'accepted',
-                  roles: ownerRoles,
-              }, { onConflict: 'organization_id, user_id' });
-              
-          if (memberError) {
-              console.error('Error ensuring owner membership:', memberError);
-              showError('Hiba történt a tulajdonosi tagság beállításakor.');
-              return;
-          }
-      }
-
       showSuccess('Szervezet profil sikeresen frissítve!');
       // Re-fetch profile to update global state (this will refresh activeOrganizationProfile and allMemberships)
       await fetchProfile(user.id); 
