@@ -39,9 +39,10 @@ interface OrganizationFormProps {
 }
 
 const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave, onClose, isSaving }) => {
+    // Initialize ownerId to 'null' string if not set, to handle Select placeholder correctly
     const [orgName, setOrgName] = useState(initialOrg?.organization_name || '');
-    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || '');
-    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); // Logo is now part of the organization record
+    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || 'null'); 
+    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); 
     const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
     
@@ -85,15 +86,18 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             showError('A szervezet neve kötelező.');
             return;
         }
-        if (!ownerId) {
+        if (ownerId === 'null' || !ownerId) {
             showError('A tulajdonos kiválasztása kötelező.');
             return;
         }
         
+        // Pass logo_url only if editing, otherwise it's null (as per previous logic)
+        const logoToSave = isEditing ? logoUrl : null;
+        
         const success = await onSave({ 
             organization_name: trimmedOrgName, 
             owner_id: ownerId,
-            logo_url: logoUrl, // Pass logo URL
+            logo_url: logoToSave, 
         }, !isEditing);
         
         if (success) {
@@ -129,6 +133,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                         <SelectValue placeholder={isLoadingUsers ? "Felhasználók betöltése..." : "Válassz tulajdonost"} />
                     </SelectTrigger>
                     <SelectContent className="bg-black/90 border-red-500/30 text-white">
+                        <SelectItem value="null">Válassz tulajdonost</SelectItem>
                         {availableUsers.map(user => (
                             <SelectItem key={user.id} value={user.id}>
                                 <div className="flex items-center">
@@ -146,19 +151,20 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 )}
             </div>
             
-            {/* Simplified Logo URL display/edit (Logo Uploader is too complex to integrate here right now) */}
-            <div className="space-y-2">
-                <Label htmlFor="logoUrl" className="text-gray-300">Logó URL (opcionális)</Label>
-                <Input 
-                    id="logoUrl"
-                    type="url" 
-                    value={logoUrl || ''}
-                    onChange={(e) => setLogoUrl(e.target.value)}
-                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-                    placeholder="https://..."
-                    disabled={isSaving}
-                />
-            </div>
+            {isEditing && (
+                <div className="space-y-2">
+                    <Label htmlFor="logoUrl" className="text-gray-300">Logó URL (opcionális)</Label>
+                    <Input 
+                        id="logoUrl"
+                        type="url" 
+                        value={logoUrl || ''}
+                        onChange={(e) => setLogoUrl(e.target.value)}
+                        className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+                        placeholder="https://..."
+                        disabled={isSaving}
+                    />
+                </div>
+            )}
 
             <DialogFooter>
                 <DialogClose asChild>
@@ -167,7 +173,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 <Button 
                     type="submit" 
                     className="bg-red-600 hover:bg-red-700"
-                    disabled={isSaving || !orgName.trim() || !ownerId}
+                    disabled={isSaving || !orgName.trim() || ownerId === 'null'}
                 >
                     {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                     {isEditing ? 'Frissítés' : 'Létrehozás'}
@@ -196,7 +202,13 @@ const OrganizationDetailsModal: React.FC<OrganizationDetailsModalProps> = ({ org
         const newOwnerId = orgData.owner_id;
         
         // 1. Update the organization record
-        const success = await onUpdate(orgData, isNew);
+        // CRITICAL: When updating, we must preserve the existing logo_url if the form doesn't provide one (which it won't now)
+        const updatedOrgData = {
+            ...orgData,
+            logo_url: orgData.logo_url, // Use the URL provided by the form (which might be the old one or a new manual one)
+        };
+        
+        const success = await onUpdate(updatedOrgData, isNew);
         
         if (success) {
             // 2. If the owner changed, update membership and potentially demote old owner's profile role
@@ -304,13 +316,10 @@ const SuperadminOrganizationsPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // 1. Fetch all organizations and join the owner's profile data
+            // 1. Fetch all organizations
             const { data: orgData, error: orgError } = await supabase
                 .from('organizations')
-                .select(`
-                    *,
-                    owner_profile:owner_id (username, email, role)
-                `)
+                .select(`*`)
                 .order('organization_name', { ascending: true });
 
             if (orgError) {
@@ -320,17 +329,31 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 return;
             }
             
-            // 2. Process data
-            const orgs: SuperadminOrganization[] = (orgData || []).map(org => ({
-                id: org.id,
-                organization_name: org.organization_name,
-                logo_url: org.logo_url,
-                is_public: org.is_public,
-                owner_id: org.owner_id,
-                owner_username: (org.owner_profile as any)?.username || 'Nincs tulajdonos',
-                owner_email: (org.owner_profile as any)?.email || 'Nincs email',
-                owner_role: (org.owner_profile as any)?.role || 'user',
-            }));
+            const rawOrgs = orgData || [];
+            const ownerIds = Array.from(new Set(rawOrgs.map(o => o.owner_id).filter((id): id is string => id !== null)));
+            
+            // 2. Fetch all owner profiles using RPC
+            const { data: ownerProfilesData } = await supabase.rpc('get_all_user_profiles_for_superadmin');
+            const ownerProfileMap = (ownerProfilesData || []).reduce((acc, p) => {
+                acc[p.id] = p;
+                return acc;
+            }, {} as Record<string, Profile & { email: string }>);
+            
+            // 3. Process data
+            const orgs: SuperadminOrganization[] = rawOrgs.map(org => {
+                const ownerProfile = org.owner_id ? ownerProfileMap[org.owner_id] : null;
+                
+                return {
+                    id: org.id,
+                    organization_name: org.organization_name,
+                    logo_url: org.logo_url,
+                    is_public: org.is_public,
+                    owner_id: org.owner_id,
+                    owner_username: ownerProfile?.username || 'Nincs tulajdonos',
+                    owner_email: ownerProfile?.email || 'Nincs email',
+                    owner_role: ownerProfile?.role || 'user',
+                };
+            });
                 
             setOrganizations(orgs);
 
@@ -352,14 +375,17 @@ const SuperadminOrganizationsPage: React.FC = () => {
             let data: OrganizationProfileData | null;
             let error: any;
             
+            // Ensure logo_url is explicitly set to null if not provided (which is the case now)
+            const finalOrgData = { ...orgData, logo_url: orgData.logo_url || null };
+            
             if (isNew) {
                 // 1. CREATE new organization record
                 const { data: newData, error: newError } = await supabase
                     .from('organizations')
                     .insert({ 
-                        organization_name: orgData.organization_name,
-                        owner_id: orgData.owner_id,
-                        logo_url: orgData.logo_url,
+                        organization_name: finalOrgData.organization_name,
+                        owner_id: finalOrgData.owner_id,
+                        logo_url: finalOrgData.logo_url,
                         is_public: true,
                     })
                     .select()
@@ -371,9 +397,9 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 const { data: updateData, error: updateError } = await supabase
                     .from('organizations')
                     .update({ 
-                        organization_name: orgData.organization_name,
-                        owner_id: orgData.owner_id,
-                        logo_url: orgData.logo_url,
+                        organization_name: finalOrgData.organization_name,
+                        owner_id: finalOrgData.owner_id,
+                        logo_url: finalOrgData.logo_url,
                     })
                     .eq('id', selectedOrg?.id)
                     .select()

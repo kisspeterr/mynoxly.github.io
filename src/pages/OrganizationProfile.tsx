@@ -87,6 +87,7 @@ const OrganizationProfile = () => {
     if (isAuthenticated && isPointCoupon) {
         // Use organization_id from the coupon object
         const organizationId = coupon.organization_id;
+        // CRITICAL FIX: Use organizationId from coupon object to check points
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
         
         if (currentPoints < coupon.points_cost) {
@@ -301,8 +302,8 @@ const OrganizationProfile = () => {
   const { profile, events } = organizationData;
   
   // Get current user points for this organization
-  const organizationRecord = points.find(p => p.profile.organization_name === organizationName);
-  const currentPoints = organizationRecord ? getPointsForOrganization(organizationRecord.profile.id) : 0;
+  // CRITICAL FIX: Use profile.id (organization_id) to look up points
+  const currentPoints = getPointsForOrganization(profile.id);
 
 
   return (

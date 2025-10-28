@@ -22,7 +22,7 @@ const couponSchema = z.object({
   // Updated: Full Description (Max 500 chars)
   description: z.string().max(500, 'A teljes leírás maximum 500 karakter lehet.').nullable().optional().transform(e => e === "" ? null : e),
   
-  coupon_code: z.string().nullable().optional(), // Now optional, validated conditionally below
+  coupon_code: z.string().nullable().optional().transform(e => e === "" ? null : e), // Now optional, validated conditionally below
   image_url: z.string().url('Érvénytelen URL formátum.').nullable().optional().transform(e => e === "" ? null : e), // image_url is now managed by the uploader
   expiry_date: z.date().nullable().optional().transform(date => date ? date.toISOString() : null),
   max_uses_per_user: z.coerce.number().int().min(1, 'Minimum 1 használat.'),
@@ -182,11 +182,11 @@ const CouponForm: React.FC<CouponFormProps> = ({ onSubmit, onClose, isLoading, i
           id="coupon_code"
           {...register('coupon_code')}
           className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
-          disabled={isEditing && isCodeRequired} // Only disable if editing AND code is required
+          // REMOVED: disabled={isEditing && isCodeRequired}
           placeholder={isCodeRequired ? "Pl. 1PLUSZ1" : "Nem szükséges kód"}
         />
         {errors.coupon_code && <p className="text-red-400 text-sm">{errors.coupon_code.message}</p>}
-        {isEditing && isCodeRequired && <p className="text-gray-500 text-xs">A kódos kupon kódja nem szerkeszthető.</p>}
+        {/* Removed the warning about code not being editable */}
       </div>
 
       

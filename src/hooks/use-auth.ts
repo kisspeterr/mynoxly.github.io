@@ -125,7 +125,6 @@ export const useAuth = () => {
   });
   
   // NEW STATE: Aktív tagság ID-je (organizations.id)
-  // Mivel eltávolítjuk a választót, ez az állapot mostantól csak az első tagságot tárolja.
   const [activeOrganizationId, setActiveOrganizationId] = useState<string | null>(null);
   
   // 🔹 Aktív tagság meghatározása
@@ -148,18 +147,9 @@ export const useAuth = () => {
   
   // 🔹 Kezdeti aktív szervezet beállítása (első tagság)
   useEffect(() => {
-    if (data && data.allMemberships.length > 0) {
-        // Ha van tagság, mindig az elsőt állítjuk be aktívnak, ha még nincs beállítva, 
-        // VAGY ha a jelenlegi aktív ID már nem létezik a tagságok között.
-        const firstOrgId = data.allMemberships[0].organization_id;
-        const currentOrgExists = data.allMemberships.some(m => m.organization_id === activeOrganizationId);
-        
-        if (!activeOrganizationId || !currentOrgExists) {
-            setActiveOrganizationId(firstOrgId);
-        }
-    } else if (data && data.allMemberships.length === 0 && activeOrganizationId) {
-        // Ha nincs tagság, töröljük az aktív ID-t
-        setActiveOrganizationId(null);
+    if (data && !activeOrganizationId && data.allMemberships.length > 0) {
+        // Az első elfogadott tagságot állítjuk be aktívnak.
+        setActiveOrganizationId(data.allMemberships[0].organization_id);
     }
   }, [data, activeOrganizationId]);
   
@@ -193,8 +183,7 @@ export const useAuth = () => {
   
   // 🔹 Profil frissítésének kényszerítése (pl. beállítások mentése után)
   const forceProfileRefetch = useCallback(async (userId: string) => {
-      // Refetch the main query to update profile and memberships
-      await refetch();
+      refetch();
   }, [refetch]);
   
   // 🔹 Jogosultság ellenőrzése
@@ -204,32 +193,28 @@ export const useAuth = () => {
         return true;
     }
     
-    // 1. Ellenőrizzük, hogy van-e aktív tagság
-    if (!activeMembership) {
-        return false;
-    }
-    
-    // 2. Ellenőrizzük, hogy a felhasználó a tulajdonos-e (a tulajdonos minden jogosultsággal rendelkezik)
-    if (activeOrganizationProfile?.owner_id === data?.user?.id) {
-        return true;
-    }
-    
-    // 3. Delegált tag ellenőrzése
+    // 1. Delegált tag ellenőrzése
     const roles = activeMembership?.roles;
     if (roles && roles.includes(requiredRole)) {
         return true;
     }
     
     return false;
-  }, [data?.profile?.role, activeMembership, activeOrganizationProfile?.owner_id, data?.user?.id]);
+  }, [data?.profile?.role, activeMembership?.roles]);
   
-  // 🔹 Aktív szervezet váltása (NEM EXPORTÁLJUK TÖBBÉ)
-  const switchActiveOrganization = useCallback((organizationId: string | null) => {
-      // Ezt a funkciót csak belsőleg használjuk, ha a felhasználó több szervezethez tartozik, 
-      // de mivel a Dashboardról eltávolítottuk a választót, ez a funkció most inaktív.
-      // Ha a felhasználó több szervezethez tartozik, az elsőt használjuk.
-      console.warn('Organization switching is disabled on the Admin Dashboard.');
-  }, []);
+  // 🔹 Aktív szervezet váltása
+  const switchActiveOrganization = useCallback((organizationId: string) => {
+      const membership = data?.allMemberships.find(m => m.organization_id === organizationId);
+      
+      if (membership) {
+          setActiveOrganizationId(organizationId);
+          
+          const orgName = membership.organization_profile?.organization_name || 'Ismeretlen szervezet';
+          showSuccess(`Aktív szervezet váltva: ${orgName}`);
+      } else {
+          showError('Érvénytelen szervezet azonosító.');
+      }
+  }, [data?.allMemberships]);
 
 
   // 🔹 Visszatérő értékek
@@ -246,12 +231,11 @@ export const useAuth = () => {
     
     isLoading: isLoading,
     signOut,
-    // isAdmin: true, ha van legalább egy elfogadott tagsága
-    isAdmin: (data?.profile?.role === 'admin' || data?.profile?.role === 'superadmin' || (data?.allMemberships && data.allMemberships.length > 0)), 
-    isSuperadmin: data?.profile?.role === 'superadmin',
+    isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status (now means they own at least one org)
+    isSuperadmin: data?.profile?.role === 'superadmin', // NEW
     isAuthenticated: !!data?.user,
     fetchProfile: forceProfileRefetch,
     checkPermission,
-    // switchActiveOrganization, // NEM EXPORTÁLJUK
+    switchActiveOrganization, // NEW
   };
 };
