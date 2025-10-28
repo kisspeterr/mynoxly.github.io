@@ -70,7 +70,7 @@ export const useOrganizationMembers = () => {
         .select(`
           id, organization_id, user_id, status, roles, created_at
         `)
-        .eq('organization_id', organizationId)
+        .eq('organization_id', organizationId) // <-- CRITICAL FILTER
         .order('status', { ascending: true })
         .order('created_at', { ascending: true });
 
@@ -171,7 +171,8 @@ export const useOrganizationMembers = () => {
         const { error } = await supabase
             .from('organization_members')
             .update({ roles: roles })
-            .eq('id', memberId);
+            .eq('id', memberId)
+            .eq('organization_id', organizationId); // Security check
 
         if (error) {
             showError(`Hiba történt a jogosultságok frissítésekor: ${error.message}`);
@@ -197,7 +198,8 @@ export const useOrganizationMembers = () => {
         const { error } = await supabase
             .from('organization_members')
             .delete()
-            .eq('id', memberId);
+            .eq('id', memberId)
+            .eq('organization_id', organizationId); // Security check
 
         if (error) {
             showError(`Hiba történt a tag eltávolításakor: ${error.message}`);
@@ -297,6 +299,8 @@ export const useOrganizationMembers = () => {
   useEffect(() => {
     if (organizationId) {
         fetchMembers();
+    } else {
+        setMembers([]);
     }
     
     if (isAuthenticated) {
