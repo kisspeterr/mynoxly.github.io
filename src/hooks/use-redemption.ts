@@ -97,7 +97,6 @@ export const useRedemption = () => {
           user_id,
           redeemed_at,
           is_used,
-          redemption_code,
           coupon:coupon_id (title, organization_name, points_reward)
         `)
         .eq('redemption_code', code)

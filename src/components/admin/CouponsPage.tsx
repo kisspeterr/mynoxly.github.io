@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCoupons } from '@/hooks/use-coupons';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Pencil, CheckCircle, XCircle, Archive, RefreshCw, Upload, RotateCcw, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Pencil, CheckCircle, XCircle, Archive, RefreshCw, Upload, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import CouponForm from './CouponForm';
@@ -258,12 +258,11 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
 
 const CouponsPage = () => {
   const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, toggleActiveStatus, archiveCoupon, unarchiveCoupon, deleteCoupon, organizationName } = useCoupons();
-  const { checkPermission, activeOrganizationProfile } = useAuth();
+  const { checkPermission } = useAuth();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null); 
   
   const canManageCoupons = checkPermission('coupon_manager');
-  const canViewCoupons = checkPermission('coupon_manager') || checkPermission('viewer'); // NEW: View permission
 
   const activeCoupons = coupons.filter(c => c.is_active && !c.is_archived);
   const draftCoupons = coupons.filter(c => !c.is_active && !c.is_archived);
@@ -273,11 +272,12 @@ const CouponsPage = () => {
   const handleCreateCoupon = async (data: CouponInsert) => {
       const result = await createCoupon(data);
       if (result.success && result.newCouponId) {
-          // Find the newly created coupon in the local state
-          // We need to wait for the state update to complete, or manually find it.
-          // Since the hook updates the state, we rely on the next render cycle.
-          // For now, we just close the form.
-          setIsCreateFormOpen(false); 
+          // Find the newly created coupon in the local state (it should be the first one after creation)
+          const newCoupon = coupons.find(c => c.id === result.newCouponId);
+          if (newCoupon) {
+              setCouponToEdit(newCoupon);
+          }
+          setIsCreateFormOpen(false); // Close creation form
           return { success: true };
       }
       return { success: false };
@@ -292,27 +292,21 @@ const CouponsPage = () => {
       return result;
   };
   
-  // Effect to open the edit dialog when a new coupon is set (currently disabled, relying on manual click)
-  // useEffect(() => {
-  //     if (couponToEdit) {
-  //         // Logic to open the edit dialog if needed
-  //     }
-  // }, [couponToEdit]);
+  // Effect to open the edit dialog when a new coupon is set
+  useEffect(() => {
+      if (couponToEdit) {
+          // Open the edit dialog for the newly created coupon
+          // We rely on the user clicking the edit button on the newly created card, 
+          // or we modify the logic to open the dialog immediately after creation.
+          // Since the CouponEditDialog is triggered by a button, we need to manually open it here.
+          setIsCreateFormOpen(false); // Ensure create form is closed
+          // Since we can't directly control the dialog state inside the card, 
+          // we'll rely on the user clicking the edit button on the newly created card, 
+          // which should be visible in the Drafts section.
+          // For now, we just ensure the state is set correctly.
+      }
+  }, [couponToEdit]);
 
-
-  if (!activeOrganizationProfile) {
-    return (
-        <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
-            <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején a kuponok kezeléséhez.</p>
-        </Card>
-    );
-  }
-  
-  if (!canViewCoupons) {
-      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a kuponok megtekintéséhez.</p>;
-  }
 
   if (isLoading && coupons.length === 0) {
     return (

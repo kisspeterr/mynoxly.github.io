@@ -68,7 +68,6 @@ export const useCouponUsages = () => {
     setIsLoading(true);
     try {
       // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
-      // NOTE: RLS policy for admins ensures they only see usages for their organization's coupons.
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
@@ -136,7 +135,6 @@ export const useCouponUsages = () => {
     // Setup Realtime subscription for new/updated usages
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
-    // We use a generic channel and rely on fetchUsages to filter, as Realtime filtering on JOIN is not possible.
     if (organizationName) {
         channel = supabase
           .channel('coupon_usages_admin_feed')

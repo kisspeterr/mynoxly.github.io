@@ -101,7 +101,6 @@ export const useUsageStatistics = () => {
       }
 
       // 2. Build the base query for successfully used coupons
-      // NOTE: RLS policy for admins ensures they only see usages for their organization's coupons.
       let query = supabase
         .from('coupon_usages')
         .select(`

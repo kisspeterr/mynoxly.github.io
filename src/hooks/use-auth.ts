@@ -151,10 +151,6 @@ export const useAuth = () => {
         // Az első elfogadott tagságot állítjuk be aktívnak.
         setActiveOrganizationId(data.allMemberships[0].organization_id);
     }
-    // Ha a felhasználó kijelentkezik, vagy a tagságok eltűnnek, töröljük az aktív ID-t
-    if (data && data.allMemberships.length === 0 && activeOrganizationId) {
-        setActiveOrganizationId(null);
-    }
   }, [data, activeOrganizationId]);
   
   // 🔹 Realtime Auth események figyelése
@@ -187,8 +183,7 @@ export const useAuth = () => {
   
   // 🔹 Profil frissítésének kényszerítése (pl. beállítások mentése után)
   const forceProfileRefetch = useCallback(async (userId: string) => {
-      // Refetch the main query to update profile and memberships
-      await refetch();
+      refetch();
   }, [refetch]);
   
   // 🔹 Jogosultság ellenőrzése
@@ -198,33 +193,17 @@ export const useAuth = () => {
         return true;
     }
     
-    // 1. Ellenőrizzük, hogy van-e aktív tagság
-    if (!activeMembership) {
-        return false;
-    }
-    
-    // 2. Ellenőrizzük, hogy a felhasználó a tulajdonos-e (a tulajdonos minden jogosultsággal rendelkezik)
-    if (activeOrganizationProfile?.owner_id === data?.user?.id) {
-        return true;
-    }
-    
-    // 3. Delegált tag ellenőrzése
+    // 1. Delegált tag ellenőrzése
     const roles = activeMembership?.roles;
     if (roles && roles.includes(requiredRole)) {
         return true;
     }
     
     return false;
-  }, [data?.profile?.role, activeMembership, activeOrganizationProfile?.owner_id, data?.user?.id]);
+  }, [data?.profile?.role, activeMembership?.roles]);
   
   // 🔹 Aktív szervezet váltása
-  const switchActiveOrganization = useCallback((organizationId: string | null) => {
-      if (!organizationId) {
-          setActiveOrganizationId(null);
-          showSuccess('Aktív szervezet törölve.');
-          return;
-      }
-      
+  const switchActiveOrganization = useCallback((organizationId: string) => {
       const membership = data?.allMemberships.find(m => m.organization_id === organizationId);
       
       if (membership) {
@@ -233,7 +212,6 @@ export const useAuth = () => {
           const orgName = membership.organization_profile?.organization_name || 'Ismeretlen szervezet';
           showSuccess(`Aktív szervezet váltva: ${orgName}`);
       } else {
-          setActiveOrganizationId(null);
           showError('Érvénytelen szervezet azonosító.');
       }
   }, [data?.allMemberships]);
@@ -253,9 +231,8 @@ export const useAuth = () => {
     
     isLoading: isLoading,
     signOut,
-    // isAdmin: true, ha van legalább egy elfogadott tagsága
-    isAdmin: (data?.profile?.role === 'admin' || data?.profile?.role === 'superadmin' || (data?.allMemberships && data.allMemberships.length > 0)), 
-    isSuperadmin: data?.profile?.role === 'superadmin',
+    isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status (now means they own at least one org)
+    isSuperadmin: data?.profile?.role === 'superadmin', // NEW
     isAuthenticated: !!data?.user,
     fetchProfile: forceProfileRefetch,
     checkPermission,

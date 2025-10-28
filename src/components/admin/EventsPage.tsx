@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useEvents } from '@/hooks/use-events';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil, RefreshCw, CheckCircle, XCircle, Archive, Upload, RotateCcw, AlertTriangle } from 'lucide-react';
+import { PlusCircle, Trash2, Calendar, Tag, Loader2, MapPin, Clock, Pencil, RefreshCw, CheckCircle, XCircle, Archive, Upload, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import EventForm from './EventForm';
@@ -265,7 +265,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onUpdate, onTogg
 
 const EventsPage = () => {
   const { events, isLoading, fetchEvents, createEvent, updateEvent, toggleActiveStatus, archiveEvent, unarchiveEvent, deleteEvent, organizationName } = useEvents();
-  const { checkPermission, activeOrganizationProfile } = useAuth();
+  const { checkPermission } = useAuth();
   const [isCreateFormOpen, setIsFormOpen] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   
@@ -279,7 +279,10 @@ const EventsPage = () => {
       const result = await createEvent(data);
       if (result.success && result.newEventId) {
           // Find the newly created event in the local state
-          // We rely on the hook refreshing the list
+          const newEvent = events.find(e => e.id === result.newEventId);
+          if (newEvent) {
+              setEventToEdit(newEvent);
+          }
           setIsFormOpen(false);
           return { success: true };
       }
@@ -293,21 +296,6 @@ const EventsPage = () => {
       }
       return result;
   };
-
-  if (!activeOrganizationProfile) {
-    return (
-        <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
-            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
-            <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
-            <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején az események kezeléséhez.</p>
-        </Card>
-    );
-  }
-
-  // Check if the user has permission to view the list
-  if (!checkPermission('event_manager') && !checkPermission('viewer')) {
-      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod az események megtekintéséhez.</p>;
-  }
 
   if (isLoading && events.length === 0) {
     return (
