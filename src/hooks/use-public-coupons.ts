@@ -23,7 +23,7 @@ interface PublicCoupon extends Coupon {
   usage_count: number; // New field for total successful usages
 }
 
-// Helper function to get the organization ID from its name (No longer needed in redeemCoupon, but kept for reference)
+// Helper function to get the organization ID from its name
 const getOrganizationId = async (organizationName: string): Promise<string | null> => {
     const { data, error } = await supabase
         .from('organizations') // Use new organizations table
@@ -44,7 +44,7 @@ export const usePublicCoupons = () => {
   const [allUsages, setAllUsages] = useState<CouponUsage[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
 
-  // Helper to fetch organization logos and IDs
+  // Helper to fetch organization logos
   const fetchOrganizationLogos = async (organizationNames: string[]): Promise<Record<string, { id: string, logo_url: string | null }>> => {
     if (organizationNames.length === 0) return {};
     

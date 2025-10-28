@@ -15,7 +15,6 @@ import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 // Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
   logo_url: string | null;
-  organization_id: string; // NEW: Organization ID
   usage_count: number;
 }
 
@@ -48,8 +47,8 @@ const CouponsSection = () => {
     let pointStatusText = '';
     
     if (isAuthenticated && isPointCoupon) {
-        // CRITICAL FIX: Use organization_id from the coupon object
-        const organizationId = coupon.organization_id;
+        const organizationRecord = points.find(p => p.profile.organization_name === coupon.organization_name);
+        const organizationId = organizationRecord?.organization_id;
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
         
         if (currentPoints < coupon.points_cost) {

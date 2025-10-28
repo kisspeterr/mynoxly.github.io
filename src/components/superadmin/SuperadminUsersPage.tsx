@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 // Extended Profile type for Superadmin view
 interface SuperadminProfile extends Profile {
     email: string;
+    // organization_name is now fetched separately or via RPC if needed, but removed from this type for clarity
 }
 
 // Interface to hold user and their organizations
@@ -29,7 +30,7 @@ const SuperadminUsersPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // 1. Fetch all user profiles including email (via RPC)
+            // 1. Fetch all user profiles including email
             const { data: profilesData, error: profilesError } = await supabase.rpc('get_all_user_profiles_for_superadmin');
             
             if (profilesError) {
@@ -39,22 +40,18 @@ const SuperadminUsersPage: React.FC = () => {
                 return;
             }
             
-            const rawUsers = profilesData as SuperadminProfile[];
+            const rawUsers = profilesData as (SuperadminProfile & { organization_name: string | null })[];
 
-            // 2. Fetch all accepted organization memberships
-            const { data: membersData, error: membersError } = await supabase
-                .from('organization_members')
-                .select(`
-                    user_id,
-                    organization:organization_id (id, organization_name)
-                `)
-                .eq('status', 'accepted');
+            // 2. Fetch all organization ownerships
+            const { data: orgData, error: orgError } = await supabase
+                .from('organizations')
+                .select('id, organization_name, owner_id');
                 
-            if (membersError) {
-                console.error('Error fetching organization members:', membersError);
+            if (orgError) {
+                console.error('Error fetching organizations:', orgError);
             }
             
-            const memberships = membersData || [];
+            const organizations = orgData || [];
             
             // 3. Map organizations to users
             const usersMap: Record<string, UserWithOrgs> = rawUsers.reduce((acc, user) => {
@@ -65,10 +62,9 @@ const SuperadminUsersPage: React.FC = () => {
                 return acc;
             }, {} as Record<string, UserWithOrgs>);
             
-            memberships.forEach(member => {
-                const orgProfile = member.organization as { id: string, organization_name: string } | null;
-                if (orgProfile && usersMap[member.user_id]) {
-                    usersMap[member.user_id].organizations.push(orgProfile);
+            organizations.forEach(org => {
+                if (org.owner_id && usersMap[org.owner_id]) {
+                    usersMap[org.owner_id].organizations.push({ id: org.id, organization_name: org.organization_name });
                 }
             });
             

@@ -39,10 +39,9 @@ interface OrganizationFormProps {
 }
 
 const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave, onClose, isSaving }) => {
-    // Initialize ownerId to 'null' string if not set, to handle Select placeholder correctly
     const [orgName, setOrgName] = useState(initialOrg?.organization_name || '');
-    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || 'null'); 
-    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); 
+    const [ownerId, setOwnerId] = useState(initialOrg?.owner_id || '');
+    const [logoUrl, setLogoUrl] = useState(initialOrg?.logo_url || null); // Logo is now part of the organization record
     const [availableUsers, setAvailableUsers] = useState<UserOption[]>([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(true);
     
@@ -86,7 +85,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
             showError('A szervezet neve kötelező.');
             return;
         }
-        if (ownerId === 'null' || !ownerId) {
+        if (!ownerId) {
             showError('A tulajdonos kiválasztása kötelező.');
             return;
         }
@@ -130,7 +129,6 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                         <SelectValue placeholder={isLoadingUsers ? "Felhasználók betöltése..." : "Válassz tulajdonost"} />
                     </SelectTrigger>
                     <SelectContent className="bg-black/90 border-red-500/30 text-white">
-                        <SelectItem value="null">Válassz tulajdonost</SelectItem>
                         {availableUsers.map(user => (
                             <SelectItem key={user.id} value={user.id}>
                                 <div className="flex items-center">
@@ -169,7 +167,7 @@ const OrganizationForm: React.FC<OrganizationFormProps> = ({ initialOrg, onSave,
                 <Button 
                     type="submit" 
                     className="bg-red-600 hover:bg-red-700"
-                    disabled={isSaving || !orgName.trim() || ownerId === 'null'}
+                    disabled={isSaving || !orgName.trim() || !ownerId}
                 >
                     {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
                     {isEditing ? 'Frissítés' : 'Létrehozás'}
@@ -306,10 +304,13 @@ const SuperadminOrganizationsPage: React.FC = () => {
 
         setIsLoading(true);
         try {
-            // 1. Fetch all organizations
+            // 1. Fetch all organizations and join the owner's profile data
             const { data: orgData, error: orgError } = await supabase
                 .from('organizations')
-                .select(`*`)
+                .select(`
+                    *,
+                    owner_profile:owner_id (username, email, role)
+                `)
                 .order('organization_name', { ascending: true });
 
             if (orgError) {
@@ -319,31 +320,17 @@ const SuperadminOrganizationsPage: React.FC = () => {
                 return;
             }
             
-            const rawOrgs = orgData || [];
-            const ownerIds = Array.from(new Set(rawOrgs.map(o => o.owner_id).filter((id): id is string => id !== null)));
-            
-            // 2. Fetch all owner profiles using RPC
-            const { data: ownerProfilesData } = await supabase.rpc('get_all_user_profiles_for_superadmin');
-            const ownerProfileMap = (ownerProfilesData || []).reduce((acc, p) => {
-                acc[p.id] = p;
-                return acc;
-            }, {} as Record<string, Profile & { email: string }>);
-            
-            // 3. Process data
-            const orgs: SuperadminOrganization[] = rawOrgs.map(org => {
-                const ownerProfile = org.owner_id ? ownerProfileMap[org.owner_id] : null;
-                
-                return {
-                    id: org.id,
-                    organization_name: org.organization_name,
-                    logo_url: org.logo_url,
-                    is_public: org.is_public,
-                    owner_id: org.owner_id,
-                    owner_username: ownerProfile?.username || 'Nincs tulajdonos',
-                    owner_email: ownerProfile?.email || 'Nincs email',
-                    owner_role: ownerProfile?.role || 'user',
-                };
-            });
+            // 2. Process data
+            const orgs: SuperadminOrganization[] = (orgData || []).map(org => ({
+                id: org.id,
+                organization_name: org.organization_name,
+                logo_url: org.logo_url,
+                is_public: org.is_public,
+                owner_id: org.owner_id,
+                owner_username: (org.owner_profile as any)?.username || 'Nincs tulajdonos',
+                owner_email: (org.owner_profile as any)?.email || 'Nincs email',
+                owner_role: (org.owner_profile as any)?.role || 'user',
+            }));
                 
             setOrganizations(orgs);
 

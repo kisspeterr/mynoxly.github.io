@@ -11,7 +11,7 @@ import { useFavorites } from '@/hooks/use-favorites';
 import { Button } from '@/components/ui/button';
 
 interface PartnerProfile {
-  id: string; // organizations.id
+  id: string;
   organization_name: string;
   logo_url: string | null;
 }
@@ -28,11 +28,12 @@ const OrganizersSection = () => {
     const fetchPartners = async () => {
       setIsLoading(true);
       try {
-        // Fetch all organizations that are marked as public
+        // Fetch all profiles that have an organization_name set AND are marked as public
         const { data, error } = await supabase
-          .from('organizations')
+          .from('profiles')
           .select('id, organization_name, logo_url')
-          .eq('is_public', true) // <-- Filter for public organizations
+          .not('organization_name', 'is', null)
+          .eq('is_public', true) // <-- NEW FILTER
           .order('organization_name', { ascending: true });
 
         if (error) {
@@ -42,7 +43,6 @@ const OrganizersSection = () => {
           return;
         }
         
-        // The data structure now directly matches PartnerProfile
         setPartners(data as PartnerProfile[]);
       } finally {
         setIsLoading(false);
@@ -62,7 +62,6 @@ const OrganizersSection = () => {
       return;
     }
     setIsToggling(partner.id);
-    // Use organization ID for toggling favorite
     await toggleFavorite(partner.id, partner.organization_name);
     setIsToggling(null);
   };
@@ -113,7 +112,6 @@ const OrganizersSection = () => {
                   key={partner.id} 
                   className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col items-center p-6"
                 >
-                  {/* Link to Organization Profile Page */}
                   <Link to={`/organization/${partner.organization_name}`} className="w-full flex flex-col items-center">
                     <div className="relative mb-4">
                       {partner.logo_url ? (
