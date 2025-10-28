@@ -218,7 +218,13 @@ export const useAuth = () => {
   }, [data?.profile?.role, activeMembership, activeOrganizationProfile?.owner_id, data?.user?.id]);
   
   // 🔹 Aktív szervezet váltása
-  const switchActiveOrganization = useCallback((organizationId: string) => {
+  const switchActiveOrganization = useCallback((organizationId: string | null) => {
+      if (!organizationId) {
+          setActiveOrganizationId(null);
+          showSuccess('Aktív szervezet törölve.');
+          return;
+      }
+      
       const membership = data?.allMemberships.find(m => m.organization_id === organizationId);
       
       if (membership) {
@@ -227,11 +233,8 @@ export const useAuth = () => {
           const orgName = membership.organization_profile?.organization_name || 'Ismeretlen szervezet';
           showSuccess(`Aktív szervezet váltva: ${orgName}`);
       } else {
-          // Ha a felhasználó null-t választ (pl. a placeholder), akkor töröljük az aktív ID-t
           setActiveOrganizationId(null);
-          if (organizationId !== null) {
-              showError('Érvénytelen szervezet azonosító.');
-          }
+          showError('Érvénytelen szervezet azonosító.');
       }
   }, [data?.allMemberships]);
 
