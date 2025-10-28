@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, AlertTriangle } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -13,7 +13,7 @@ import UsageStatisticsPage from '@/components/admin/UsageStatisticsPage'; // Imp
 import OrganizationMembersPage from '@/components/admin/OrganizationMembersPage'; // NEW IMPORT
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MemberRole } from '@/types/organization';
 
@@ -44,6 +44,7 @@ const AdminDashboard = () => {
       if (acceptedMemberships.length > 1 || (acceptedMemberships.length > 0 && !activeOrganizationProfile)) {
           navigate('/admin/select-organization');
       }
+      // If user has 0 accepted memberships, UnauthorizedAccess handles it below.
     }
   }, [isAuthenticated, isSuperadmin, isLoading, navigate, allMemberships, activeOrganizationProfile]);
   
@@ -69,10 +70,11 @@ const AdminDashboard = () => {
     return <UnauthorizedAccess />;
   }
   
+  // If authenticated but no active organization is set (should only happen briefly before redirect, or if 0 memberships)
   if (!isAuthenticated || !activeOrganizationProfile) {
-      // If we reach here, it means the user is authenticated but either has no memberships 
-      // (handled by UnauthorizedAccess) or should have been redirected to selection page.
-      // We return null to prevent rendering while waiting for redirect/loading.
+      // If we reach here, it means the user has 1 or more memberships but no active profile is set.
+      // The useEffect above should handle the redirect to /admin/select-organization.
+      // If it's a single membership, the OrganizationSelectionPage handles the switch and redirect.
       return null;
   }
   
