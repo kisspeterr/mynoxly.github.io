@@ -26,6 +26,22 @@ interface UsageDetails {
   user_email: string;
 }
 
+// Helper function to get the organization ID from its name (No longer needed in finalizeRedemption, but kept for checkCode)
+const getOrganizationId = async (organizationName: string): Promise<string | null> => {
+    const { data, error } = await supabase
+        .from('organizations') // Use new organizations table
+        .select('id')
+        .eq('organization_name', organizationName)
+        .single();
+        
+    if (error) {
+        console.error('Error fetching organization ID:', error);
+        return null;
+    }
+    return data?.id || null;
+};
+
+
 export const useRedemption = () => {
   const { activeOrganizationProfile, checkPermission } = useAuth(); // Use active organization context
   const [isLoading, setIsLoading] = useState(false);
