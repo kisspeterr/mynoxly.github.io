@@ -7,12 +7,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home, AtSign } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home, AtSign, AlertTriangle } from 'lucide-react';
 import { useRedemption } from '@/hooks/use-redemption';
 import { format } from 'date-fns';
 
 const RedemptionPage = () => {
-  const { isAuthenticated, isAdmin, isLoading: isAuthLoading, checkPermission } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading, checkPermission, activeOrganizationProfile } = useAuth();
   const { isLoading, usageDetails, checkCode, finalizeRedemption, clearDetails } = useRedemption();
   const navigate = useNavigate();
   const [codeInput, setCodeInput] = useState('');
@@ -42,6 +42,29 @@ const RedemptionPage = () => {
     return <UnauthorizedAccess />;
   }
   
+  if (!activeOrganizationProfile) {
+    return (
+        <AuthLayout>
+            <div className="text-center">
+                <h1 className="text-3xl font-bold mb-6 text-green-400">Kupon Beváltás (Admin)</h1>
+                <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+                    <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
+                    <p className="text-gray-400">Kérjük, válassz egy szervezetet az Admin Dashboardon a beváltás eléréséhez.</p>
+                </Card>
+                <div className="mt-8">
+                    <Button asChild variant="outline" className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
+                        <Link to="/admin/dashboard">
+                            <Home className="h-4 w-4 mr-2" />
+                            Admin Dashboard
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+        </AuthLayout>
+    );
+  }
+  
   const userName = usageDetails?.profile?.first_name || usageDetails?.profile?.last_name 
     ? `${usageDetails.profile.first_name || ''} ${usageDetails.profile.last_name || ''}`.trim()
     : 'Névtelen felhasználó';
@@ -52,6 +75,13 @@ const RedemptionPage = () => {
     <AuthLayout>
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-6 text-green-400">Kupon Beváltás (Admin)</h1>
+        
+        <Card className="bg-black/50 border-green-500/30 backdrop-blur-sm text-white p-6 mb-6">
+            <div className="flex items-center justify-center space-x-3">
+                <MapPin className="h-5 w-5 text-green-400" />
+                <span className="text-lg font-semibold text-white">Aktív Szervezet: {activeOrganizationProfile.organization_name}</span>
+            </div>
+        </Card>
         
         <Card className="bg-black/50 border-green-500/30 backdrop-blur-sm text-white p-6">
           <CardHeader className="p-0 mb-6">

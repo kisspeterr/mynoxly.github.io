@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useCouponUsages } from '@/hooks/use-coupon-usages';
-import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw, AtSign } from 'lucide-react';
+import { Loader2, Tag, User, Clock, CheckCircle, XCircle, RefreshCw, AtSign, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 
 const CouponUsagesPage = () => {
   const { usages, isLoading, fetchUsages, organizationName } = useCouponUsages();
-  const { checkPermission } = useAuth();
+  const { checkPermission, activeOrganizationProfile } = useAuth();
   
   const canViewUsages = checkPermission('viewer') || checkPermission('redemption_agent') || checkPermission('coupon_manager') || checkPermission('event_manager');
 
@@ -21,6 +21,16 @@ const CouponUsagesPage = () => {
     }
     return format(date, 'yyyy. MM. dd. HH:mm:ss');
   };
+  
+  if (!activeOrganizationProfile) {
+    return (
+        <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
+            <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején a beváltások megtekintéséhez.</p>
+        </Card>
+    );
+  }
   
   if (!canViewUsages) {
       return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a beváltások megtekintéséhez.</p>;
@@ -35,7 +45,7 @@ const CouponUsagesPage = () => {
         </h2>
         <Button 
           onClick={fetchUsages} 
-          variant="outline" 
+          variant="outline"
           size="icon"
           className="border-gray-700 text-gray-400 hover:bg-gray-800"
           disabled={isLoading}

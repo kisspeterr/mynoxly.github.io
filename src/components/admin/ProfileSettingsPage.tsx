@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
@@ -36,10 +36,8 @@ const ProfileSettingsPage: React.FC = () => {
     }
   }, [activeOrganizationProfile]);
   
-  // Check if the user is the owner of the active organization
-  const isOwner = activeOrganizationProfile?.owner_id === user?.id;
-  
   // Check if the user has permission to manage settings (owner or high-level admin)
+  // We use 'coupon_manager' as a proxy for general management rights
   const canManageSettings = checkPermission('coupon_manager'); 
 
   const handleSave = async (e: React.FormEvent) => {
@@ -95,7 +93,13 @@ const ProfileSettingsPage: React.FC = () => {
   }
   
   if (!activeOrganizationProfile || !activeOrganizationId) {
-      return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a beállítások eléréséhez.</p>;
+      return (
+        <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
+            <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején a beállítások eléréséhez.</p>
+        </Card>
+      );
   }
   
   if (!canManageSettings) {

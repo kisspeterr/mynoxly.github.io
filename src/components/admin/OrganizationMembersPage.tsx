@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, UserPlus, Users, Trash2, CheckCircle, Clock, Settings, RefreshCw, AtSign } from 'lucide-react';
+import { Loader2, UserPlus, Users, Trash2, CheckCircle, Clock, Settings, RefreshCw, AtSign, AlertTriangle } from 'lucide-react';
 import { MemberRole, OrganizationMember } from '@/types/organization';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -22,6 +22,13 @@ const ROLE_OPTIONS: { value: MemberRole, label: string, description: string }[] 
     { value: 'event_manager', label: 'Esemény kezelő', description: 'Létrehozhat és szerkeszthet eseményeket.' },
     { value: 'viewer', label: 'Statisztika néző', description: 'Rálát a beváltási statisztikákra.' },
 ];
+
+const ROLE_MAP: Record<MemberRole, string> = {
+    coupon_manager: 'Kupon kezelő',
+    event_manager: 'Esemény kezelő',
+    redemption_agent: 'Beváltó ügynök',
+    viewer: 'Statisztika néző',
+};
 
 // --- Invite Form ---
 const inviteSchema = z.object({
@@ -270,14 +277,20 @@ const OrganizationMembersPage: React.FC = () => {
     const { activeOrganizationProfile, checkPermission } = useAuth();
     const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
     
-    // Only the owner/main admin can manage members (using coupon_manager as proxy for now)
+    // Only the owner/main admin can manage members
     const canManageMembers = checkPermission('coupon_manager'); 
 
     const activeMembers = members.filter(m => m.status === 'accepted');
     const pendingMembers = members.filter(m => m.status === 'pending');
     
     if (!activeOrganizationProfile) {
-        return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
+        return (
+            <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+                <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
+                <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején a tagok kezeléséhez.</p>
+            </Card>
+        );
     }
 
     return (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useUsageStatistics, UsageStat, TimeRange } from '@/hooks/use-usage-statistics';
-import { Calendar as CalendarIcon, Loader2, Search, Tag, User, Clock, BarChart3, AtSign } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Search, Tag, User, Clock, BarChart3, AtSign, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -21,7 +21,7 @@ const timeRangeLabels: Record<TimeRange, string> = {
 
 const UsageStatisticsPage: React.FC = () => {
   const { stats, detailedUsages, isLoading, fetchStatistics } = useUsageStatistics();
-  const { checkPermission } = useAuth();
+  const { checkPermission, activeOrganizationProfile } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [emailFilter, setEmailFilter] = useState('');
@@ -30,10 +30,10 @@ const UsageStatisticsPage: React.FC = () => {
 
   // Fetch data whenever date, timeRange, or filter changes
   useEffect(() => {
-    if (canViewStatistics) {
+    if (canViewStatistics && activeOrganizationProfile) {
         fetchStatistics(selectedDate, timeRange, emailFilter);
     }
-  }, [selectedDate, timeRange, emailFilter, fetchStatistics, canViewStatistics]);
+  }, [selectedDate, timeRange, emailFilter, fetchStatistics, canViewStatistics, activeOrganizationProfile]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -61,6 +61,16 @@ const UsageStatisticsPage: React.FC = () => {
         return format(selectedDate, "yyyy. MM. dd.");
     }
   };
+  
+  if (!activeOrganizationProfile) {
+    return (
+        <Card className="text-center p-10 bg-gray-800/50 rounded-lg border border-red-500/30 mt-6">
+            <AlertTriangle className="h-10 w-10 text-red-400 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-red-300 mb-2">Nincs aktív szervezet</h3>
+            <p className="text-gray-400">Kérjük, válassz egy szervezetet a Dashboard tetején a statisztikák megtekintéséhez.</p>
+        </Card>
+    );
+  }
   
   if (!canViewStatistics) {
       return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a statisztikák megtekintéséhez.</p>;

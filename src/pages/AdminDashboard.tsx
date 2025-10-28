@@ -26,7 +26,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, activeMembership } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   }
 
   // Check if the user has any accepted membership (owner or delegated)
-  const hasAdminAccess = allMemberships.length > 0;
+  const hasAdminAccess = allMemberships.length > 0 || isSuperadmin;
 
   if (isAuthenticated && !hasAdminAccess) {
     return <UnauthorizedAccess />;
@@ -68,6 +68,10 @@ const AdminDashboard = () => {
   
   // Determine if the user has an active organization selected (needed for most tabs)
   const isOrganizationActive = !!activeOrganizationProfile;
+  
+  // Determine roles for the active organization
+  const activeRoles = activeMembership?.roles || [];
+  const isOwner = activeOrganizationProfile?.owner_id === profile?.id;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
