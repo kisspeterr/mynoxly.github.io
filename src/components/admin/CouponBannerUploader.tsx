@@ -19,7 +19,7 @@ interface CouponBannerUploaderProps {
 const MAX_INPUT_FILE_SIZE_BYTES = 5 * 1024 * 1024; 
 
 const CouponBannerUploader: React.FC<CouponBannerUploaderProps> = ({ couponId, currentImageUrl, onUploadSuccess, onRemove }) => {
-  const { user } = useAuth();
+  const { user, activeOrganizationId } = useAuth();
   const [file, setFile] = useState<File | null>(null); // The file selected by the user (up to 5MB)
   const [croppedFile, setCroppedFile] = useState<File | null>(null); // The final, compressed file (max 300KB)
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl);
@@ -79,7 +79,10 @@ const CouponBannerUploader: React.FC<CouponBannerUploaderProps> = ({ couponId, c
   };
 
   const handleUpload = async () => {
-    if (!croppedFile || !user || !couponId) return;
+    if (!croppedFile || !user || !couponId || !activeOrganizationId) {
+        showError('Hiányzó szervezet azonosító. Kérjük, válassz aktív szervezetet.');
+        return;
+    }
 
     setIsUploading(true);
     
@@ -110,6 +113,7 @@ const CouponBannerUploader: React.FC<CouponBannerUploaderProps> = ({ couponId, c
             mimeType: croppedFile.type,
             oldBannerPath: currentImageUrl, // Pass current URL for deletion
             couponId: couponId, // Pass coupon ID for unique path generation
+            organizationId: activeOrganizationId, // PASS ORGANIZATION ID
           }),
         }
       );

@@ -34,10 +34,10 @@ serve(async (req) => {
     }
     const userId = user.id; // This is the user's profile ID
 
-    const { base64Data, mimeType, oldBannerPath, couponId } = await req.json();
+    const { base64Data, mimeType, oldBannerPath, couponId, organizationId } = await req.json();
 
-    if (!base64Data || !mimeType || !couponId) {
-      return new Response(JSON.stringify({ error: 'Missing file data or coupon ID' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (!base64Data || !mimeType || !couponId || !organizationId) {
+      return new Response(JSON.stringify({ error: 'Missing file data, coupon ID, or organization ID' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     let fileBuffer: Uint8Array;
@@ -57,9 +57,9 @@ serve(async (req) => {
     }
 
     // 2. Define new file path: organization_id/coupon_id.jpg
-    // We use the organization ID (which is the user's profile ID if they are the owner/admin) as the folder name for RLS.
+    // We use the organization ID (UUID) as the folder name for RLS.
     const fileExt = 'jpg';
-    const filePath = `${userId}/${couponId}.${fileExt}`; // Use coupon ID as filename
+    const filePath = `${organizationId}/${couponId}.${fileExt}`; // Use organization ID as folder
     const bucketName = 'coupon_banners';
 
     // 3. Upload new file
@@ -81,7 +81,7 @@ serve(async (req) => {
 
     // 4. Delete old file if path is provided AND it's different from the new path
     if (oldBannerPath) {
-        // Extract the path within the bucket (e.g., 'user_id/coupon_id.jpg')
+        // Extract the path within the bucket (e.g., 'organizationId/couponId.jpg')
         const urlParts = oldBannerPath.split('/');
         const bucketIndex = urlParts.indexOf(bucketName);
         
@@ -89,7 +89,8 @@ serve(async (req) => {
             const oldFilePath = urlParts.slice(bucketIndex + 1).join('/');
             
             // Only delete if the old path is different from the new path (shouldn't happen with upsert=true, but good practice)
-            if (oldFilePath && oldFilePath !== filePath && oldFilePath.startsWith(userId)) {
+            // And ensure it starts with the organization ID for security
+            if (oldFilePath && oldFilePath !== filePath && oldFilePath.startsWith(organizationId)) {
                 const { error: deleteError } = await supabaseClient.storage
                     .from(bucketName)
                     .remove([oldFilePath]);
@@ -121,6 +122,7 @@ serve(async (req) => {
     
     await serviceSupabaseClient.from('audit_logs').insert({
         user_id: userId,
+        organization_name: organizationId, // Log organization ID
         action: 'STORAGE_UPLOAD',
         table_name: 'coupon_banners',
         record_id: couponId, // Use coupon ID as record ID for banners
