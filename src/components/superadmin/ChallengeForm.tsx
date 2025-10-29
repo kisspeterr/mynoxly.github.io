@@ -12,7 +12,7 @@ import { OrganizationProfileData } from '@/hooks/use-auth';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { MultiSelect } from '@/components/ui/multi-select'; // Assuming MultiSelect exists or creating a simple version
+import { Card, CardContent } from '@/components/ui/card'; // ADDED Card and CardContent
 
 // Define the schema for form validation
 const challengeSchema = z.object({
