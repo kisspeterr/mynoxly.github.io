@@ -266,12 +266,19 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
 };
 
 const OrganizationMembersPage: React.FC = () => {
-    const { members, isLoading, inviteMember, updateMemberRole, removeMember, fetchMembers, organizationName } = useOrganizationMembers();
+    const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers, organizationName } = useOrganizationMembers();
     const { activeOrganizationProfile, checkPermission } = useAuth();
     const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
     
     // Only the owner/main admin can manage members
     const canManageMembers = checkPermission('coupon_manager'); 
+
+    // Explicitly trigger fetch when organizationName changes
+    useEffect(() => {
+        if (organizationName) {
+            fetchMembers();
+        }
+    }, [organizationName, fetchMembers]);
 
     if (!activeOrganizationProfile) {
         return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
@@ -286,16 +293,7 @@ const OrganizationMembersPage: React.FC = () => {
     
     // Helper function to handle role update (since useOrganizationMembers only exposes updateMemberRole)
     const handleUpdateRoles = async (memberId: string, roles: MemberRole[]) => {
-        // Since the form allows multiple roles, we need to decide which one to use, 
-        // or update the hook to handle multiple roles. For simplicity, we use the first role.
-        // NOTE: The DB schema supports multiple roles (JSONB array), but the current hook only updates one.
-        // Let's update the hook to handle the array of roles.
-        
-        // We need to update the hook to accept an array of roles.
-        // Since the hook is already updated in the previous step to handle arrays, we use it here.
-        
         let success = true;
-        // We assume the hook's updateMemberRole is now updateMemberRoles
         const result = await updateMemberRoles(memberId, roles);
         return result;
     };

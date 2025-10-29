@@ -8,8 +8,24 @@ import UsageCountdown from './UsageCountdown'; // Import the new component
 import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 
+// Helper function to format date (assuming it's missing from context, adding a simple one)
+const formatDate = (dateString: string) => {
+    try {
+        return format(new Date(dateString), 'yyyy. MM. dd. HH:mm:ss');
+    } catch (e) {
+        return 'Érvénytelen dátum';
+    }
+};
+
 const CouponUsagesPage = () => {
   const { usages, isLoading, fetchUsages, organizationName, hasPermission } = useCouponUsages();
+  
+  // Explicitly trigger fetch when organizationName changes
+  useEffect(() => {
+      if (organizationName) {
+          fetchUsages();
+      }
+  }, [organizationName, fetchUsages]);
   
   // Ha a hook szerint nincs jogosultság, vagy nincs szervezet kiválasztva, 
   // akkor a hook már üres listát ad vissza, és a komponens megjeleníti a megfelelő üzenetet.

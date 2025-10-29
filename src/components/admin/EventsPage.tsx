@@ -236,7 +236,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onUpdate, onTogg
                   </DialogTrigger>
                   <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
                     <DialogHeader>
-                      <DialogTitle className="text-red-400">Végleges törlés</DialogTitle>
+                      <DialogTitle className="text-red-400">Végleges törlés</Dialogálás</DialogTitle>
                       <DialogDescription className="text-gray-300">
                         Biztosan VÉGLEGESEN törölni szeretnéd a "{event.title}" archivált eseményt? Ez a művelet nem visszavonható.
                       </DialogDescription>
@@ -270,6 +270,13 @@ const EventsPage = () => {
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
   
   const canManageEvents = checkPermission('event_manager');
+
+  // Explicitly trigger fetch when organizationName changes
+  useEffect(() => {
+      if (organizationName) {
+          fetchEvents();
+      }
+  }, [organizationName, fetchEvents]);
 
   const activeEvents = events.filter(e => e.is_active && !e.is_archived);
   const draftEvents = events.filter(e => !e.is_active && !e.is_archived);
