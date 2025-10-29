@@ -192,6 +192,38 @@ export const usePublicCoupons = () => {
     return pendingUsage;
   };
   
+  // NEW FUNCTION: Allows user to delete a pending usage record
+  const deletePendingUsage = async (usageId: string) => {
+    if (!isAuthenticated || !user) {
+        showError('Kérjük, jelentkezz be.');
+        return { success: false };
+    }
+    
+    try {
+        const { error } = await supabase
+            .from('coupon_usages')
+            .delete()
+            .eq('id', usageId)
+            .eq('user_id', user.id) // RLS should handle this, but explicit check is safer
+            .eq('is_used', false); // Only allow deletion of unused codes
+
+        if (error) {
+            showError('Hiba történt a kód törlésekor.');
+            console.error('Delete pending usage error:', error);
+            return { success: false };
+        }
+        
+        showSuccess('Beváltási kód sikeresen törölve.');
+        refreshUsages();
+        return { success: true };
+        
+    } catch (error) {
+        console.error('Unexpected delete error:', error);
+        showError('Váratlan hiba történt a törlés során.');
+        return { success: false };
+    }
+  };
+  
   const redeemCoupon = async (coupon: PublicCoupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
@@ -352,6 +384,6 @@ export const usePublicCoupons = () => {
     isCouponPending: (couponId: string) => !!getActivePendingUsage(couponId), // Check if active pending exists
     getPendingUsageId: (couponId: string) => getActivePendingUsage(couponId)?.id, // Get ID of active pending usage
     refreshUsages,
-    deletePendingUsage,
+    deletePendingUsage, // Now defined
   };
 };
