@@ -68,7 +68,7 @@ export const useChallenges = () => {
       
       // Collect all necessary organization IDs (for rewards)
       const rewardOrgIds = Array.from(new Set(
-          challenges.map(c => c.reward_organization_id).filter((id): id is string => id !== null)
+          (challenges.map(c => c.reward_organization_id).filter((id): id is string => id !== null))
       ));
       const orgProfileMap = await fetchOrganizationProfiles(rewardOrgIds);
 
@@ -175,6 +175,7 @@ export const useChallenges = () => {
             filter: `user_id=eq.${user.id}`
           },
           () => {
+            // Realtime update triggers a full fetch
             fetchChallengesAndProgress();
           }
         )
@@ -192,6 +193,6 @@ export const useChallenges = () => {
     activeChallenges,
     isLoading,
     claimReward,
-    fetchChallenges: fetchChallengesAndProgress,
+    fetchChallenges: fetchChallengesAndProgress, // Export the fetch function
   };
 };
