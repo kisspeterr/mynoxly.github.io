@@ -224,7 +224,7 @@ export const usePublicCoupons = () => {
     }
   };
   
-  const redeemCoupon = async (coupon: PublicCoupon): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
+  const redeemCoupon = async (coupon: PublicCoupon, onPointsUpdated?: () => void): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return { success: false };
@@ -273,6 +273,11 @@ export const usePublicCoupons = () => {
             
             const pointsReward = coupon.points_reward;
             showSuccess(`Sikeres beváltás! Kupon: ${coupon.title}${pointsReward > 0 ? ` (+${pointsReward} pont)` : ''}`);
+            
+            // Manually trigger points refresh if callback is provided
+            if (onPointsUpdated) {
+                onPointsUpdated();
+            }
             
             // Refresh usages immediately after successful insertion to update local state
             await refreshUsages();

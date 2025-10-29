@@ -30,7 +30,7 @@ const CouponsSection = () => {
     refreshUsages, 
   } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
-  const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
+  const { points, isLoading: isLoadingPoints, getPointsForOrganization, fetchPoints } = useLoyaltyPoints(); // Get fetchPoints
   const { fetchChallenges } = useChallenges(); // NEW: Get challenge refresh function
   
   const [isRedeeming, setIsRedeeming] = useState(false);
@@ -107,7 +107,8 @@ const CouponsSection = () => {
 
     setIsRedeeming(true);
     try {
-      const result = await redeemCoupon(coupon);
+      // Pass fetchPoints to redeemCoupon
+      const result = await redeemCoupon(coupon, fetchPoints);
 
       if (result.success) {
         // CRITICAL: If redemption was successful (simple or code generated), refresh challenges
@@ -140,6 +141,7 @@ const CouponsSection = () => {
     // If the user manually closed the modal, we still need to ensure challenges are up to date 
     // in case the usage status changed (e.g., expired).
     fetchChallenges();
+    fetchPoints(); // Manual refresh of points after modal close (just in case)
   };
   
   const openDetailsModal = (coupon: PublicCoupon) => {
@@ -310,7 +312,7 @@ const CouponsSection = () => {
             coupon={selectedCoupon}
             isOpen={isDetailsModalOpen}
             onClose={closeDetailsModal}
-            onRedeemClick={handleRedeemClick}
+            onRedeemClick={(c) => handleRedeemClick(c as PublicCoupon)} // Cast back to PublicCoupon
             isRedeeming={isRedeeming}
             isDisabled={modalProps.isDisabled}
             buttonText={modalProps.buttonText}

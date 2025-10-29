@@ -44,7 +44,7 @@ const OrganizationProfile = () => {
   const organizationName = params.organizationName;
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
-  const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
+  const { points, isLoading: isLoadingPoints, getPointsForOrganization, fetchPoints } = useLoyaltyPoints(); // Get fetchPoints
   const { isInterested, toggleInterest } = useInterestedEvents(); // Use interested events hook
   const { fetchChallenges } = useChallenges(); // NEW: Get challenge refresh function
   
@@ -220,7 +220,8 @@ const OrganizationProfile = () => {
 
     setIsRedeeming(true);
     try {
-      const result = await redeemCoupon(coupon); 
+      // Pass fetchPoints to redeemCoupon
+      const result = await redeemCoupon(coupon, fetchPoints); 
 
       if (result.success) {
         // CRITICAL: If redemption was successful (simple or code generated), refresh challenges
@@ -252,6 +253,7 @@ const OrganizationProfile = () => {
     // If the user manually closed the modal, we still need to ensure challenges are up to date 
     // in case the usage status changed (e.g., expired).
     fetchChallenges();
+    fetchPoints(); // Manual refresh of points after modal close (just in case)
   };
   
   const openCouponDetailsModal = (coupon: PublicCoupon) => {
@@ -488,9 +490,9 @@ const OrganizationProfile = () => {
                         </Button>
                       </CardContent>
                     </Card>
-                </div>
-              );
-            })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -629,7 +631,7 @@ const OrganizationProfile = () => {
             coupon={selectedCoupon}
             isOpen={isCouponDetailsModalOpen}
             onClose={closeCouponDetailsModal}
-            onRedeemClick={handleRedeemClick}
+            onRedeemClick={(c) => handleRedeemClick(c as PublicCoupon)}
             isRedeeming={isRedeeming}
             isDisabled={modalProps.isDisabled}
             buttonText={modalProps.buttonText}
