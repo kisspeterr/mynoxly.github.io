@@ -43,9 +43,9 @@ export const useCoupons = () => {
     }
   }, [isAuthenticated, organizationName, hasPermission]); // Dependencies for useCallback
 
-  // Automatically fetch coupons when activeOrganizationId changes OR fetchCoupons changes (due to organizationName/permission change)
+  // Automatically fetch coupons when activeOrganizationId or organizationName changes
   useEffect(() => {
-    if (activeOrganizationId) {
+    if (organizationName) { // Use organizationName as the primary trigger for fetching data
       fetchCoupons();
     } else {
         setCoupons([]);
@@ -82,7 +82,7 @@ export const useCoupons = () => {
       }
     };
     
-  }, [activeOrganizationId, isAuthenticated, hasPermission, fetchCoupons, organizationName]); // Added organizationName for Realtime channel name
+  }, [organizationName, isAuthenticated, hasPermission, fetchCoupons]); // Changed dependency to organizationName
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
