@@ -1,16 +1,17 @@
 import React, { useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate } from 'react-router-dom';
-import AuthLayout from '@/components/AuthLayout';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Home, Loader2 } from 'lucide-react';
+import { LogOut, User, Home, Loader2, Settings, Heart, Tag, Coins, Mail, ListChecks } from 'lucide-react';
 import ProfileCard from '@/components/ProfileCard';
 import UserCouponsList from '@/components/user/UserCouponsList';
 import UserFavoritesList from '@/components/user/UserFavoritesList';
 import UserLoyaltyPointsList from '@/components/user/UserLoyaltyPointsList';
 import UserInterestedEventsList from '@/components/user/UserInterestedEventsList';
-import UserSettingsForm from '@/components/user/UserSettingsForm'; // Import new form
-import UserInvitationsList from '@/components/user/UserInvitationsList'; // NEW IMPORT
+import UserSettingsForm from '@/components/user/UserSettingsForm';
+import UserInvitationsList from '@/components/user/UserInvitationsList';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -24,7 +25,6 @@ const Profile = () => {
   
   const handleSignOut = async () => {
       await signOut();
-      // Navigate to home page after sign out attempt, which should redirect to login if successful
       navigate('/'); 
   };
 
@@ -41,46 +41,82 @@ const Profile = () => {
     return null; // Redirect handled by useEffect
   }
 
-  // Ahelyett, hogy az AuthLayout korlátozott szélességét használnánk, 
-  // a Profile oldal saját, szélesebb konténert kap.
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
       <div className="container mx-auto max-w-7xl">
-        <div className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-cyan-300">Felhasználói Profil</h1>
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+            Személyes Profil
+          </h1>
+          <p className="text-gray-400 mt-2">Itt kezelheted a beállításaidat, kuponjaidat és hűségpontjaidat.</p>
         </div>
         
-        {/* Responsive Grid Layout: Stacks on mobile, 1/3 - 2/3 split on large screens */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* Left Column: Profile Card and Actions (Full width on mobile, 1/3 on large) */}
-          <div className="lg:col-span-1 space-y-6">
+          {/* Left Column: Profile Card and Settings (Sticky on large screens) */}
+          <div className="lg:col-span-1 space-y-8">
+            
+            {/* Profile Card */}
             {profile && <ProfileCard profile={profile} email={user?.email} />}
             
-            <div className="flex justify-center space-x-4">
+            {/* User Settings Form */}
+            <Card className="bg-black/50 border-cyan-500/30 backdrop-blur-sm text-white">
+                <CardHeader>
+                    <CardTitle className="text-2xl text-cyan-300 flex items-center gap-2">
+                        <Settings className="h-6 w-6" />
+                        Fiók Beállítások
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <UserSettingsForm />
+                </CardContent>
+            </Card>
+            
+            {/* Actions */}
+            <div className="flex flex-col space-y-4">
               <Button 
                 onClick={() => navigate('/')}
                 variant="outline"
-                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 w-full"
               >
                 <Home className="h-4 w-4 mr-2" />
-                Főoldal
+                Vissza a főoldalra
               </Button>
-              <Button onClick={handleSignOut} variant="destructive">
+              <Button onClick={handleSignOut} variant="destructive" className="w-full">
                 <LogOut className="h-4 w-4 mr-2" />
                 Kijelentkezés
               </Button>
             </div>
           </div>
           
-          {/* Right Column: Settings, Loyalty, Favorites, Coupons (Full width on mobile, 2/3 on large) */}
-          <div className="lg:col-span-2 space-y-10">
-            <UserSettingsForm /> {/* NEW: User Settings Form */}
-            <UserInvitationsList /> {/* NEW: Invitations List */}
-            <UserInterestedEventsList />
-            <UserLoyaltyPointsList />
-            <UserFavoritesList />
-            <UserCouponsList />
+          {/* Right Column: User Data Sections (Full width on mobile, 2/3 on large) */}
+          <div className="lg:col-span-2 space-y-12">
+            
+            {/* Invitations Section */}
+            <Card className="bg-black/50 border-yellow-500/30 backdrop-blur-sm p-6">
+                <UserInvitationsList />
+            </Card>
+            
+            {/* Interested Events Section */}
+            <Card className="bg-black/50 border-red-500/30 backdrop-blur-sm p-6">
+                <UserInterestedEventsList />
+            </Card>
+            
+            {/* Loyalty Points Section */}
+            <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm p-6">
+                <UserLoyaltyPointsList />
+            </Card>
+            
+            {/* Favorites Section */}
+            <Card className="bg-black/50 border-red-500/30 backdrop-blur-sm p-6">
+                <UserFavoritesList />
+            </Card>
+            
+            {/* Coupons Section */}
+            <Card className="bg-black/50 border-cyan-500/30 backdrop-blur-sm p-6">
+                <UserCouponsList />
+            </Card>
+            
           </div>
         </div>
       </div>

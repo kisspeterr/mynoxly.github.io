@@ -7,8 +7,8 @@ interface Profile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
-  role: 'user' | 'admin';
-  username: string; // NEW FIELD
+  role: 'user' | 'admin' | 'superadmin';
+  username: string;
 }
 
 interface ProfileCardProps {
@@ -17,8 +17,12 @@ interface ProfileCardProps {
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({ profile, email }) => {
-  const displayName = profile.first_name || 'Felhasználó';
-  const roleColor = profile.role === 'admin' ? 'text-red-400' : 'text-cyan-400';
+  const fullName = `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+  const displayName = fullName || 'Felhasználó';
+  
+  let roleColor = 'text-cyan-400';
+  if (profile.role === 'admin') roleColor = 'text-purple-400';
+  if (profile.role === 'superadmin') roleColor = 'text-red-400';
 
   return (
     <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white">
@@ -40,7 +44,7 @@ const ProfileCard: React.FC<ProfileCardProps> = ({ profile, email }) => {
         <CardTitle className="text-3xl text-white">{displayName}</CardTitle>
         <p className={`text-sm font-semibold ${roleColor} flex items-center mt-1`}>
             <Shield className="h-4 w-4 mr-1" />
-            {profile.role === 'admin' ? 'Adminisztrátor' : 'Felhasználó'}
+            {profile.role === 'superadmin' ? 'Superadmin' : (profile.role === 'admin' ? 'Adminisztrátor' : 'Felhasználó')}
         </p>
       </CardHeader>
       <CardContent className="space-y-3 text-left border-t border-gray-700/50 pt-4">
