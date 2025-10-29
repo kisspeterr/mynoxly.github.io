@@ -30,11 +30,10 @@ const SuperadminStatsPage: React.FC = () => {
                 showError('Hiba történt a felhasználói szám betöltésekor.');
             }
 
-            // 2. Total Organizations (profiles with organization_name set)
+            // 2. Total Organizations (using organizations table)
             const { count: orgCount, error: orgError } = await supabase
-                .from('profiles')
-                .select('id', { count: 'exact', head: true })
-                .not('organization_name', 'is', null);
+                .from('organizations')
+                .select('id', { count: 'exact', head: true });
                 
             if (orgError) {
                 console.error('Error fetching total organization count:', orgError);

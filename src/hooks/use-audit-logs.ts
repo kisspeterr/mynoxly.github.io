@@ -120,17 +120,26 @@ export const useAuditLogs = () => {
   const fetchFilterOptions = useCallback(async () => {
       if (!isSuperadmin) return;
       
-      // Fetch all users with usernames
+      // Fetch all users with usernames (for user filter)
       const { data: usersData } = await supabase.rpc('get_all_user_profiles_for_superadmin');
       if (usersData) {
           setAvailableUsers(usersData.map(u => ({ id: u.id, username: u.username })));
-          
-          const orgNames = Array.from(new Set(usersData
-            .filter(u => u.organization_name)
-            .map(u => u.organization_name as string)
-          ));
-          setAvailableOrganizations(orgNames);
       }
+      
+      // Fetch all organization names (for organization filter)
+      const { data: orgData, error: orgError } = await supabase
+        .from('organizations')
+        .select('organization_name')
+        .not('organization_name', 'is', null);
+        
+      if (orgError) {
+          console.error('Error fetching organization names for filter:', orgError);
+          return;
+      }
+      
+      const orgNames = (orgData || []).map(o => o.organization_name);
+      setAvailableOrganizations(orgNames);
+      
   }, [isSuperadmin]);
 
   useEffect(() => {
