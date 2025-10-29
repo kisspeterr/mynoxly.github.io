@@ -1,13 +1,20 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Gift, Calendar, Tag, MapPin, Coins, XCircle, Building, Loader2, Info, ArrowRight } from 'lucide-react';
+import { Gift, Calendar, Tag, MapPin, Coins, XCircle, Building, Loader2, Info, ArrowRight, ListChecks } from 'lucide-react';
 import { Coupon } from '@/types/coupons';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
+// Extend Coupon type to include organization profile data and usage count
+interface PublicCoupon extends Coupon {
+  logo_url: string | null;
+  organization_id: string;
+  usage_count: number; // Added usage_count
+}
+
 interface CouponDetailsModalProps {
-  coupon: Coupon & { logo_url: string | null };
+  coupon: PublicCoupon;
   isOpen: boolean;
   onClose: () => void;
   onRedeemClick: (coupon: Coupon) => void;
@@ -54,7 +61,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                 <DialogHeader>
                     <DialogTitle className="text-3xl text-cyan-300 mb-2">{coupon.title}</DialogTitle>
                     
-                    {/* Organization Info & Link */}
+                    {/* Organization Info & Usage Count */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-gray-700/50 pb-3">
                         <div className="flex items-center text-gray-400 pt-1 mb-3 sm:mb-0">
                             {/* Organization Logo */}
@@ -72,17 +79,11 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                             <span className="text-lg font-semibold text-white">{coupon.organization_name}</span>
                         </div>
                         
-                        {/* Organization Profile Button */}
-                        <Button 
-                            asChild
-                            variant="outline"
-                            size="sm"
-                            className="border-purple-400 text-purple-400 hover:bg-purple-400/10"
-                        >
-                            <Link to={`/organization/${coupon.organization_name}`} onClick={onClose}>
-                                Profil <ArrowRight className="h-4 w-4 ml-2" />
-                            </Link>
-                        </Button>
+                        {/* Usage Count Badge */}
+                        <div className="flex items-center text-sm text-gray-300">
+                            <ListChecks className="h-4 w-4 mr-1 text-purple-400" />
+                            Beváltva: <span className="font-semibold ml-1 text-white">{coupon.usage_count}</span>
+                        </div>
                     </div>
                 </DialogHeader>
 
@@ -127,6 +128,17 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                 >
                     {isRedeeming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                     {buttonText}
+                </Button>
+                
+                <Button 
+                    asChild
+                    variant="outline"
+                    className="w-full border-gray-700 text-gray-400 hover:bg-gray-800"
+                >
+                    <Link to={`/organization/${coupon.organization_name}`} onClick={onClose}>
+                        <Building className="h-4 w-4 mr-2" />
+                        Partner profil megtekintése
+                    </Link>
                 </Button>
                 
                 <Button 
