@@ -166,42 +166,18 @@ export const usePublicCoupons = () => {
     return now > expiryTime;
   }
 
-  const deletePendingUsage = async (usageId: string) => {
-    if (!isAuthenticated || !user) return { success: false };
-    
-    try {
-      // We only delete if it's NOT used, and belongs to the user
-      const { error } = await supabase
-        .from('coupon_usages')
-        .delete()
-        .eq('id', usageId)
-        .eq('is_used', false)
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('Error deleting pending usage:', error);
-        return { success: false };
-      }
-      
-      // We don't call refreshUsages here, we let the caller handle it or rely on Realtime
-      return { success: true };
-    } catch (error) {
-      console.error('Unexpected error during pending usage deletion:', error);
-      return { success: false };
-    }
-  };
-
-  // NEW LOGIC: Check if the user has reached the max uses limit, counting ALL generated codes.
+  // NEW LOGIC: Check if the user has reached the max uses limit, counting ONLY successfully used codes.
   const isCouponUsedUp = (couponId: string, maxUses: number): boolean => {
     if (maxUses === 0) return false;
     
-    // Count ALL usages (used, active, and expired)
-    const count = allUsages.filter(u => u.coupon_id === couponId).length;
+    // Count ONLY successfully used usages (is_used: true)
+    const count = allUsages.filter(u => u.coupon_id === couponId && u.is_used === true).length;
     return count >= maxUses;
   };
   
   // Returns the pending usage object if one exists and is NOT expired
   const getActivePendingUsage = (couponId: string): CouponUsage | undefined => {
+    // Find any usage that is NOT used (is_used: false)
     const pendingUsage = allUsages.find(u => u.coupon_id === couponId && u.is_used === false);
     
     if (!pendingUsage) {
@@ -209,7 +185,6 @@ export const usePublicCoupons = () => {
     }
     
     // If it's expired, treat it as non-pending for the purpose of generating a new code
-    // NOTE: We keep the expired record in the DB now, so we only check if it's currently active.
     if (isPendingExpired(pendingUsage)) {
         return undefined;
     }
@@ -224,11 +199,13 @@ export const usePublicCoupons = () => {
     }
     
     // 1. Check finalized usage count (re-check against DB for safety)
+    // CRITICAL CHANGE: Check ONLY for used coupons here, matching the isCouponUsedUp logic
     const { count, error: countError } = await supabase
       .from('coupon_usages')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('coupon_id', coupon.id);
+      .eq('coupon_id', coupon.id)
+      .eq('is_used', true); // <-- ONLY COUNT USED ONES
 
     if (countError) {
       showError('Hiba történt a beváltási korlát ellenőrzésekor.');
@@ -237,7 +214,7 @@ export const usePublicCoupons = () => {
     }
 
     if (coupon.max_uses_per_user !== 0 && count !== null && count >= coupon.max_uses_per_user) {
-      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal (beleértve a lejárt kódokat is).`);
+      showError(`Ezt a kupont már beváltottad ${coupon.max_uses_per_user} alkalommal.`);
       return { success: false };
     }
     
