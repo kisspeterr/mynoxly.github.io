@@ -44,7 +44,13 @@ const getActionDetails = (log: AuditLog): string => {
         if (log.table_name === 'profiles' && payload?.new?.role === 'admin') return `Új szervezet létrehozása: ${payload.new.organization_name}`;
         if (log.table_name === 'profiles' && payload?.new?.role === 'user') return `Új felhasználó regisztrációja`;
         if (log.table_name === 'coupons') return `Új kupon létrehozása: ${payload.new.title}`;
-        if (log.table_name === 'coupon_usages') return `Beváltási kód generálása (Kupon: ${payload.new.coupon_id?.slice(0, 8)}...)`;
+        if (log.table_name === 'coupon_usages') {
+            // Check if it's a simple redemption (is_used=true on insert) or code generation (is_used=false on insert)
+            if (payload?.new?.is_used === true) {
+                return `Azonnali kupon beváltás (Kupon: ${payload.new.coupon_id?.slice(0, 8)}...)`;
+            }
+            return `Beváltási kód generálása (Kupon: ${payload.new.coupon_id?.slice(0, 8)}...)`;
+        }
         if (log.table_name === 'organization_members' && payload?.new?.status === 'pending') return `Tag meghívása a szervezetbe`;
         if (log.table_name === 'organization_members' && payload?.new?.status === 'accepted') return `Meghívás elfogadása`;
         return `Új rekord létrehozása a(z) ${tableName} táblában`;
@@ -53,9 +59,15 @@ const getActionDetails = (log: AuditLog): string => {
     if (actionType === 'UPDATE') {
         // Check for finalized redemption (is_used changed from FALSE to TRUE)
         if (log.table_name === 'coupon_usages' && payload?.new?.is_used === true && payload?.old?.is_used === false) {
-            // Check if redemption code exists in payload (for code-based redemption)
+            // This is the successful code redemption event
             const code = payload.new.redemption_code || 'Azonnali beváltás';
             return `Beváltás véglegesítése (Kód: ${code})`;
+        }
+        
+        // Check for redemption undo (is_used changed from TRUE to FALSE)
+        if (log.table_name === 'coupon_usages' && payload?.new?.is_used === false && payload?.old?.is_used === true) {
+            const code = payload.old.redemption_code || 'Azonnali beváltás';
+            return `Beváltás visszavonva (Kód: ${code})`;
         }
         
         if (log.table_name === 'profiles' && payload?.new?.organization_name !== payload?.old?.organization_name) return `Szervezet nevének módosítása: ${payload.old.organization_name} -> ${payload.new.organization_name}`;
@@ -92,9 +104,17 @@ const LogCard: React.FC<{ log: AuditLog, onUndoRedemption: (usageId: string) => 
                                  log.action === 'UPDATE' && 
                                  log.payload?.new?.is_used === true && 
                                  log.payload?.old?.is_used === false;
+                                 
+    // Check if this log represents a SIMPLE redemption (INSERT on coupon_usages where is_used is true)
+    const isSimpleRedemption = log.table_name === 'coupon_usages' &&
+                               log.action === 'INSERT' &&
+                               log.payload?.new?.is_used === true;
     
-    // The usage ID is the record_id for coupon_usages updates
+    // The usage ID is the record_id for coupon_usages updates/inserts
     const usageId = log.table_name === 'coupon_usages' ? log.record_id : null;
+    
+    // Determine if the undo button should be shown (only for successful redemptions)
+    const showUndoButton = (isFinalizedRedemption || isSimpleRedemption);
 
     return (
         <Card className="bg-black/50 border-gray-700/50 backdrop-blur-sm text-white">
@@ -127,7 +147,7 @@ const LogCard: React.FC<{ log: AuditLog, onUndoRedemption: (usageId: string) => 
                     </div>
                     
                     {/* Undo Button for Finalized Redemptions */}
-                    {isFinalizedRedemption && usageId && (
+                    {showUndoButton && usageId && (
                         <div className="mt-3">
                             <Dialog>
                                 <DialogTrigger asChild>
@@ -202,6 +222,7 @@ const SuperadminActivityPage: React.FC = () => {
         
         setIsProcessingUndo(true);
         try {
+            // Call the RPC function to undo redemption
             const { data: success, error: rpcError } = await supabase.rpc('undo_coupon_redemption', {
                 usage_id_in: usageId,
             });
