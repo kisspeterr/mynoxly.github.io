@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { useAuth } from './use-auth';
-import toast from 'react-hot-toast';
+import { showError, showSuccess } from '@/utils/toast'; // Importáljuk a helyes toast segédfüggvényeket
 
 // Típusdefiníciók a Supabase-ból
 type DbCoupon = Coupon & {
@@ -54,7 +54,7 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error fetching coupons:', error);
-            toast.error('Hiba történt a kuponok betöltésekor.');
+            showError('Hiba történt a kuponok betöltésekor.');
         } else if (data) {
             setCoupons(mapDbCouponsToCoupons(data as DbCoupon[]));
         }
@@ -70,7 +70,7 @@ export const useCoupons = (): CouponHookResult => {
 
     const createCoupon = async (data: CouponInsert) => {
         if (!organizationName || !checkPermission('coupon_manager')) {
-            toast.error('Nincs jogosultságod kupon létrehozásához.');
+            showError('Nincs jogosultságod kupon létrehozásához.');
             return { success: false };
         }
         
@@ -92,12 +92,12 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error creating coupon:', error);
-            toast.error(`Hiba a kupon létrehozásakor: ${error.message}`);
+            showError(`Hiba a kupon létrehozásakor: ${error.message}`);
             return { success: false };
         }
 
         if (newCoupon) {
-            toast.success('Kupon sikeresen létrehozva!');
+            showSuccess('Kupon sikeresen létrehozva!');
             fetchCoupons(); // Refresh list
             return { success: true, newCouponId: newCoupon.id };
         }
@@ -106,7 +106,7 @@ export const useCoupons = (): CouponHookResult => {
 
     const updateCoupon = async (id: string, data: Partial<CouponInsert>) => {
         if (!organizationName || !checkPermission('coupon_manager')) {
-            toast.error('Nincs jogosultságod kupon szerkesztéséhez.');
+            showError('Nincs jogosultságod kupon szerkesztéséhez.');
             return { success: false };
         }
         
@@ -122,18 +122,18 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error updating coupon:', error);
-            toast.error(`Hiba a kupon frissítésekor: ${error.message}`);
+            showError(`Hiba a kupon frissítésekor: ${error.message}`);
             return { success: false };
         }
 
-        toast.success('Kupon sikeresen frissítve!');
+        showSuccess('Kupon sikeresen frissítve!');
         fetchCoupons(); // Refresh list
         return { success: true };
     };
     
     const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
         if (!organizationName || !checkPermission('coupon_manager')) {
-            toast.error('Nincs jogosultságod a kupon állapotának módosításához.');
+            showError('Nincs jogosultságod a kupon állapotának módosításához.');
             return { success: false };
         }
         
@@ -150,18 +150,18 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error toggling coupon status:', error);
-            toast.error(`Hiba az állapot váltásakor: ${error.message}`);
+            showError(`Hiba az állapot váltásakor: ${error.message}`);
             return { success: false };
         }
 
-        toast.success(`Kupon sikeresen ${newStatus ? 'aktiválva' : 'inaktiválva'}!`);
+        showSuccess(`Kupon sikeresen ${newStatus ? 'aktiválva' : 'inaktiválva'}!`);
         fetchCoupons();
         return { success: true };
     };
 
     const archiveCoupon = async (id: string) => {
         if (!organizationName || !checkPermission('coupon_manager')) {
-            toast.error('Nincs jogosultságod a kupon archiválásához.');
+            showError('Nincs jogosultságod a kupon archiválásához.');
             return { success: false };
         }
         
@@ -177,18 +177,18 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error archiving coupon:', error);
-            toast.error(`Hiba az archiváláskor: ${error.message}`);
+            showError(`Hiba az archiváláskor: ${error.message}`);
             return { success: false };
         }
 
-        toast.success('Kupon sikeresen archiválva!');
+        showSuccess('Kupon sikeresen archiválva!');
         fetchCoupons();
         return { success: true };
     };
     
     const unarchiveCoupon = async (id: string) => {
         if (!organizationName || !checkPermission('coupon_manager')) {
-            toast.error('Nincs jogosultságod a kupon visszaállításához.');
+            showError('Nincs jogosultságod a kupon visszaállításához.');
             return { success: false };
         }
         
@@ -204,24 +204,24 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error unarchiving coupon:', error);
-            toast.error(`Hiba a visszaállításkor: ${error.message}`);
+            showError(`Hiba a visszaállításkor: ${error.message}`);
             return { success: false };
         }
 
-        toast.success('Kupon sikeresen visszaállítva a piszkozatok közé!');
+        showSuccess('Kupon sikeresen visszaállítva a piszkozatok közé!');
         fetchCoupons();
         return { success: true };
     };
 
     const deleteCoupon = async (id: string, isArchived: boolean) => {
         if (!organizationName || !checkPermission('coupon_manager')) {
-            toast.error('Nincs jogosultságod a kupon törléséhez.');
+            showError('Nincs jogosultságod a kupon törléséhez.');
             return { success: false };
         }
         
         // Csak archivált kuponokat engedünk törölni a végleges törlés gombbal
         if (!isArchived) {
-             toast.error('Csak archivált kuponokat lehet véglegesen törölni.');
+             showError('Csak archivált kuponokat lehet véglegesen törölni.');
              return { success: false };
         }
         
@@ -237,11 +237,11 @@ export const useCoupons = (): CouponHookResult => {
 
         if (error) {
             console.error('Error deleting coupon:', error);
-            toast.error(`Hiba a törléskor: ${error.message}`);
+            showError(`Hiba a törléskor: ${error.message}`);
             return { success: false };
         }
 
-        toast.success('Kupon véglegesen törölve!');
+        showSuccess('Kupon véglegesen törölve!');
         fetchCoupons();
         return { success: true };
     };
