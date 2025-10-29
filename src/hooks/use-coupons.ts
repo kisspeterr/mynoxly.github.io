@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
 import { showError, showSuccess } from '@/utils/toast';
@@ -15,7 +15,7 @@ export const useCoupons = () => {
   const hasPermission = checkPermission('coupon_manager') || checkPermission('viewer');
 
   // Function to fetch coupons (used internally and exported for manual refresh)
-  const fetchCoupons = async () => {
+  const fetchCoupons = useCallback(async () => {
     if (!isAuthenticated || !organizationName || !hasPermission) {
       setCoupons([]);
       setIsLoading(false);
@@ -41,7 +41,7 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, organizationName, hasPermission]); // Dependencies for useCallback
 
   // Automatically fetch coupons when activeOrganizationId changes
   useEffect(() => {
@@ -51,7 +51,7 @@ export const useCoupons = () => {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, hasPermission]); // Watch the ID instead of the object
+  }, [activeOrganizationId, isAuthenticated, hasPermission, fetchCoupons]); // Added fetchCoupons to dependencies
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
