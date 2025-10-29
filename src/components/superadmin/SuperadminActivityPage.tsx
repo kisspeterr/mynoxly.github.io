@@ -51,7 +51,13 @@ const getActionDetails = (log: AuditLog): string => {
     }
     
     if (actionType === 'UPDATE') {
-        if (log.table_name === 'coupon_usages' && payload?.new?.is_used === true && payload?.old?.is_used === false) return `Beváltás véglegesítése (Kód: ${payload.new.redemption_code})`;
+        // Check for finalized redemption (is_used changed from FALSE to TRUE)
+        if (log.table_name === 'coupon_usages' && payload?.new?.is_used === true && payload?.old?.is_used === false) {
+            // Check if redemption code exists in payload (for code-based redemption)
+            const code = payload.new.redemption_code || 'Azonnali beváltás';
+            return `Beváltás véglegesítése (Kód: ${code})`;
+        }
+        
         if (log.table_name === 'profiles' && payload?.new?.organization_name !== payload?.old?.organization_name) return `Szervezet nevének módosítása: ${payload.old.organization_name} -> ${payload.new.organization_name}`;
         if (log.table_name === 'profiles' && payload?.new?.logo_url !== payload?.old?.logo_url) return `Logó URL frissítése`;
         if (log.table_name === 'coupons') return `Kupon módosítása: ${payload.new.title}`;
