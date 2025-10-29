@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
-import { Loader2, Shield, Users, BarChart, Home, LogOut, Building, Activity } from 'lucide-react';
+import { Loader2, Shield, Users, BarChart, Home, LogOut, Building, Activity, ArrowLeftRight } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +11,7 @@ import SuperadminOrganizationsPage from '@/components/superadmin/SuperadminOrgan
 import SuperadminActivityPage from '@/components/superadmin/SuperadminActivityPage'; // NEW IMPORT
 
 const SuperadminDashboard: React.FC = () => {
-  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, allMemberships } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('organizations');
 
@@ -19,8 +19,6 @@ const SuperadminDashboard: React.FC = () => {
     if (!isLoading && !isAuthenticated) {
       navigate('/login');
     } 
-    // REMOVED: Redirect to /admin/dashboard if Superadmin has memberships. 
-    // Superadmins can now choose to go to /admin/dashboard manually if they want to manage their organizations.
   }, [isAuthenticated, isSuperadmin, isLoading, navigate]);
   
   const handleSignOut = async () => {
@@ -41,6 +39,9 @@ const SuperadminDashboard: React.FC = () => {
   if (!isSuperadmin) {
     return <UnauthorizedAccess />;
   }
+  
+  // Check if the Superadmin has any accepted membership
+  const hasAdminAccess = allMemberships.length > 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
@@ -54,6 +55,14 @@ const SuperadminDashboard: React.FC = () => {
           </h1>
           
           <div className="flex space-x-3">
+            {hasAdminAccess && (
+                <Button asChild variant="outline" className="border-purple-400 text-purple-400 hover:bg-purple-400/10">
+                    <Link to="/admin/dashboard">
+                        <ArrowLeftRight className="h-4 w-4 mr-2" />
+                        Váltás Admin Dashboardra
+                    </Link>
+                </Button>
+            )}
             <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
               <Link to="/">
                 <Home className="h-4 w-4 mr-2" />

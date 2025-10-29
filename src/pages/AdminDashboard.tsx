@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle } from 'lucide-react';
+import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle, ArrowLeftRight } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 import CouponsPage from '@/components/admin/CouponsPage';
 import EventsPage from '@/components/admin/EventsPage';
@@ -85,8 +85,8 @@ const AdminDashboard = () => {
             {isSuperadmin && (
                 <Button asChild variant="outline" className="border-red-400 text-red-400 hover:bg-red-400/10">
                     <Link to="/superadmin/dashboard">
-                        <Shield className="h-4 w-4 mr-2" />
-                        Superadmin
+                        <ArrowLeftRight className="h-4 w-4 mr-2" />
+                        Váltás Superadmin Dashboardra
                     </Link>
                 </Button>
             )}
@@ -126,8 +126,8 @@ const AdminDashboard = () => {
                 {isSuperadmin && (
                     <DropdownMenuItem asChild>
                         <Link to="/superadmin/dashboard" className="flex items-center text-red-400">
-                            <Shield className="h-4 w-4 mr-2" />
-                            Superadmin
+                            <ArrowLeftRight className="h-4 w-4 mr-2" />
+                            Váltás Superadmin Dashboardra
                         </Link>
                     </DropdownMenuItem>
                 )}
