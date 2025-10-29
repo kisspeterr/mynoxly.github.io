@@ -20,22 +20,15 @@ serve(async (req) => {
     return new Response('Unauthorized', { status: 401, headers: corsHeaders });
   }
 
-  // Kliens inicializálása a felhasználó JWT tokenjével (csak azonosításra)
-  const userSupabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    { global: { headers: { Authorization: authHeader } } }
-  );
-  
-  // Kliens inicializálása Service Role Key-vel (Storage műveletekhez)
-  const serviceSupabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
   try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
     // Get user ID from JWT
-    const { data: { user } } = await userSupabaseClient.auth.getUser();
+    const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) {
       return new Response('Unauthorized: Invalid token', { status: 401, headers: corsHeaders });
     }
@@ -47,48 +40,6 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Missing file data or event ID' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // 1. BIZTONSÁGI ELLENŐRZÉS: Ellenőrizzük, hogy a felhasználó jogosult-e az eseményhez
-    // Ehhez le kell kérdezni az esemény szervezetének nevét, majd ellenőrizni a tagságot.
-    const { data: eventData, error: eventError } = await serviceSupabaseClient
-        .from('events')
-        .select('organization_name')
-        .eq('id', eventId)
-        .single();
-        
-    if (eventError || !eventData) {
-        return new Response(JSON.stringify({ error: 'Event not found or access denied.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    
-    // Ellenőrizzük a tagságot (Service Role Key-vel)
-    const { data: memberData } = await serviceSupabaseClient
-        .from('organization_members')
-        .select('roles, organization_id')
-        .eq('user_id', userId)
-        .eq('status', 'accepted');
-        
-    const userOrganizations = memberData?.map(m => m.organization_id) || [];
-    
-    // Ellenőrizzük, hogy a felhasználó tagja-e az esemény szervezetének (az esemény organization_name alapján)
-    const { data: orgProfile } = await serviceSupabaseClient
-        .from('organizations')
-        .select('id')
-        .eq('organization_name', eventData.organization_name)
-        .single();
-        
-    const organizationId = orgProfile?.id;
-    
-    if (!organizationId || !userOrganizations.includes(organizationId)) {
-        return new Response(JSON.stringify({ error: 'Forbidden: User is not a member of the event\'s organization.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    
-    // Ellenőrizzük, hogy van-e jogosultsága az esemény kezeléséhez
-    const isManager = memberData?.some(m => m.organization_id === organizationId && (m.roles.includes('event_manager') || m.roles.includes('coupon_manager')));
-    
-    if (!isManager) {
-        return new Response(JSON.stringify({ error: 'Forbidden: User does not have event management permissions.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-    
-    // 2. Base64 dekódolás és méret ellenőrzés
     let fileBuffer: Uint8Array;
     try {
         fileBuffer = decode(base64Data);
@@ -97,6 +48,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Invalid Base64 data provided.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
+    // 1. Final size check
     if (fileBuffer.byteLength > MAX_FILE_SIZE_BYTES) {
         return new Response(JSON.stringify({ error: `A feltöltött fájl mérete (${Math.ceil(fileBuffer.byteLength / 1024)} KB) meghaladja a 300 KB-os limitet.` }), {
             status: 400,
@@ -104,19 +56,18 @@ serve(async (req) => {
         });
     }
 
-    // 3. Define new file path: organization_id/event_id.jpg
+    // 2. Define new file path: user_id/event_id.jpg
     const fileExt = 'jpg';
-    // CRITICAL: Use organizationId (UUID) as the folder name for path security
-    const filePath = `${organizationId}/${eventId}.${fileExt}`; 
+    const filePath = `${userId}/${eventId}.${fileExt}`; // Use event ID as filename
     const bucketName = 'event_banners';
 
-    // 4. Upload new file (SERVICE ROLE KEY-vel)
-    const { error: uploadError } = await serviceSupabaseClient.storage
+    // 3. Upload new file
+    const { error: uploadError } = await supabaseClient.storage
       .from(bucketName)
       .upload(filePath, fileBuffer, {
-        contentType: 'image/jpeg', 
+        contentType: 'image/jpeg', // Assuming client-side cropper outputs JPEG
         cacheControl: '3600',
-        upsert: true, 
+        upsert: true, // Overwrite existing file for this event
       });
 
     if (uploadError) {
@@ -127,17 +78,18 @@ serve(async (req) => {
       });
     }
 
-    // 5. Delete old file if path is provided
+    // 4. Delete old file if path is provided AND it's different from the new path
     if (oldBannerPath) {
+        // Extract the path within the bucket (e.g., 'user_id/event_id.jpg')
         const urlParts = oldBannerPath.split('/');
         const bucketIndex = urlParts.indexOf(bucketName);
         
         if (bucketIndex !== -1) {
             const oldFilePath = urlParts.slice(bucketIndex + 1).join('/');
             
-            // Double check that the path starts with the organization ID for security
-            if (oldFilePath && oldFilePath.startsWith(organizationId)) {
-                const { error: deleteError } = await serviceSupabaseClient.storage
+            // Only delete if the old path is different from the new path (shouldn't happen with upsert=true, but good practice)
+            if (oldFilePath && oldFilePath !== filePath && oldFilePath.startsWith(userId)) {
+                const { error: deleteError } = await supabaseClient.storage
                     .from(bucketName)
                     .remove([oldFilePath]);
 
@@ -148,8 +100,8 @@ serve(async (req) => {
         }
     }
 
-    // 6. Get public URL and return
-    const { data: publicUrlData } = userSupabaseClient.storage
+    // 5. Get public URL and return
+    const { data: publicUrlData } = supabaseClient.storage
       .from(bucketName)
       .getPublicUrl(filePath);
 
@@ -160,7 +112,24 @@ serve(async (req) => {
         });
     }
     
-    // 7. Audit Log insertion REMOVED
+    // 6. Log to audit_logs (using service role key for direct DB access)
+    const serviceSupabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    await serviceSupabaseClient.from('audit_logs').insert({
+        user_id: userId,
+        action: 'STORAGE_UPLOAD',
+        table_name: 'event_banners',
+        record_id: eventId, // Use event ID as record ID for banners
+        payload: { 
+            new_url: publicUrlData.publicUrl, 
+            old_url: oldBannerPath || null,
+            file_size_kb: Math.ceil(fileBuffer.byteLength / 1024)
+        }
+    });
+
 
     return new Response(JSON.stringify({ publicUrl: publicUrlData.publicUrl }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
