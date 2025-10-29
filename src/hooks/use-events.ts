@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Event, EventInsert } from '@/types/events';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
 export const useEvents = () => {
-  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
+  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -14,7 +14,7 @@ export const useEvents = () => {
   // Determine if the user has ANY permission to view events
   const hasPermission = checkPermission('event_manager') || checkPermission('viewer');
 
-  const fetchEvents = async () => {
+  const fetchEvents = useCallback(async () => {
     if (!isAuthenticated || !organizationName || !hasPermission) {
       setEvents([]);
       setIsLoading(false);
@@ -23,15 +23,11 @@ export const useEvents = () => {
     
     setIsLoading(true);
     try {
-      // Fetch events and optionally join the linked coupon data
       const { data, error } = await supabase
         .from('events')
-        .select(`
-          *,
-          coupon:coupon_id (id, title, coupon_code)
-        `)
-        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
-        .order('start_time', { ascending: true });
+        .select('*')
+        .eq('organization_name', organizationName) // CRITICAL: Filter by active organization
+        .order('start_time', { ascending: false });
 
       if (error) {
         showError('Hiba történt az események betöltésekor.');
@@ -43,48 +39,66 @@ export const useEvents = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated, organizationName, hasPermission]);
 
-  // Automatically fetch events when activeOrganizationId changes
   useEffect(() => {
-    if (activeOrganizationId) {
+    if (organizationName) {
       fetchEvents();
     } else {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, hasPermission]); // Watch the ID instead of the object
+    
+    // --- Realtime Subscription ---
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (organizationName && hasPermission) {
+        channel = supabase
+          .channel(`events_admin_feed_${organizationName}`)
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'events',
+            },
+            (payload) => {
+              // Refetch all data on any change to ensure consistency
+              fetchEvents();
+            }
+          )
+          .subscribe();
+    }
 
-  const createEvent = async (eventData: EventInsert) => {
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+    
+  }, [organizationName, isAuthenticated, hasPermission, fetchEvents]);
+
+  const createEvent = async (eventData: EventInsert): Promise<{ success: boolean, newEventId?: string }> => {
     if (!organizationName || !checkPermission('event_manager')) {
-      showError('Nincs jogosultságod esemény létrehozásához, vagy hiányzik a szervezet neve.');
-      return { success: false, newEventId: undefined };
+      showError('Nincs jogosultságod esemény létrehozásához.');
+      return { success: false };
     }
 
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('events')
-        .insert({ 
-            ...eventData, 
-            organization_name: organizationName,
-            is_active: false, // Default to inactive (draft)
-            is_archived: false,
-        })
-        .select(`
-          *,
-          coupon:coupon_id (id, title, coupon_code)
-        `)
+        .insert({ ...eventData, organization_name: organizationName, is_active: false, is_archived: false })
+        .select()
         .single();
 
       if (error) {
         showError(`Hiba az esemény létrehozásakor: ${error.message}`);
-        console.error('Create event error:', error);
-        return { success: false, newEventId: undefined };
+        return { success: false };
       }
 
       const newEvent = data as Event;
-      setEvents(prev => [...prev, newEvent]);
+      setEvents(prev => [newEvent, ...prev]);
       showSuccess('Esemény sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newEventId: newEvent.id };
     } finally {
@@ -92,7 +106,7 @@ export const useEvents = () => {
     }
   };
   
-  const updateEvent = async (id: string, eventData: Partial<EventInsert>) => {
+  const updateEvent = async (id: string, eventData: Partial<EventInsert>): Promise<{ success: boolean }> => {
     if (!organizationName || !checkPermission('event_manager')) {
         showError('Nincs jogosultságod esemény frissítéséhez.');
         return { success: false };
@@ -104,14 +118,11 @@ export const useEvents = () => {
         .update(eventData)
         .eq('id', id)
         .eq('organization_name', organizationName) // Security filter
-        .select(`
-          *,
-          coupon:coupon_id (id, title, coupon_code)
-        `)
+        .select()
         .single();
 
       if (error || !data) {
-        showError(`Hiba az esemény frissítésekor: ${error.message}`);
+        showError(`Hiba az esemény frissítésekor. Lehet, hogy nincs jogosultságod ehhez az eseményhez.`);
         console.error('Update event error:', error);
         return { success: false };
       }
@@ -132,11 +143,11 @@ export const useEvents = () => {
     
     const newStatus = !currentStatus;
     
-    // CRITICAL CHECK: Prevent publishing if image_url is missing
+    // CRITICAL CHECK: Prevent publishing if start_time is missing
     if (newStatus === true) {
         const eventToPublish = events.find(e => e.id === id);
-        if (!eventToPublish || !eventToPublish.image_url) {
-            showError('Az esemény publikálásához kötelező feltölteni egy bannert!');
+        if (!eventToPublish || !eventToPublish.start_time) {
+            showError('Az esemény publikálásához kötelező beállítani a kezdési időpontot!');
             return { success: false };
         }
     }
@@ -147,12 +158,12 @@ export const useEvents = () => {
         .from('events')
         .update({ is_active: newStatus })
         .eq('id', id)
-        .eq('organization_name', organizationName)
-        .select(`*, coupon:coupon_id (id, title, coupon_code)`)
+        .eq('organization_name', organizationName) // Security filter
+        .select()
         .single();
 
       if (error || !data) {
-        showError(`Hiba az esemény ${newStatus ? 'publikálásakor' : 'inaktiválásakor'}.`);
+        showError(`Hiba az esemény ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}.`);
         console.error('Toggle active status error:', error);
         return { success: false };
       }
@@ -172,13 +183,12 @@ export const useEvents = () => {
     }
     setIsLoading(true);
     try {
-      // Archiving automatically sets is_active to false
       const { data, error } = await supabase
         .from('events')
         .update({ is_archived: true, is_active: false })
         .eq('id', id)
-        .eq('organization_name', organizationName)
-        .select(`*, coupon:coupon_id (id, title, coupon_code)`)
+        .eq('organization_name', organizationName) // Security filter
+        .select()
         .single();
 
       if (error || !data) {
@@ -202,13 +212,12 @@ export const useEvents = () => {
     }
     setIsLoading(true);
     try {
-      // Unarchiving sets is_archived to false, but keeps is_active as false (draft state)
       const { data, error } = await supabase
         .from('events')
         .update({ is_archived: false, is_active: false })
         .eq('id', id)
         .eq('organization_name', organizationName)
-        .select(`*, coupon:coupon_id (id, title, coupon_code)`)
+        .select()
         .single();
 
       if (error || !data) {
@@ -231,9 +240,10 @@ export const useEvents = () => {
       return { success: false };
     }
     if (!organizationName || !checkPermission('event_manager')) {
-        showError('Nincs jogosultságod esemény törléséhez.');
+        showError('Nincs jogosultságod az esemény törléséhez.');
         return { success: false };
     }
+    
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -267,6 +277,6 @@ export const useEvents = () => {
     unarchiveEvent,
     deleteEvent,
     organizationName,
-    hasPermission, // NEW
+    hasPermission,
   };
 };
