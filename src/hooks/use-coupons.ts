@@ -5,7 +5,7 @@ import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
 
 export const useCoupons = () => {
-  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
+  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -14,7 +14,6 @@ export const useCoupons = () => {
   // Determine if the user has ANY permission to view coupons
   const hasPermission = checkPermission('coupon_manager') || checkPermission('viewer');
 
-  // Function to fetch coupons (used internally and exported for manual refresh)
   const fetchCoupons = useCallback(async () => {
     if (!isAuthenticated || !organizationName || !hasPermission) {
       setCoupons([]);
@@ -24,15 +23,14 @@ export const useCoupons = () => {
     
     setIsLoading(true);
     try {
-      // CRITICAL: Explicitly filter by organization_name. 
       const { data, error } = await supabase
         .from('coupons')
         .select('*')
-        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
+        .eq('organization_name', organizationName) // CRITICAL: Filter by active organization
         .order('created_at', { ascending: false });
 
       if (error) {
-        showError('Hiba történt a kuponok betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
+        showError('Hiba történt a kuponok betöltésekor.');
         console.error('Fetch coupons error:', error);
         return;
       }
@@ -41,11 +39,10 @@ export const useCoupons = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, hasPermission]); // Dependencies for useCallback
+  }, [isAuthenticated, organizationName, hasPermission]);
 
-  // Automatically fetch coupons when activeOrganizationId or organizationName changes
   useEffect(() => {
-    if (organizationName) { // Use organizationName as the primary trigger for fetching data
+    if (organizationName) {
       fetchCoupons();
     } else {
         setCoupons([]);
@@ -56,7 +53,6 @@ export const useCoupons = () => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
     if (organizationName && hasPermission) {
-        // Subscribe to changes in the 'coupons' table
         channel = supabase
           .channel(`coupons_admin_feed_${organizationName}`)
           .on(
@@ -65,11 +61,10 @@ export const useCoupons = () => {
               event: '*', 
               schema: 'public', 
               table: 'coupons',
-              // We cannot filter by organization_name here due to RLS, so we rely on fetchCoupons to filter
+              filter: `organization_name=eq.${organizationName}` // Filter by organization_name
             },
             (payload) => {
-              // Refetch all data to ensure consistency and correct filtering/sorting
-              // We only refetch if the change is relevant to the current organization (which fetchCoupons handles)
+              // Refetch all data on any change to ensure consistency
               fetchCoupons();
             }
           )
@@ -82,11 +77,11 @@ export const useCoupons = () => {
       }
     };
     
-  }, [organizationName, isAuthenticated, hasPermission, fetchCoupons]); // Changed dependency to organizationName
+  }, [organizationName, isAuthenticated, hasPermission, fetchCoupons]);
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
-      showError('Nincs jogosultságod kupon létrehozásához, vagy hiányzik a szervezet neve.');
+      showError('Nincs jogosultságod kupon létrehozásához.');
       return { success: false };
     }
 
@@ -94,7 +89,6 @@ export const useCoupons = () => {
     try {
       const { data, error } = await supabase
         .from('coupons')
-        // Ensure new coupons are INACTIVE and not archived by default
         .insert({ ...couponData, organization_name: organizationName, is_active: false, is_archived: false })
         .select()
         .single();
@@ -105,7 +99,7 @@ export const useCoupons = () => {
       }
 
       const newCoupon = data as Coupon;
-      // Optimistic update (Realtime will eventually trigger fetchCoupons)
+      // We rely on Realtime or refetch, but for immediate feedback, we update state
       setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
@@ -125,12 +119,12 @@ export const useCoupons = () => {
         .from('coupons')
         .update(couponData)
         .eq('id', id)
-        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
+        .eq('organization_name', organizationName) // Security filter
         .select()
         .single();
 
       if (error || !data) {
-        showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz, vagy a szervezet neve hiányzik.`);
+        showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz.`);
         console.error('Update coupon error:', error);
         return { success: false };
       }
@@ -151,27 +145,18 @@ export const useCoupons = () => {
     
     const newStatus = !currentStatus;
     
-    // CRITICAL CHECK: Prevent publishing if image_url is missing
-    if (newStatus === true) {
-        const couponToPublish = coupons.find(c => c.id === id);
-        if (!couponToPublish || !couponToPublish.image_url) {
-            showError('A kupon publikálásához kötelező feltölteni egy bannert!');
-            return { success: false };
-        }
-    }
-    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('coupons')
         .update({ is_active: newStatus })
         .eq('id', id)
-        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
+        .eq('organization_name', organizationName) // Security filter
         .select()
         .single();
 
       if (error || !data) {
-        showError(`Hiba a kupon ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}. Ellenőrizd a jogosultságokat.`);
+        showError(`Hiba a kupon ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}.`);
         console.error('Toggle active status error:', error);
         return { success: false };
       }
@@ -191,17 +176,16 @@ export const useCoupons = () => {
     }
     setIsLoading(true);
     try {
-      // Archiving automatically sets is_active to false
       const { data, error } = await supabase
         .from('coupons')
         .update({ is_archived: true, is_active: false })
         .eq('id', id)
-        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
+        .eq('organization_name', organizationName) // Security filter
         .select()
         .single();
 
       if (error || !data) {
-        showError('Hiba történt a kupon archiválásakor. Ellenőrizd a jogosultságokat.');
+        showError('Hiba történt a kupon archiválásakor.');
         console.error('Archive coupon error:', error);
         return { success: false };
       }
@@ -214,7 +198,6 @@ export const useCoupons = () => {
     }
   };
   
-  // NEW: Function to unarchive a coupon
   const unarchiveCoupon = async (id: string) => {
     if (!organizationName || !checkPermission('coupon_manager')) {
         showError('Nincs jogosultságod a kupon visszaállításához.');
@@ -222,7 +205,6 @@ export const useCoupons = () => {
     }
     setIsLoading(true);
     try {
-      // Unarchiving sets is_archived to false, but keeps is_active as false (draft state)
       const { data, error } = await supabase
         .from('coupons')
         .update({ is_archived: false, is_active: false })
@@ -261,10 +243,10 @@ export const useCoupons = () => {
         .from('coupons')
         .delete()
         .eq('id', id)
-        .eq('organization_name', organizationName); // <-- ADDED SECURITY FILTER
+        .eq('organization_name', organizationName); // Security filter
 
       if (error) {
-        showError('Hiba történt a kupon törlésekor. Ellenőrizd a jogosultságokat.');
+        showError('Hiba történt a kupon törlésekor.');
         console.error('Delete coupon error:', error);
         return { success: false };
       }
@@ -285,9 +267,9 @@ export const useCoupons = () => {
     updateCoupon,
     toggleActiveStatus,
     archiveCoupon,
-    unarchiveCoupon, // NEW
+    unarchiveCoupon,
     deleteCoupon,
     organizationName,
-    hasPermission, // NEW
+    hasPermission,
   };
 };

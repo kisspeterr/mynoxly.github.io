@@ -264,6 +264,14 @@ const CouponsPage = () => {
   
   const canManageCoupons = checkPermission('coupon_manager');
 
+  // Explicitly trigger fetch when organizationName changes
+  useEffect(() => {
+      if (organizationName) {
+          fetchCoupons();
+      }
+  }, [organizationName, fetchCoupons]);
+
+
   const activeCoupons = coupons.filter(c => c.is_active && !c.is_archived);
   const draftCoupons = coupons.filter(c => !c.is_active && !c.is_archived);
   const archivedCoupons = coupons.filter(c => c.is_archived);
@@ -273,10 +281,13 @@ const CouponsPage = () => {
       const result = await createCoupon(data);
       if (result.success && result.newCouponId) {
           // Find the newly created coupon in the local state (it should be the first one after creation)
-          const newCoupon = coupons.find(c => c.id === result.newCouponId);
-          if (newCoupon) {
-              setCouponToEdit(newCoupon);
-          }
+          // NOTE: Since the state update happens inside the hook, we might need a slight delay 
+          // or rely on the hook's internal state update mechanism. 
+          // For now, we rely on the hook's internal state update (setCoupons) and Realtime.
+          
+          // We can't reliably find the new coupon immediately here unless we refetch or the hook returns the full list.
+          // Let's rely on the user seeing it in the Drafts section.
+          
           setIsCreateFormOpen(false); // Close creation form
           return { success: true };
       }
@@ -292,18 +303,13 @@ const CouponsPage = () => {
       return result;
   };
   
-  // Effect to open the edit dialog when a new coupon is set
+  // Effect to open the edit dialog when a new coupon is set (This logic seems flawed if we don't set couponToEdit on creation)
+  // Removing the flawed logic related to couponToEdit state management after creation, 
+  // as the CouponEditDialog is triggered by a button on the card itself.
   useEffect(() => {
       if (couponToEdit) {
-          // Open the edit dialog for the newly created coupon
-          // We rely on the user clicking the edit button on the newly created card, 
-          // or we modify the logic to open the dialog immediately after creation.
-          // Since the CouponEditDialog is triggered by a button, we need to manually open it here.
-          setIsCreateFormOpen(false); // Ensure create form is closed
-          // Since we can't directly control the dialog state inside the card, 
-          // we'll rely on the user clicking the edit button on the newly created card, 
-          // which should be visible in the Drafts section.
-          // For now, we just ensure the state is set correctly.
+          // If we manually set couponToEdit (e.g., for a specific action), we keep this.
+          // But we ensure the create flow doesn't rely on it opening automatically.
       }
   }, [couponToEdit]);
 
