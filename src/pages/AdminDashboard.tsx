@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useNavigate, Link } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { LogOut, Shield, Tag, Calendar, ListChecks, QrCode, User, Menu, Settings, BarChart, Home, Loader2, Users, Building, CheckCircle, AlertTriangle } from 'lucide-react';
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
@@ -69,29 +69,43 @@ const AdminDashboard = () => {
   // Determine if the user has an active organization selected (needed for most tabs)
   const isOrganizationActive = !!activeOrganizationProfile;
   
-  // Permissions check for tabs (based on active organization)
-  const canManageCoupons = checkPermission('coupon_manager');
-  const canManageEvents = checkPermission('event_manager');
-  const canViewUsages = checkPermission('viewer') || checkPermission('redemption_agent') || canManageCoupons || canManageEvents;
-  const canManageMembers = checkPermission('coupon_manager'); // Only high-level admin/owner can manage members
-  const canManageSettings = checkPermission('coupon_manager'); // Only high-level admin/owner can manage settings
+  // --- DYNAMIC PERMISSIONS AND TABS CALCULATION ---
+  // Use useMemo to recalculate permissions and tabs whenever activeOrganizationProfile changes
+  const { tabs, canManageMembers, canManageSettings } = useMemo(() => {
+      // Permissions check for tabs (based on active organization)
+      const canManageCoupons = checkPermission('coupon_manager');
+      const canManageEvents = checkPermission('event_manager');
+      // Viewer permission includes redemption agent and managers
+      const canViewUsages = checkPermission('viewer') || checkPermission('redemption_agent') || canManageCoupons || canManageEvents;
+      
+      // Only high-level admin/owner (coupon_manager role is often used as the main admin role) can manage members/settings
+      const canManageMembers = checkPermission('coupon_manager'); 
+      const canManageSettings = checkPermission('coupon_manager'); 
 
-  // Define tabs based on permissions
-  const tabs = [
-    { id: 'coupons', label: 'Kuponok', icon: Tag, component: CouponsPage, permission: canManageCoupons || canViewUsages },
-    { id: 'events', label: 'Események', icon: Calendar, component: EventsPage, permission: canManageEvents || canViewUsages },
-    { id: 'usages', label: 'Beváltások', icon: ListChecks, component: CouponUsagesPage, permission: canViewUsages },
-    { id: 'statistics', label: 'Statisztikák', icon: BarChart, component: UsageStatisticsPage, permission: canViewUsages },
-    { id: 'members', label: 'Tagok', icon: Users, component: OrganizationMembersPage, permission: canManageMembers },
-    { id: 'settings', label: 'Beállítások', icon: Settings, component: ProfileSettingsPage, permission: canManageSettings },
-  ].filter(tab => tab.permission);
+      const calculatedTabs = [
+        { id: 'coupons', label: 'Kuponok', icon: Tag, component: CouponsPage, permission: canManageCoupons || canViewUsages },
+        { id: 'events', label: 'Események', icon: Calendar, component: EventsPage, permission: canManageEvents || canViewUsages },
+        { id: 'usages', label: 'Beváltások', icon: ListChecks, component: CouponUsagesPage, permission: canViewUsages },
+        { id: 'statistics', label: 'Statisztikák', icon: BarChart, component: UsageStatisticsPage, permission: canViewUsages },
+        { id: 'members', label: 'Tagok', icon: Users, component: OrganizationMembersPage, permission: canManageMembers },
+        { id: 'settings', label: 'Beállítások', icon: Settings, component: ProfileSettingsPage, permission: canManageSettings },
+      ].filter(tab => tab.permission);
+      
+      return { tabs: calculatedTabs, canManageMembers, canManageSettings };
+  }, [activeOrganizationProfile, checkPermission]); // Recalculate when the active organization changes
   
   // Ensure activeTab is valid after filtering
   useEffect(() => {
-      if (isOrganizationActive && !tabs.some(t => t.id === activeTab)) {
-          setActiveTab(tabs[0]?.id || 'coupons');
+      if (isOrganizationActive) {
+          // If the current tab is no longer available, switch to the first available tab
+          if (!tabs.some(t => t.id === activeTab)) {
+              setActiveTab(tabs[0]?.id || 'coupons');
+          }
+      } else {
+          // If no organization is active, reset the tab state (optional, but cleaner)
+          setActiveTab('coupons');
       }
-  }, [isOrganizationActive, tabs]);
+  }, [isOrganizationActive, tabs, activeTab]);
 
 
   return (
@@ -158,12 +172,15 @@ const AdminDashboard = () => {
                     Beváltás
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/admin/dashboard?tab=statistics" className="flex items-center">
-                    <BarChart className="h-4 w-4 mr-2 text-pink-400" />
-                    Statisztikák
-                  </Link>
-                </DropdownMenuItem>
+                {/* Ensure statistics link is only shown if the tab exists */}
+                {tabs.some(t => t.id === 'statistics') && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin/dashboard?tab=statistics" className="flex items-center">
+                        <BarChart className="h-4 w-4 mr-2 text-pink-400" />
+                        Statisztikák
+                      </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-400 flex items-center">
                   <LogOut className="h-4 w-4 mr-2" />
                   Kijelentkezés
