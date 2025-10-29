@@ -133,12 +133,14 @@ const ChallengesSection = () => {
   }
   
   // Filter: Only show challenges that are NOT completed OR are completed but NOT claimed.
+  // If the user is not authenticated, show all active challenges.
   const visibleChallenges = activeChallenges.filter(c => 
       !isAuthenticated || !c.user_progress || !c.user_progress.is_reward_claimed
   );
   
-  if (visibleChallenges.length === 0) {
-      return null; // Hide section if no relevant challenges are active
+  // If there are no active challenges at all (even before filtering by user progress), hide the section.
+  if (activeChallenges.length === 0) {
+      return null; 
   }
 
   return (
@@ -157,15 +159,23 @@ const ChallengesSection = () => {
           Gyűjts extra hűségpontokat a Pécsi éjszakai élet felfedezésével.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {visibleChallenges.map(challenge => (
-            <ChallengeCard 
-                key={challenge.id} 
-                challenge={challenge} 
-                onClaim={claimReward} 
-            />
-          ))}
-        </div>
+        {visibleChallenges.length === 0 && isAuthenticated ? (
+            <div className="mt-12 p-6 bg-green-900/30 border border-green-500/50 rounded-xl max-w-lg mx-auto">
+                <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-3" />
+                <p className="text-lg text-green-300 font-semibold">Gratulálunk! Minden aktív küldetést teljesítettél és igényeltél.</p>
+                <p className="text-sm text-gray-400 mt-1">Nézz vissza később új kihívásokért!</p>
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visibleChallenges.map(challenge => (
+                <ChallengeCard 
+                    key={challenge.id} 
+                    challenge={challenge} 
+                    onClaim={claimReward} 
+                />
+              ))}
+            </div>
+        )}
         
         {!isAuthenticated && (
             <div className="mt-12 p-6 bg-cyan-900/30 border border-cyan-500/50 rounded-xl max-w-lg mx-auto">
