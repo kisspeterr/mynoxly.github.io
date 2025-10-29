@@ -10,6 +10,7 @@ import UserLoyaltyPointsList from '@/components/user/UserLoyaltyPointsList';
 import UserInterestedEventsList from '@/components/user/UserInterestedEventsList';
 import UserSettingsForm from '@/components/user/UserSettingsForm';
 import UserInvitationsList from '@/components/user/UserInvitationsList';
+import UserChallengesList from '@/components/user/UserChallengesList'; // NEW IMPORT
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
@@ -95,6 +96,11 @@ const Profile = () => {
             {/* Invitations Section */}
             <Card className="bg-black/50 border-yellow-500/30 backdrop-blur-sm p-6">
                 <UserInvitationsList />
+            </Card>
+            
+            {/* Challenges Section */}
+            <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm p-6">
+                <UserChallengesList />
             </Card>
             
             {/* Interested Events Section */}

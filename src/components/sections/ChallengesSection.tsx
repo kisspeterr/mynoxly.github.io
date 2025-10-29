@@ -132,8 +132,13 @@ const ChallengesSection = () => {
     );
   }
   
-  if (activeChallenges.length === 0) {
-      return null; // Hide section if no active challenges
+  // Filter: Only show challenges that are NOT completed OR are completed but NOT claimed.
+  const visibleChallenges = activeChallenges.filter(c => 
+      !isAuthenticated || !c.user_progress || !c.user_progress.is_reward_claimed
+  );
+  
+  if (visibleChallenges.length === 0) {
+      return null; // Hide section if no relevant challenges are active
   }
 
   return (
@@ -153,7 +158,7 @@ const ChallengesSection = () => {
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {activeChallenges.map(challenge => (
+          {visibleChallenges.map(challenge => (
             <ChallengeCard 
                 key={challenge.id} 
                 challenge={challenge} 

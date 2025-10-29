@@ -15,10 +15,10 @@ const IndexPage = () => {
       <Navigation />
       <main>
         <HeroSection />
-        <ChallengesSection /> {/* Add Challenges section here */}
         <CouponsSection />
         <EventsSection />
         <OrganizersSection />
+        <ChallengesSection /> {/* Moved Challenges section here */}
         <FaqSection />
         <PartnerSection />
       </main>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building, Loader2 } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building, Loader2, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -160,6 +160,12 @@ const Navigation = () => {
           {!isMobile && (
             <div className="flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
               <a
+                href="/#challenges-section"
+                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 flex items-center gap-1"
+              >
+                <ListChecks className="h-4 w-4" /> Küldetések
+              </a>
+              <a
                 href="/#coupons-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
@@ -201,6 +207,13 @@ const Navigation = () => {
           <div className="mt-4 pb-4 border-t border-cyan-500/20 pt-4">
             <div className="flex flex-col space-y-4">
               <a
+                href="/#challenges-section"
+                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                onClick={() => navigateToSection('challenges-section')}
+              >
+                <ListChecks className="h-4 w-4 mr-2" /> Küldetések
+              </a>
+              <a
                 href="/#coupons-section"
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
                 onClick={() => navigateToSection('coupons-section')}
@@ -236,7 +249,7 @@ const Navigation = () => {
               {!isLoading && isAuthenticated && (isAdmin || isSuperadmin) && (
                 <Link
                   to="/code"
-                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                  className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 text-left flex items-center gap-1"
                   onClick={() => setIsOpen(false)}
                 >
                   <QrCode className="h-4 w-4 mr-2 text-green-300" />
