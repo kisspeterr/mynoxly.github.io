@@ -10,8 +10,8 @@ import ImageCropper from './ImageCropper'; // Import the new cropper
 
 interface LogoUploaderProps {
   currentLogoUrl: string | null;
-  onUploadSuccess: (url: string) => void;
-  onRemove: () => void;
+  onUploadSuccess: (url: string) => void; // Now expects the parent to handle DB update
+  onRemove: (url: string | null) => void; // Now expects the parent to handle DB update
 }
 
 // Max input file size: 2 MB
@@ -136,11 +136,14 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
 
       // 4. Success
       const result = await response.json();
-      onUploadSuccess(result.publicUrl);
+      
+      // Notify parent component with the new URL, parent handles DB update
+      onUploadSuccess(result.publicUrl); 
+      
       setFile(null); // Clear original file state
       setCroppedFile(null); // Clear cropped file state
-      showSuccess('Logó sikeresen feltöltve és feldolgozva!');
-
+      // Success message and profile refetch handled by parent component
+      
     } catch (e) {
       showError('Váratlan hiba történt a feltöltés során. Kérjük, ellenőrizd a konzolt a részletekért.');
       console.error('Unexpected upload error:', e);
@@ -187,7 +190,8 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
                   return;
               }
               
-              showSuccess('Logó sikeresen törölve a tárhelyről.');
+              // Notify parent component that removal was successful (parent handles DB update)
+              onRemove(null); 
               
           } catch (e) {
               showError('Váratlan hiba történt a törlés során.');
@@ -196,13 +200,14 @@ const LogoUploader: React.FC<LogoUploaderProps> = ({ currentLogoUrl, onUploadSuc
           } finally {
               setIsUploading(false);
           }
+      } else {
+          // If no current URL, just clear local state and notify parent
+          onRemove(null);
       }
       
       setFile(null);
       setCroppedFile(null);
       setPreviewUrl(null);
-      onRemove(); // Notify parent to clear URL in form state
-      showSuccess('Logó eltávolítva. Ne felejtsd el menteni a beállításokat!');
   };
 
   return (

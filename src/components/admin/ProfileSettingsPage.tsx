@@ -42,6 +42,36 @@ const ProfileSettingsPage: React.FC = () => {
   // Check if the user has permission to manage settings (owner or high-level admin)
   const canManageSettings = checkPermission('coupon_manager'); 
 
+  // NEW: Function to immediately save the logo URL after successful upload/removal
+  const saveLogoUrlImmediately = async (newUrl: string | null) => {
+    if (!user || !activeOrganizationId || !canManageSettings) return;
+    
+    setIsSaving(true);
+    try {
+        const { error: orgError } = await supabase
+            .from('organizations')
+            .update({ logo_url: newUrl })
+            .eq('id', activeOrganizationId);
+            
+        if (orgError) {
+            showError(`Hiba a logó URL mentésekor: ${orgError.message}`);
+            console.error('Logo URL update error:', orgError);
+            return;
+        }
+        
+        // Update local state and refetch profile to ensure consistency
+        setLogoUrl(newUrl || '');
+        await fetchProfile(user.id); 
+        showSuccess('Logó sikeresen frissítve!');
+        
+    } catch (error) {
+        showError('Váratlan hiba történt a logó mentése során.');
+        console.error('Unexpected logo save error:', error);
+    } finally {
+        setIsSaving(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || isSaving || !activeOrganizationId || !canManageSettings) return;
@@ -52,7 +82,9 @@ const ProfileSettingsPage: React.FC = () => {
     
     const updates = {
       organization_name: trimmedOrgName || null, 
-      logo_url: logoUrl || null,
+      // NOTE: logo_url is handled by saveLogoUrlImmediately, but we include it here 
+      // in case the user changes the name and saves without touching the logo.
+      logo_url: logoUrl || null, 
       is_public: isPublic,
     };
 
@@ -134,10 +166,10 @@ const ProfileSettingsPage: React.FC = () => {
           <div className="space-y-2">
             <LogoUploader 
               currentLogoUrl={logoUrl}
-              onUploadSuccess={setLogoUrl}
-              onRemove={() => setLogoUrl(null)}
+              onUploadSuccess={saveLogoUrlImmediately} // Use immediate save handler
+              onRemove={() => saveLogoUrlImmediately(null)} // Use immediate save handler for removal
             />
-            <p className="text-xs text-gray-500">A feltöltés után ne felejtsd el menteni a beállításokat!</p>
+            <p className="text-xs text-gray-500">A logó feltöltése/eltávolítása azonnal mentésre kerül az adatbázisba.</p>
           </div>
           
           {/* Public Visibility Switch */}
