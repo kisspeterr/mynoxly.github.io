@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuditLogs, AuditLog, AuditFilter } from '@/hooks/use-audit-logs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Clock, User, Building, Filter, RefreshCw, Activity, Tag, Calendar, Shield, Trash2, Upload, PlusCircle, Pencil } from 'lucide-react';
+import { Loader2, Clock, User, Building, Filter, RefreshCw, Activity, Tag, Calendar, Shield, Trash2, Upload, PlusCircle, Pencil, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/hooks/use-auth';
+import { supabase } from '@/integrations/supabase/client';
+import { showError, showSuccess } from '@/utils/toast';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 // Map database actions to display names and colors
 const ACTION_MAP: Record<string, { label: string, color: string, icon: React.FC<any> }> = {
@@ -28,6 +32,7 @@ const TABLE_MAP: Record<string, string> = {
     'interested_events': 'Érdeklődés',
     'logos': 'Logó (Tárhely)',
     'coupon_banners': 'Banner (Tárhely)',
+    'event_banners': 'Banner (Esemény)',
 };
 
 const getActionDetails = (log: AuditLog): string => {
@@ -70,12 +75,21 @@ const getActionDetails = (log: AuditLog): string => {
     return `${actionType} művelet a(z) ${tableName} táblán.`;
 };
 
-const LogCard: React.FC<{ log: AuditLog }> = ({ log }) => {
+const LogCard: React.FC<{ log: AuditLog, onUndoRedemption: (usageId: string) => void, isProcessing: boolean }> = ({ log, onUndoRedemption, isProcessing }) => {
     const action = ACTION_MAP[log.action] || ACTION_MAP['default'];
     const Icon = action.icon;
     const username = log.user_profile?.username || log.user_id.slice(0, 8) + '...';
     const details = getActionDetails(log);
     
+    // Check if this log represents a FINALIZED redemption (UPDATE on coupon_usages where is_used changed to true)
+    const isFinalizedRedemption = log.table_name === 'coupon_usages' && 
+                                 log.action === 'UPDATE' && 
+                                 log.payload?.new?.is_used === true && 
+                                 log.payload?.old?.is_used === false;
+    
+    // The usage ID is the record_id for coupon_usages updates
+    const usageId = log.table_name === 'coupon_usages' ? log.record_id : null;
+
     return (
         <Card className="bg-black/50 border-gray-700/50 backdrop-blur-sm text-white">
             <CardContent className="p-4 flex items-start space-x-4">
@@ -105,6 +119,46 @@ const LogCard: React.FC<{ log: AuditLog }> = ({ log }) => {
                             </p>
                         )}
                     </div>
+                    
+                    {/* Undo Button for Finalized Redemptions */}
+                    {isFinalizedRedemption && usageId && (
+                        <div className="mt-3">
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button 
+                                        variant="destructive" 
+                                        size="sm" 
+                                        className="bg-red-800/50 hover:bg-red-800/70"
+                                        disabled={isProcessing}
+                                    >
+                                        <RotateCcw className="h-4 w-4 mr-2" />
+                                        Beváltás visszavonása
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="bg-black/80 border-red-500/30 backdrop-blur-sm max-w-sm">
+                                    <DialogHeader>
+                                        <DialogTitle className="text-red-400">Beváltás visszavonása</DialogTitle>
+                                        <DialogDescription className="text-gray-300">
+                                            Biztosan vissza szeretnéd vonni ezt a beváltást? Ez visszaállítja a kupon állapotát 'felhasználatlan'-ra, és visszafordítja a hűségpont tranzakciókat.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline" className="text-gray-300 border-gray-700 hover:bg-gray-800">Mégsem</Button>
+                                        </DialogClose>
+                                        <Button 
+                                            variant="destructive" 
+                                            onClick={() => onUndoRedemption(usageId)}
+                                            disabled={isProcessing}
+                                        >
+                                            {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCcw className="h-4 w-4 mr-2" />}
+                                            Visszavonás megerősítése
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>
@@ -114,7 +168,9 @@ const LogCard: React.FC<{ log: AuditLog }> = ({ log }) => {
 
 const SuperadminActivityPage: React.FC = () => {
     const { logs, isLoading, fetchLogs, availableUsers, availableOrganizations } = useAuditLogs();
+    const { isSuperadmin } = useAuth();
     const [filters, setFilters] = useState<AuditFilter>({});
+    const [isProcessingUndo, setIsProcessingUndo] = useState(false);
     
     const handleFilterChange = (key: keyof AuditFilter, value: string) => {
         setFilters(prev => ({
@@ -130,6 +186,35 @@ const SuperadminActivityPage: React.FC = () => {
     const handleClearFilters = () => {
         setFilters({});
         fetchLogs({});
+    };
+    
+    const handleUndoRedemption = async (usageId: string) => {
+        if (!isSuperadmin) {
+            showError('Nincs jogosultságod a visszavonáshoz.');
+            return;
+        }
+        
+        setIsProcessingUndo(true);
+        try {
+            const { data: success, error: rpcError } = await supabase.rpc('undo_coupon_redemption', {
+                usage_id_in: usageId,
+            });
+            
+            if (rpcError) {
+                showError(`Hiba a visszavonáskor: ${rpcError.message}`);
+                console.error('Undo redemption RPC error:', rpcError);
+                return;
+            }
+            
+            showSuccess('Beváltás sikeresen visszavonva! A pontok visszafordultak.');
+            fetchLogs(filters); // Refresh logs to reflect the change
+            
+        } catch (e) {
+            showError('Váratlan hiba történt a visszavonás során.');
+            console.error('Unexpected undo error:', e);
+        } finally {
+            setIsProcessingUndo(false);
+        }
     };
     
     const availableActions = Object.keys(ACTION_MAP).filter(k => k !== 'default');
@@ -250,7 +335,12 @@ const SuperadminActivityPage: React.FC = () => {
             ) : (
                 <div className="space-y-4">
                     {logs.map(log => (
-                        <LogCard key={log.id} log={log} />
+                        <LogCard 
+                            key={log.id} 
+                            log={log} 
+                            onUndoRedemption={handleUndoRedemption}
+                            isProcessing={isProcessingUndo}
+                        />
                     ))}
                 </div>
             )}
