@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth, OrganizationProfileData } from '@/hooks/use-auth';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Building, CheckCircle, Loader2, Shield, Users } from 'lucide-react';
+import { Building, Loader2, Shield } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { MemberRole } from '@/types/organization';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +18,6 @@ const OrganizationSelector: React.FC = () => {
         activeOrganizationId, 
         activeOrganizationProfile, 
         profile, 
-        switchActiveOrganization, 
         isLoading 
     } = useAuth();
     
@@ -62,66 +60,43 @@ const OrganizationSelector: React.FC = () => {
     
     const activeOrg = uniqueOrganizations.find(org => org.organization_id === activeOrganizationId);
 
+    // Ha nincs aktív szervezet, de van tagság, akkor hibaüzenet
+    if (!activeOrg) {
+        return (
+            <Card className="bg-black/50 border-yellow-500/30 backdrop-blur-sm p-4">
+                <CardContent className="flex items-center p-0">
+                    <Building className="h-5 w-5 mr-3 text-yellow-400" />
+                    <span className="text-gray-400">Nincs kiválasztott aktív szervezet.</span>
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <div className="space-y-4">
             <label className="text-sm font-medium text-gray-400 flex items-center">
                 <Building className="h-4 w-4 mr-2 text-purple-400" />
-                Aktív Szervezet Kiválasztása
+                Aktív Szervezet
             </label>
             
-            {/* Selector Dropdown */}
-            <Select 
-                // Use 'null' string when activeOrganizationId is null for Select component compatibility
-                value={activeOrganizationId || 'null'} 
-                onValueChange={(value) => switchActiveOrganization(value === 'null' ? '' : value)}
-            >
-                <SelectTrigger className="w-full bg-gray-800/50 border-purple-700 text-white hover:bg-gray-700/50">
-                    <SelectValue placeholder="Válassz szervezetet" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-purple-500/30 text-white">
-                    {/* Placeholder item with value='null' */}
-                    <SelectItem value="null">Válassz szervezetet</SelectItem>
-                    {uniqueOrganizations.map(org => (
-                        <SelectItem 
-                            key={org.organization_id} 
-                            value={org.organization_id}
-                            className="flex flex-col items-start"
-                        >
-                            <div className="flex items-center font-semibold">
-                                {org.organization_profile?.organization_name}
-                                {org.isOwner && <Shield className="h-4 w-4 ml-2 text-red-400" />}
-                                {org.organization_id === activeOrganizationId && (
-                                    <CheckCircle className="h-4 w-4 ml-2 text-green-400" />
-                                )}
-                            </div>
-                            <div className="text-xs text-gray-400 mt-1">
-                                {org.isOwner ? 'Tulajdonos' : org.roles.map(r => ROLE_MAP[r]).join(', ')}
-                            </div>
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            
             {/* Active Organization Status */}
-            {activeOrg && (
-                <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm p-3">
-                    <CardContent className="p-0 text-xs text-gray-500">
-                        Jelenleg a(z) <span className="font-semibold text-purple-300">{activeOrg.organization_profile?.organization_name}</span> jogosultságaival dolgozol.
-                        <div className="mt-1 flex flex-wrap gap-1">
-                            <span className="font-medium text-white">Szerepkör:</span>
-                            {activeOrg.isOwner ? (
-                                <Badge className="bg-red-600/50 text-red-300 flex items-center gap-1">
-                                    <Shield className="h-3 w-3" /> Tulajdonos
-                                </Badge>
-                            ) : (
-                                activeOrg.roles.map(r => (
-                                    <Badge key={r} className="bg-cyan-600/50 text-cyan-300">{ROLE_MAP[r]}</Badge>
-                                ))
-                            )}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
+            <Card className="bg-black/50 border-purple-500/30 backdrop-blur-sm p-3">
+                <CardContent className="p-0 text-xs text-gray-500">
+                    Jelenleg a(z) <span className="font-semibold text-purple-300">{activeOrg.organization_profile?.organization_name}</span> jogosultságaival dolgozol.
+                    <div className="mt-1 flex flex-wrap gap-1">
+                        <span className="font-medium text-white">Szerepkör:</span>
+                        {activeOrg.isOwner ? (
+                            <Badge className="bg-red-600/50 text-red-300 flex items-center gap-1">
+                                <Shield className="h-3 w-3" /> Tulajdonos
+                            </Badge>
+                        ) : (
+                            activeOrg.roles.map(r => (
+                                <Badge key={r} className="bg-cyan-600/50 text-cyan-300">{ROLE_MAP[r]}</Badge>
+                            ))
+                        )}
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 };
