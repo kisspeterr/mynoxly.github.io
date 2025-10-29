@@ -121,27 +121,13 @@ const ChallengesSection = () => {
   const { activeChallenges, isLoading, claimReward } = useChallenges();
   const { isAuthenticated } = useAuth();
 
-  if (isLoading) {
-    return (
-      <section id="challenges-section" className="py-12 px-6">
-        <div className="container mx-auto text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-400 mx-auto" />
-            <p className="ml-3 text-gray-300 mt-4">Küldetések betöltése...</p>
-        </div>
-      </section>
-    );
-  }
-  
   // Filter: Only show challenges that are NOT completed OR are completed but NOT claimed.
   // If the user is not authenticated, show all active challenges.
   const visibleChallenges = activeChallenges.filter(c => 
       !isAuthenticated || !c.user_progress || !c.user_progress.is_reward_claimed
   );
   
-  // If there are no active challenges at all (even before filtering by user progress), hide the section.
-  if (activeChallenges.length === 0) {
-      return null; 
-  }
+  // The section always renders the header now.
 
   return (
     <section id="challenges-section" className="py-12 px-6">
@@ -159,7 +145,18 @@ const ChallengesSection = () => {
           Gyűjts extra hűségpontokat a Pécsi éjszakai élet felfedezésével.
         </p>
 
-        {visibleChallenges.length === 0 && isAuthenticated ? (
+        {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-purple-400 mx-auto" />
+                <p className="ml-3 text-gray-300 mt-4">Küldetések betöltése...</p>
+            </div>
+        ) : activeChallenges.length === 0 ? (
+            <div className="mt-12 p-6 bg-gray-900/30 border border-gray-500/50 rounded-xl max-w-lg mx-auto">
+                <ListChecks className="h-8 w-8 text-gray-400 mx-auto mb-3" />
+                <p className="text-lg text-gray-300 font-semibold">Jelenleg nincsenek aktív küldetések.</p>
+                <p className="text-sm text-gray-400 mt-1">Nézz vissza később új kihívásokért!</p>
+            </div>
+        ) : visibleChallenges.length === 0 && isAuthenticated ? (
             <div className="mt-12 p-6 bg-green-900/30 border border-green-500/50 rounded-xl max-w-lg mx-auto">
                 <CheckCircle className="h-8 w-8 text-green-400 mx-auto mb-3" />
                 <p className="text-lg text-green-300 font-semibold">Gratulálunk! Minden aktív küldetést teljesítettél és igényeltél.</p>
@@ -177,7 +174,7 @@ const ChallengesSection = () => {
             </div>
         )}
         
-        {!isAuthenticated && (
+        {!isAuthenticated && activeChallenges.length > 0 && (
             <div className="mt-12 p-6 bg-cyan-900/30 border border-cyan-500/50 rounded-xl max-w-lg mx-auto">
                 <p className="text-lg text-cyan-300 font-semibold">Jelentkezz be az előrehaladásod nyomon követéséhez!</p>
             </div>
