@@ -34,11 +34,10 @@ const AdminDashboard = () => {
     if (!isLoading && !isAuthenticated) {
       // Redirect if loading is done and user is not authenticated
       navigate('/login');
-    } else if (!isLoading && isSuperadmin) {
-      // Redirect Superadmins to their dedicated dashboard
-      navigate('/superadmin/dashboard');
-    }
-  }, [isAuthenticated, isSuperadmin, isLoading, navigate]);
+    } 
+    // Superadmins are now allowed to stay if they have memberships, 
+    // so we only redirect non-admins/non-superadmins without memberships.
+  }, [isAuthenticated, isLoading, navigate]);
   
   const handleSignOut = async () => {
       await signOut();
@@ -58,7 +57,8 @@ const AdminDashboard = () => {
   // Check if the user has any accepted membership (owner or delegated)
   const hasAdminAccess = allMemberships.length > 0;
 
-  if (isAuthenticated && !hasAdminAccess) {
+  // If authenticated but has no admin access (and is not a Superadmin trying to access global dashboard)
+  if (isAuthenticated && !hasAdminAccess && !isSuperadmin) {
     return <UnauthorizedAccess />;
   }
   
@@ -82,6 +82,14 @@ const AdminDashboard = () => {
           
           {/* Desktop Actions */}
           <div className="hidden md:flex space-x-3">
+            {isSuperadmin && (
+                <Button asChild variant="outline" className="border-red-400 text-red-400 hover:bg-red-400/10">
+                    <Link to="/superadmin/dashboard">
+                        <Shield className="h-4 w-4 mr-2" />
+                        Superadmin
+                    </Link>
+                </Button>
+            )}
             <Button asChild variant="outline" className="border-cyan-400 text-cyan-400 hover:bg-cyan-400/10">
               <Link to="/">
                 <Home className="h-4 w-4 mr-2" />
@@ -115,6 +123,14 @@ const AdminDashboard = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-black/90 border-purple-500/30 backdrop-blur-sm text-white">
+                {isSuperadmin && (
+                    <DropdownMenuItem asChild>
+                        <Link to="/superadmin/dashboard" className="flex items-center text-red-400">
+                            <Shield className="h-4 w-4 mr-2" />
+                            Superadmin
+                        </Link>
+                    </DropdownMenuItem>
+                )}
                 <DropdownMenuItem asChild>
                   <Link to="/" className="flex items-center">
                     <Home className="h-4 w-4 mr-2 text-cyan-400" />

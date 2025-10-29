@@ -18,10 +18,9 @@ const SuperadminDashboard: React.FC = () => {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate('/login');
-    } else if (!isLoading && isAuthenticated && !isSuperadmin) {
-      // Redirect regular admins to their dashboard
-      navigate('/admin/dashboard');
-    }
+    } 
+    // REMOVED: Redirect to /admin/dashboard if Superadmin has memberships. 
+    // Superadmins can now choose to go to /admin/dashboard manually if they want to manage their organizations.
   }, [isAuthenticated, isSuperadmin, isLoading, navigate]);
   
   const handleSignOut = async () => {
