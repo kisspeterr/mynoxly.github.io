@@ -159,30 +159,30 @@ const Navigation = () => {
           {/* Desktop Navigation (Center) */}
           {!isMobile && (
             <div className="flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
-              <a
-                href="/#challenges-section"
+              <button
+                onClick={() => navigateToSection('challenges-section')}
                 className="text-gray-300 hover:text-purple-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <ListChecks className="h-4 w-4" /> Küldetések
-              </a>
-              <a
-                href="/#coupons-section"
+              </button>
+              <button
+                onClick={() => navigateToSection('coupons-section')}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <Gift className="h-4 w-4" /> Kuponok
-              </a>
-              <a
-                href="/#events-section"
+              </button>
+              <button
+                onClick={() => navigateToSection('events-section')}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <Calendar className="h-4 w-4" /> Események
-              </a>
-              <a
-                href="/#organizers-section"
+              </button>
+              <button
+                onClick={() => navigateToSection('organizers-section')}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <Building className="h-4 w-4" /> Partnerek
-              </a>
+              </button>
             </div>
           )}
 
@@ -206,34 +206,31 @@ const Navigation = () => {
         {isMobile && isOpen && (
           <div className="mt-4 pb-4 border-t border-cyan-500/20 pt-4">
             <div className="flex flex-col space-y-4">
-              <a
-                href="/#challenges-section"
-                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 py-2 flex items-center gap-1"
+              <button
                 onClick={() => navigateToSection('challenges-section')}
+                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 py-2 flex items-center gap-1"
               >
                 <ListChecks className="h-4 w-4 mr-2" /> Küldetések
-              </a>
-              <a
-                href="/#coupons-section"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+              </button>
+              <button
                 onClick={() => navigateToSection('coupons-section')}
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
               >
                 <Gift className="h-4 w-4 mr-2" /> Kuponok
-              </a>
-              <a
-                href="/#events-section"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+              </button>
+              <button
                 onClick={() => navigateToSection('events-section')}
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+                
               >
                 <Calendar className="h-4 w-4 mr-2" /> Események
-              </a>
-              <a
-                href="/#organizers-section"
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
+              </button>
+              <button
                 onClick={() => navigateToSection('organizers-section')}
+                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
               >
                 <Building className="h-4 w-4 mr-2" /> Partnerek
-              </a>
+              </button>
               
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
               {!isLoading && isAuthenticated && (
@@ -280,7 +277,3 @@ const Navigation = () => {
         )}
       </div>
     </nav>
-  );
-};
-
-export default Navigation;

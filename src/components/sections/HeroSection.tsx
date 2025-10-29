@@ -1,4 +1,4 @@
-import { Sparkles, Moon, Bell, Play, Gift, Calendar, Building } from "lucide-react";
+import { Sparkles, Moon, Bell, Play, Gift, Calendar, Building, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,6 +23,13 @@ const HeroSection = () => {
     const organizersSection = document.getElementById('organizers-section');
     if (organizersSection) {
       organizersSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  const scrollToChallenges = () => {
+    const challengesSection = document.getElementById('challenges-section');
+    if (challengesSection) {
+      challengesSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -80,6 +87,14 @@ const HeroSection = () => {
           >
             <Building className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
             Partnerek
+          </Button>
+          <Button 
+            onClick={scrollToChallenges}
+            variant="outline" 
+            className="w-full sm:w-auto border-pink-400 text-pink-400 hover:bg-pink-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
+          >
+            <ListChecks className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+            Küldetések
           </Button>
         </div>
       </div>
