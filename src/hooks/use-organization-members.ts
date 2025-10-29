@@ -1,8 +1,23 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { OrganizationMember, OrganizationMemberInsert, MemberRole } from '@/types/organization';
+import { OrganizationMember, MemberRole } from '@/types/organization';
 import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
+
+// Helper to fetch user profile by username
+const fetchUserIdByUsername = async (username: string): Promise<string | null> => {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .single();
+        
+    if (error && error.code !== 'PGRST116') {
+        console.error('Error fetching user ID by username:', error);
+        return null;
+    }
+    return data?.id || null;
+};
 
 export const useOrganizationMembers = () => {
   const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
@@ -29,7 +44,7 @@ export const useOrganizationMembers = () => {
         .from('organization_members')
         .select(`
           *,
-          profiles (username, first_name, last_name, avatar_url, email:auth_users(email))
+          profiles (username, first_name, last_name, avatar_url)
         `)
         .eq('organization_id', organizationId) // CRITICAL: Filter by active organization ID
         .order('created_at', { ascending: false });
@@ -43,9 +58,8 @@ export const useOrganizationMembers = () => {
       // Map roles from JSONB array to a single string for display/filtering if needed
       const membersWithRoles = data.map(member => ({
           ...member,
-          // Assuming roles is a JSONB array of strings, we might simplify it here
-          role: (member.roles as MemberRole[])[0] || 'viewer', 
-          email: member.profiles?.email?.[0]?.email || 'N/A',
+          // Ensure roles is treated as MemberRole[]
+          roles: member.roles as MemberRole[],
       })) as OrganizationMember[];
       
       setMembers(membersWithRoles);
@@ -92,8 +106,8 @@ export const useOrganizationMembers = () => {
     
   }, [organizationId, canManageMembers, fetchMembers]);
 
-  // Function to invite a new member (requires email and role)
-  const inviteMember = async (email: string, role: MemberRole) => {
+  // Function to invite a new member (using username)
+  const inviteMember = async (username: string, roles: MemberRole[]) => {
     if (!organizationId || !canManageMembers) {
       showError('Nincs jogosultságod tagok meghívásához.');
       return { success: false };
@@ -101,29 +115,50 @@ export const useOrganizationMembers = () => {
     
     setIsLoading(true);
     try {
-      // NOTE: This requires a server-side function or admin API call in a real app, 
-      // but for simplicity, we insert a pending record here.
-      // In a real scenario, we'd need to find the user_id by email first.
-      
-      // Step 1: Find user ID by email (requires admin privileges or a custom function)
-      // Since we don't have a public function to look up user IDs by email, 
-      // we must rely on the user accepting the invitation. 
-      // For now, we assume the user exists and we can find their profile ID.
-      
-      // Since we cannot reliably get the user_id from email on the client side 
-      // without exposing sensitive data or using a custom RPC, we will skip 
-      // the actual invitation logic for now and focus on the core member management.
-      
-      showError('A tagok meghívása jelenleg nem támogatott a kliens oldalon. Kérjük, használd a Supabase Auth funkcióit.');
-      return { success: false };
-      
+        const userId = await fetchUserIdByUsername(username);
+        
+        if (!userId) {
+            showError(`A felhasználó (@${username}) nem található.`);
+            return { success: false };
+        }
+        
+        // Check if already member/pending
+        const existing = members.find(m => m.user_id === userId);
+        if (existing) {
+            showError(`A felhasználó (@${username}) már tagja vagy meghívottja a szervezetnek.`);
+            return { success: false };
+        }
+
+        const { error } = await supabase
+            .from('organization_members')
+            .insert({
+                organization_id: organizationId,
+                user_id: userId,
+                status: 'pending',
+                roles: roles,
+            });
+
+        if (error) {
+            if (error.code === '23505') { // Unique constraint violation
+                showError(`A felhasználó (@${username}) már tagja vagy meghívottja a szervezetnek.`);
+            } else {
+                showError(`Hiba történt a meghíváskor: ${error.message}`);
+                console.error('Invite member error:', error);
+            }
+            return { success: false };
+        }
+
+        showSuccess(`Meghívó elküldve @${username} felhasználónak!`);
+        fetchMembers(); // Refresh list
+        return { success: true };
+        
     } finally {
-      setIsLoading(false);
+        setIsLoading(false);
     }
   };
   
-  // Function to update a member's role
-  const updateMemberRole = async (memberId: string, newRole: MemberRole) => {
+  // Function to update a member's roles (accepts array)
+  const updateMemberRoles = async (memberId: string, roles: MemberRole[]) => {
     if (!organizationId || !canManageMembers) {
       showError('Nincs jogosultságod tagok szerepének módosításához.');
       return { success: false };
@@ -133,7 +168,7 @@ export const useOrganizationMembers = () => {
     try {
       const { data, error } = await supabase
         .from('organization_members')
-        .update({ roles: [newRole] }) // Update roles array
+        .update({ roles: roles }) // Update roles array
         .eq('id', memberId)
         .eq('organization_id', organizationId) // Security filter
         .select()
@@ -146,7 +181,7 @@ export const useOrganizationMembers = () => {
       }
 
       // Update local state
-      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, roles: [newRole], role: newRole } : m));
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, roles: roles } : m));
       showSuccess('Tag szerepe sikeresen frissítve!');
       return { success: true };
     } finally {
@@ -188,7 +223,7 @@ export const useOrganizationMembers = () => {
     isLoading,
     fetchMembers,
     inviteMember,
-    updateMemberRole,
+    updateMemberRoles, // Renamed to plural
     removeMember,
     organizationName,
     canManageMembers,

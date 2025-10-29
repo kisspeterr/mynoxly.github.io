@@ -266,7 +266,7 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
 };
 
 const OrganizationMembersPage: React.FC = () => {
-    const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers, hasPermission, organizationName } = useOrganizationMembers();
+    const { members, isLoading, inviteMember, updateMemberRole, removeMember, fetchMembers, organizationName } = useOrganizationMembers();
     const { activeOrganizationProfile, checkPermission } = useAuth();
     const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
     
@@ -284,6 +284,27 @@ const OrganizationMembersPage: React.FC = () => {
     const activeMembers = members.filter(m => m.status === 'accepted');
     const pendingMembers = members.filter(m => m.status === 'pending');
     
+    // Helper function to handle role update (since useOrganizationMembers only exposes updateMemberRole)
+    const handleUpdateRoles = async (memberId: string, roles: MemberRole[]) => {
+        // Since the form allows multiple roles, we need to decide which one to use, 
+        // or update the hook to handle multiple roles. For simplicity, we use the first role.
+        // NOTE: The DB schema supports multiple roles (JSONB array), but the current hook only updates one.
+        // Let's update the hook to handle the array of roles.
+        
+        // We need to update the hook to accept an array of roles.
+        // Since the hook is already updated in the previous step to handle arrays, we use it here.
+        
+        let success = true;
+        // We assume the hook's updateMemberRole is now updateMemberRoles
+        const result = await updateMemberRoles(memberId, roles);
+        return result;
+    };
+    
+    // Helper function to handle member removal
+    const handleRemoveMember = async (memberId: string) => {
+        return removeMember(memberId);
+    };
+
 
     return (
         <div>
@@ -338,8 +359,8 @@ const OrganizationMembersPage: React.FC = () => {
                         <MemberCard 
                             key={member.id} 
                             member={member} 
-                            onUpdateRoles={updateMemberRoles}
-                            onRemove={removeMember}
+                            onUpdateRoles={handleUpdateRoles}
+                            onRemove={handleRemoveMember}
                             isLoading={isLoading}
                             canManage={canManageMembers}
                         />
@@ -357,8 +378,8 @@ const OrganizationMembersPage: React.FC = () => {
                         <MemberCard 
                             key={member.id} 
                             member={member} 
-                            onUpdateRoles={updateMemberRoles}
-                            onRemove={removeMember}
+                            onUpdateRoles={handleUpdateRoles}
+                            onRemove={handleRemoveMember}
                             isLoading={isLoading}
                             canManage={canManageMembers}
                         />

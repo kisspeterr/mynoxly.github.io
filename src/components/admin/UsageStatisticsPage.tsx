@@ -26,8 +26,9 @@ const UsageStatisticsPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [emailFilter, setEmailFilter] = useState('');
   
-  // Fetch data whenever date, timeRange, or filter changes
+  // Fetch data whenever date, timeRange, filter, or activeOrganizationProfile changes
   useEffect(() => {
+    // CRITICAL: Trigger fetch when activeOrganizationProfile changes (i.e., organizationName changes)
     if (activeOrganizationProfile && hasPermission) {
         fetchStatistics(selectedDate, timeRange, emailFilter);
     }

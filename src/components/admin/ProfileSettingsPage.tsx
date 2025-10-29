@@ -33,6 +33,11 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(activeOrganizationProfile.organization_name || '');
       setLogoUrl(activeOrganizationProfile.logo_url || '');
       setIsPublic(activeOrganizationProfile.is_public ?? true);
+    } else {
+        // Reset state if no organization is active
+        setOrganizationName('');
+        setLogoUrl('');
+        setIsPublic(true);
     }
   }, [activeOrganizationProfile]);
   
