@@ -186,21 +186,36 @@ export const useAuth = () => {
       refetch();
   }, [refetch]);
   
-  // 🔹 Jogosultság ellenőrzése
+  /**
+   * Ellenőrzi, hogy a felhasználó rendelkezik-e a szükséges jogosultsággal az aktív szervezetben.
+   * @param requiredRole A szükséges szerepkör (pl. 'coupon_manager').
+   * @returns Igaz, ha a felhasználó Superadmin, vagy ha az aktív tagságában szerepel a szükséges szerepkör.
+   */
   const checkPermission = useCallback((requiredRole: MemberRole): boolean => {
     // 0. Superadmin mindig mindent megtehet
     if (data?.profile?.role === 'superadmin') {
         return true;
     }
     
-    // 1. Delegált tag ellenőrzése
-    const roles = activeMembership?.roles;
+    // 1. Ellenőrizzük, hogy van-e aktív tagság
+    if (!activeMembership) {
+        return false;
+    }
+    
+    // 2. Ellenőrizzük, hogy a felhasználó a tulajdonos-e (a tulajdonos minden jogosultsággal rendelkezik)
+    const isOwner = activeMembership.organization_profile?.owner_id === data?.user?.id;
+    if (isOwner) {
+        return true;
+    }
+    
+    // 3. Ellenőrizzük a delegált szerepköröket
+    const roles = activeMembership.roles;
     if (roles && roles.includes(requiredRole)) {
         return true;
     }
     
     return false;
-  }, [data?.profile?.role, activeMembership?.roles]);
+  }, [data?.profile?.role, data?.user?.id, activeMembership]);
   
   // 🔹 Aktív szervezet váltása
   const switchActiveOrganization = useCallback((organizationId: string) => {
@@ -231,7 +246,8 @@ export const useAuth = () => {
     
     isLoading: isLoading,
     signOut,
-    isAdmin: data?.profile?.role === 'admin', // Legacy check for owner status (now means they own at least one org)
+    // isAdmin most azt jelenti, hogy van elfogadott tagsága
+    isAdmin: (data?.profile?.role === 'admin' || data?.profile?.role === 'user') && (data?.allMemberships.length > 0), 
     isSuperadmin: data?.profile?.role === 'superadmin', // NEW
     isAuthenticated: !!data?.user,
     fetchProfile: forceProfileRefetch,
