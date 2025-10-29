@@ -8,6 +8,7 @@ import { useChallenges, ActiveChallenge } from '@/hooks/use-challenges';
 import { useAuth } from '@/hooks/use-auth';
 import { Link } from 'react-router-dom';
 import { showError } from '@/utils/toast';
+import { useLoyaltyPoints } from '@/hooks/use-loyalty-points'; // NEW IMPORT
 
 const CONDITION_LABELS: Record<ActiveChallenge['condition_type'], string> = {
     REDEEM_COUNT: 'Kupon beváltás',
@@ -15,7 +16,7 @@ const CONDITION_LABELS: Record<ActiveChallenge['condition_type'], string> = {
     DIFFERENT_ORGANIZATIONS: 'Különböző szervezetek',
 };
 
-const ChallengeCard: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string) => Promise<{ success: boolean }> }> = ({ challenge, onClaim }) => {
+const ChallengeCard: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string, onPointsUpdated?: () => void) => Promise<{ success: boolean }>, onPointsUpdated: () => void }> = ({ challenge, onClaim, onPointsUpdated }) => {
     const { isAuthenticated } = useAuth();
     const [isClaiming, setIsClaiming] = useState(false);
     
@@ -26,7 +27,8 @@ const ChallengeCard: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string
     
     const handleClaim = async () => {
         setIsClaiming(true);
-        await onClaim(challenge.id);
+        // Pass the onPointsUpdated callback here
+        await onClaim(challenge.id, onPointsUpdated);
         setIsClaiming(false);
     };
     
@@ -120,6 +122,7 @@ const ChallengeCard: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string
 const ChallengesSection = () => {
   const { activeChallenges, isLoading, claimReward } = useChallenges();
   const { isAuthenticated } = useAuth();
+  const { fetchPoints } = useLoyaltyPoints(); // Use fetchPoints from loyalty hook
 
   // Filter: Only show challenges that are NOT completed OR are completed but NOT claimed.
   // If the user is not authenticated, show all active challenges.
@@ -169,6 +172,7 @@ const ChallengesSection = () => {
                     key={challenge.id} 
                     challenge={challenge} 
                     onClaim={claimReward} 
+                    onPointsUpdated={fetchPoints} // Pass the fetchPoints function
                 />
               ))}
             </div>

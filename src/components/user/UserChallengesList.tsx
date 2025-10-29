@@ -5,6 +5,7 @@ import { Loader2, ListChecks, Coins, CheckCircle, Gift, ArrowRight, Building } f
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { useLoyaltyPoints } from '@/hooks/use-loyalty-points'; // NEW IMPORT
 
 const CONDITION_LABELS: Record<ActiveChallenge['condition_type'], string> = {
     REDEEM_COUNT: 'Kupon beváltás',
@@ -12,7 +13,7 @@ const CONDITION_LABELS: Record<ActiveChallenge['condition_type'], string> = {
     DIFFERENT_ORGANIZATIONS: 'Különböző szervezetek',
 };
 
-const ChallengeItem: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string) => Promise<{ success: boolean }> }> = ({ challenge, onClaim }) => {
+const ChallengeItem: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string, onPointsUpdated?: () => void) => Promise<{ success: boolean }>, onPointsUpdated: () => void }> = ({ challenge, onClaim, onPointsUpdated }) => {
     const [isClaiming, setIsClaiming] = useState(false);
     
     const progress = challenge.user_progress?.progress_value || 0;
@@ -22,7 +23,8 @@ const ChallengeItem: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string
     
     const handleClaim = async () => {
         setIsClaiming(true);
-        await onClaim(challenge.id);
+        // Pass the onPointsUpdated callback here
+        await onClaim(challenge.id, onPointsUpdated);
         setIsClaiming(false);
     };
     
@@ -106,6 +108,7 @@ const ChallengeItem: React.FC<{ challenge: ActiveChallenge, onClaim: (id: string
 
 const UserChallengesList: React.FC = () => {
   const { activeChallenges, isLoading, claimReward } = useChallenges();
+  const { fetchPoints } = useLoyaltyPoints(); // Use fetchPoints from loyalty hook
 
   if (isLoading) {
     return (
@@ -141,7 +144,12 @@ const UserChallengesList: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {sortedChallenges.map(challenge => (
-            <ChallengeItem key={challenge.id} challenge={challenge} onClaim={claimReward} />
+            <ChallengeItem 
+                key={challenge.id} 
+                challenge={challenge} 
+                onClaim={claimReward} 
+                onPointsUpdated={fetchPoints} // Pass the fetchPoints function
+            />
           ))}
         </div>
       )}

@@ -117,7 +117,7 @@ export const useChallenges = () => {
   }, [isAuthenticated, user?.id]);
   
   // --- Reward Claiming Logic ---
-  const claimReward = async (challengeId: string) => {
+  const claimReward = async (challengeId: string, onPointsUpdated?: () => void) => {
     if (!isAuthenticated || !user) {
         showError('Kérjük, jelentkezz be a jutalom igényléséhez.');
         return { success: false };
@@ -144,7 +144,13 @@ export const useChallenges = () => {
         }
         
         showSuccess(`Sikeresen igényelted a jutalmat! (+${challenge.reward_points} pont)`);
-        fetchChallengesAndProgress(); // Refresh state
+        fetchChallengesAndProgress(); // Refresh challenge state
+        
+        // Manually trigger points refresh if callback is provided (to ensure instant UI update)
+        if (onPointsUpdated) {
+            onPointsUpdated();
+        }
+        
         return { success: true };
         
     } catch (e) {
