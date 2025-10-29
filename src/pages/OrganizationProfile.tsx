@@ -20,6 +20,7 @@ import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
 import EventCountdown, { isEventFinished } from '@/components/EventCountdown'; // Import EventCountdown and status check
 import { Badge } from '@/components/ui/badge';
+import { useChallenges } from '@/hooks/use-challenges'; // NEW IMPORT
 
 // NOTE: This definition must match the one in use-public-coupons.ts
 interface PublicCoupon extends Coupon {
@@ -45,6 +46,7 @@ const OrganizationProfile = () => {
   const { isAuthenticated } = useAuth();
   const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
   const { isInterested, toggleInterest } = useInterestedEvents(); // Use interested events hook
+  const { fetchChallenges } = useChallenges(); // NEW: Get challenge refresh function
   
   const [organizationData, setOrganizationData] = useState<OrganizationContent | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
@@ -221,6 +223,9 @@ const OrganizationProfile = () => {
       const result = await redeemCoupon(coupon); 
 
       if (result.success) {
+        // CRITICAL: If redemption was successful (simple or code generated), refresh challenges
+        fetchChallenges();
+        
         if (coupon.is_code_required && result.usageId && result.redemptionCode) {
             // Code Redemption: Open modal
             setSelectedCoupon(coupon); 
@@ -242,6 +247,11 @@ const OrganizationProfile = () => {
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
     refreshUsages();
+    
+    // If the admin finalized the redemption via Realtime, the challenge update should have happened.
+    // If the user manually closed the modal, we still need to ensure challenges are up to date 
+    // in case the usage status changed (e.g., expired).
+    fetchChallenges();
   };
   
   const openCouponDetailsModal = (coupon: PublicCoupon) => {

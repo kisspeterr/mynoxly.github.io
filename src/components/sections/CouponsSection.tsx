@@ -11,6 +11,7 @@ import CouponDetailsModal from '@/components/CouponDetailsModal';
 import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons';
 import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
+import { useChallenges } from '@/hooks/use-challenges'; // NEW IMPORT
 
 // Extend Coupon type to include organization profile data and usage count
 interface PublicCoupon extends Coupon {
@@ -30,6 +31,7 @@ const CouponsSection = () => {
   } = usePublicCoupons();
   const { isAuthenticated } = useAuth();
   const { points, isLoading: isLoadingPoints, getPointsForOrganization } = useLoyaltyPoints();
+  const { fetchChallenges } = useChallenges(); // NEW: Get challenge refresh function
   
   const [isRedeeming, setIsRedeeming] = useState(false);
   const [isRedemptionModalOpen, setIsRedemptionModalOpen] = useState(false);
@@ -108,6 +110,9 @@ const CouponsSection = () => {
       const result = await redeemCoupon(coupon);
 
       if (result.success) {
+        // CRITICAL: If redemption was successful (simple or code generated), refresh challenges
+        fetchChallenges();
+        
         if (coupon.is_code_required && result.usageId && result.redemptionCode) {
             setSelectedCoupon(coupon);
             setCurrentUsageId(result.usageId);
@@ -125,7 +130,16 @@ const CouponsSection = () => {
     setSelectedCoupon(null);
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
+    
+    // If the modal closed because the admin finalized the redemption (wasRedeemed=true), 
+    // the Realtime subscription in RedemptionModal already triggered the challenge update.
+    // If it closed due to expiration or manual close, we still refresh usages.
     refreshUsages();
+    
+    // If the admin finalized the redemption via Realtime, the challenge update should have happened.
+    // If the user manually closed the modal, we still need to ensure challenges are up to date 
+    // in case the usage status changed (e.g., expired).
+    fetchChallenges();
   };
   
   const openDetailsModal = (coupon: PublicCoupon) => {
