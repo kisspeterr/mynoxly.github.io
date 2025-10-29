@@ -7,6 +7,7 @@ import OrganizersSection from '@/components/sections/OrganizersSection';
 import FaqSection from '@/components/sections/FaqSection';
 import PartnerSection from '@/components/sections/PartnerSection'; // Import new section
 import Navigation from '@/components/sections/Navigation';
+import ChallengesSection from '@/components/sections/ChallengesSection'; // NEW IMPORT
 
 const IndexPage = () => {
   return (
@@ -14,11 +15,12 @@ const IndexPage = () => {
       <Navigation />
       <main>
         <HeroSection />
+        <ChallengesSection /> {/* Add Challenges section here */}
         <CouponsSection />
         <EventsSection />
         <OrganizersSection />
         <FaqSection />
-        <PartnerSection /> {/* Add Partner section here */}
+        <PartnerSection />
       </main>
       <FooterSection />
     </div>
