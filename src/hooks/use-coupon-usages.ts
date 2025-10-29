@@ -1,83 +1,143 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { CouponUsage, CouponUsageWithDetails } from '@/types/coupons';
-import { showError, showSuccess } from '@/utils/toast';
+import { showError } from '@/utils/toast';
 import { useAuth } from './use-auth';
-import { useCoupons } from './use-coupons'; // Dependency to get coupon IDs
+
+interface CouponUsageRecord {
+  id: string;
+  user_id: string;
+  redeemed_at: string | null; // Allow null for safety
+  is_used: boolean;
+  redemption_code: string;
+  
+  // Joined data
+  coupon: {
+    title: string;
+    organization_name: string;
+  } | null;
+  
+  // NEW: Joined Profile data
+  profile: {
+    username: string;
+  } | null;
+}
+
+// Helper to fetch user profiles (username, email, first_name, last_name) securely via RPC
+const fetchUserProfilesByIds = async (userIds: string[]): Promise<Record<string, { username: string, first_name: string | null, last_name: string | null }>> => {
+    if (userIds.length === 0) return {};
+    
+    const { data: usersData, error } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+    
+    if (error) {
+        console.error('Error fetching user profiles via RPC:', error);
+        return {};
+    }
+    
+    return (usersData || []).reduce((acc, user) => {
+        acc[user.id] = {
+            username: user.username,
+            first_name: user.first_name || null,
+            last_name: user.last_name || null,
+        };
+        return acc;
+    }, {} as Record<string, { username: string, first_name: string | null, last_name: string | null }>);
+};
+
 
 export const useCouponUsages = () => {
-  const { activeOrganizationProfile, isAuthenticated, checkPermission } = useAuth();
-  const { coupons, isLoading: isLoadingCoupons, fetchCoupons } = useCoupons();
-  
-  const [usages, setUsages] = useState<CouponUsageWithDetails[]>([]);
+  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
+  const [usages, setUsages] = useState<CouponUsageRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isRedeeming, setIsRedeeming] = useState(false);
 
   const organizationName = activeOrganizationProfile?.organization_name;
-  
-  // Determine if the user has ANY permission to view usages
-  const hasPermission = checkPermission('viewer') || checkPermission('redemption_agent') || checkPermission('coupon_manager');
 
-  // Get IDs of coupons belonging to the active organization
-  const organizationCouponIds = coupons.map(c => c.id);
-
-  const fetchUsages = useCallback(async () => {
-    if (!isAuthenticated || !organizationName || !hasPermission || organizationCouponIds.length === 0) {
+  const fetchUsages = async () => {
+    if (!isAuthenticated || !organizationName) {
       setUsages([]);
       setIsLoading(false);
       return;
     }
     
+    // Check if the user has any permission to view usages
+    if (!checkPermission('viewer') && !checkPermission('redemption_agent') && !checkPermission('coupon_manager') && !checkPermission('event_manager')) {
+        setUsages([]);
+        setIsLoading(false);
+        return;
+    }
+
     setIsLoading(true);
     try {
-      // Fetch usages that belong to the organization's coupons
+      // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
       const { data, error } = await supabase
         .from('coupon_usages')
         .select(`
-          *,
-          coupons (title, organization_name),
-          profiles (username, first_name, last_name)
+          id,
+          user_id,
+          redeemed_at,
+          is_used,
+          redemption_code,
+          coupon:coupon_id (title, organization_name)
         `)
-        .in('coupon_id', organizationCouponIds) // Filter by organization's coupon IDs
         .order('redeemed_at', { ascending: false });
 
       if (error) {
-        showError('Hiba történt a beváltások betöltésekor.');
+        showError('Hiba történt a beváltások betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
         console.error('Fetch usages error:', error);
         return;
       }
+      
+      if (!data) {
+        setUsages([]);
+        return;
+      }
 
-      setUsages(data as CouponUsageWithDetails[]);
+      // Client-side filtering based on the joined organization name
+      const rawUsages = (data as Omit<CouponUsageRecord, 'profile'>[]).filter(
+        (usage) => 
+          usage.coupon && 
+          usage.coupon.organization_name === organizationName && // <-- EXPLICIT FILTER
+          typeof usage.redeemed_at === 'string'
+      );
+      
+      // 2. Collect unique user IDs
+      const userIds = Array.from(new Set(rawUsages.map(u => u.user_id)));
+      
+      // 3. Fetch usernames securely using RPC
+      let usernameMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+          const { data: usersData } = await supabase.rpc('get_user_profiles_by_ids', { user_ids: userIds });
+          usernameMap = (usersData || []).reduce((acc, user) => {
+              acc[user.id] = user.username;
+              return acc;
+          }, {} as Record<string, string>);
+      }
+      
+      // 4. Combine data
+      const processedUsages: CouponUsageRecord[] = rawUsages.map(usage => ({
+          ...usage,
+          profile: usernameMap[usage.user_id] ? { username: usernameMap[usage.user_id] } : null,
+      }));
+      
+      setUsages(processedUsages);
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, hasPermission, organizationCouponIds]);
+  };
 
   useEffect(() => {
-    // First, ensure coupons are loaded for the current organization
-    if (organizationName) {
-        fetchCoupons();
-    }
-  }, [organizationName, fetchCoupons]);
-  
-  useEffect(() => {
-    // Then, fetch usages once coupon IDs are available
-    if (organizationName && organizationCouponIds.length > 0) {
+    if (activeOrganizationId) {
       fetchUsages();
-    } else if (organizationName && !isLoadingCoupons) {
-        // If organization is active but has no coupons, clear usages
+    } else if (!isLoading && isAuthenticated) {
         setUsages([]);
-    } else if (!organizationName) {
-        setUsages([]);
+        setIsLoading(false);
     }
     
-    // --- Realtime Subscription ---
+    // Setup Realtime subscription for new/updated usages
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
-    if (organizationName && hasPermission) {
-        // We subscribe to all usage changes, and rely on fetchUsages to filter by coupon_id
+    if (organizationName) {
         channel = supabase
-          .channel(`usages_admin_feed_${organizationName}`)
+          .channel('coupon_usages_admin_feed')
           .on(
             'postgres_changes',
             { 
@@ -86,54 +146,25 @@ export const useCouponUsages = () => {
               table: 'coupon_usages',
             },
             (payload) => {
-              // Refetch all data on any change to ensure consistency
+              // Refetch all data to ensure consistency and correct filtering/sorting
               fetchUsages();
             }
           )
           .subscribe();
     }
 
+
     return () => {
       if (channel) {
         supabase.removeChannel(channel);
       }
     };
-    
-  }, [organizationName, hasPermission, organizationCouponIds.length, fetchUsages, isLoadingCoupons]);
-
-  const finalizeRedemption = async (usageId: string) => {
-    if (!organizationName || !checkPermission('coupon_manager')) {
-      showError('Nincs jogosultságod a beváltás véglegesítéséhez.');
-      return { success: false };
-    }
-    
-    setIsRedeeming(true);
-    try {
-      // Call the stored procedure to finalize redemption
-      const { data, error } = await supabase.rpc('finalize_coupon_redemption', { usage_id_in: usageId });
-
-      if (error) {
-        showError(`Hiba a beváltás véglegesítésekor: ${error.message}`);
-        console.error('Finalize redemption error:', error);
-        return { success: false };
-      }
-
-      showSuccess('Beváltás sikeresen véglegesítve!');
-      // Realtime or refetch will update the list
-      fetchUsages(); 
-      return { success: true };
-    } finally {
-      setIsRedeeming(false);
-    }
-  };
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
   return {
     usages,
-    isLoading: isLoading || isLoadingCoupons,
-    isRedeeming,
+    isLoading,
     fetchUsages,
-    finalizeRedemption,
     organizationName,
-    hasPermission,
   };
 };

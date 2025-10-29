@@ -266,43 +266,19 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
 };
 
 const OrganizationMembersPage: React.FC = () => {
-    const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers, organizationName } = useOrganizationMembers();
+    const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers } = useOrganizationMembers();
     const { activeOrganizationProfile, checkPermission } = useAuth();
     const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
     
-    // Only the owner/main admin can manage members
+    // Only the owner/main admin can manage members (using coupon_manager as proxy for now)
     const canManageMembers = checkPermission('coupon_manager'); 
-
-    // Explicitly trigger fetch when organizationName changes
-    useEffect(() => {
-        if (organizationName) {
-            fetchMembers();
-        }
-    }, [organizationName, fetchMembers]);
-
-    if (!activeOrganizationProfile) {
-        return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
-    }
-    
-    if (!canManageMembers) {
-        return <p className="text-red-400">Nincs jogosultságod a tagok kezeléséhez.</p>;
-    }
 
     const activeMembers = members.filter(m => m.status === 'accepted');
     const pendingMembers = members.filter(m => m.status === 'pending');
     
-    // Helper function to handle role update (since useOrganizationMembers only exposes updateMemberRole)
-    const handleUpdateRoles = async (memberId: string, roles: MemberRole[]) => {
-        let success = true;
-        const result = await updateMemberRoles(memberId, roles);
-        return result;
-    };
-    
-    // Helper function to handle member removal
-    const handleRemoveMember = async (memberId: string) => {
-        return removeMember(memberId);
-    };
-
+    if (!activeOrganizationProfile) {
+        return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
+    }
 
     return (
         <div>
@@ -357,8 +333,8 @@ const OrganizationMembersPage: React.FC = () => {
                         <MemberCard 
                             key={member.id} 
                             member={member} 
-                            onUpdateRoles={handleUpdateRoles}
-                            onRemove={handleRemoveMember}
+                            onUpdateRoles={updateMemberRoles}
+                            onRemove={removeMember}
                             isLoading={isLoading}
                             canManage={canManageMembers}
                         />
@@ -376,8 +352,8 @@ const OrganizationMembersPage: React.FC = () => {
                         <MemberCard 
                             key={member.id} 
                             member={member} 
-                            onUpdateRoles={handleUpdateRoles}
-                            onRemove={handleRemoveMember}
+                            onUpdateRoles={updateMemberRoles}
+                            onRemove={removeMember}
                             isLoading={isLoading}
                             canManage={canManageMembers}
                         />

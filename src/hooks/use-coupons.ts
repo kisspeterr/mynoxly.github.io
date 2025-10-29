@@ -1,263 +1,264 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Coupon, CouponInsert } from '@/types/coupons';
+import { showError, showSuccess } from '@/utils/toast';
 import { useAuth } from './use-auth';
-import { showError, showSuccess } from '@/utils/toast'; // Importáljuk a helyes toast segédfüggvényeket
 
-// Típusdefiníciók a Supabase-ból
-type DbCoupon = Coupon & {
-    coupon_usages: { id: string }[];
-};
+export const useCoupons = () => {
+  const { activeOrganizationProfile, activeOrganizationId, isAuthenticated, checkPermission } = useAuth();
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-interface CouponHookResult {
-    coupons: Coupon[];
-    isLoading: boolean;
-    organizationName: string | null;
-    hasPermission: boolean;
-    fetchCoupons: () => Promise<void>;
-    createCoupon: (data: CouponInsert) => Promise<{ success: boolean, newCouponId?: string }>;
-    updateCoupon: (id: string, data: Partial<CouponInsert>) => Promise<{ success: boolean }>;
-    toggleActiveStatus: (id: string, currentStatus: boolean) => Promise<{ success: boolean }>;
-    archiveCoupon: (id: string) => Promise<{ success: boolean }>;
-    unarchiveCoupon: (id: string) => Promise<{ success: boolean }>;
-    deleteCoupon: (id: string, isArchived: boolean) => Promise<{ success: boolean }>;
-}
+  const organizationName = activeOrganizationProfile?.organization_name;
 
-export const useCoupons = (): CouponHookResult => {
-    const { activeOrganizationProfile, checkPermission } = useAuth();
-    const organizationName = activeOrganizationProfile?.organization_name || null;
-    const hasPermission = checkPermission('coupon_manager') || checkPermission('viewer');
+  // Function to fetch coupons (used internally and exported for manual refresh)
+  const fetchCoupons = async () => {
+    if (!isAuthenticated || !organizationName) {
+      setCoupons([]);
+      setIsLoading(false);
+      return;
+    }
     
-    const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-
-    const mapDbCouponsToCoupons = (dbCoupons: DbCoupon[]): Coupon[] => {
-        return dbCoupons.map(c => ({
-            ...c,
-            // Ha szükséges, itt további adatátalakítás történhet
-        }));
-    };
-
-    const fetchCoupons = useCallback(async () => {
-        if (!organizationName || !hasPermission) {
-            setCoupons([]);
-            return;
-        }
-
-        setIsLoading(true);
-        
-        const { data, error } = await supabase
-            .from('coupons')
-            .select('*')
-            .eq('organization_name', organizationName) // FONTOS: Szűrés az aktív szervezet nevére
-            .order('created_at', { ascending: false });
-
-        if (error) {
-            console.error('Error fetching coupons:', error);
-            showError('Hiba történt a kuponok betöltésekor.');
-        } else if (data) {
-            setCoupons(mapDbCouponsToCoupons(data as DbCoupon[]));
-        }
+    // Check if the user has any permission to view coupons (coupon_manager or viewer)
+    if (!checkPermission('coupon_manager') && !checkPermission('viewer')) {
+        setCoupons([]);
         setIsLoading(false);
-    }, [organizationName, hasPermission]);
+        return;
+    }
 
-    useEffect(() => {
-        // Fetch coupons whenever organizationName or permissions change
-        fetchCoupons();
-    }, [fetchCoupons]);
+    setIsLoading(true);
+    try {
+      // CRITICAL: Explicitly filter by organization_name. 
+      const { data, error } = await supabase
+        .from('coupons')
+        .select('*')
+        .eq('organization_name', organizationName) // <-- EXPLICIT FILTER
+        .order('created_at', { ascending: false });
 
-    // --- CRUD Operations ---
+      if (error) {
+        showError('Hiba történt a kuponok betöltésekor. Ellenőrizd a szervezet nevét a profilban.');
+        console.error('Fetch coupons error:', error);
+        return;
+      }
 
-    const createCoupon = async (data: CouponInsert) => {
-        if (!organizationName || !checkPermission('coupon_manager')) {
-            showError('Nincs jogosultságod kupon létrehozásához.');
-            return { success: false };
-        }
-        
-        setIsLoading(true);
-        
-        const insertData: CouponInsert = {
-            ...data,
-            organization_name: organizationName,
-            // is_active és is_archived alapértelmezett értékei a DB-ben vannak, de itt is beállíthatjuk, ha szükséges
-        };
+      setCoupons(data as Coupon[]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        const { data: newCoupon, error } = await supabase
-            .from('coupons')
-            .insert(insertData)
-            .select()
-            .single();
-
+  // Automatically fetch coupons when activeOrganizationId changes
+  useEffect(() => {
+    if (activeOrganizationId) {
+      fetchCoupons();
+    } else {
+        setCoupons([]);
         setIsLoading(false);
+    }
+  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
 
-        if (error) {
-            console.error('Error creating coupon:', error);
-            showError(`Hiba a kupon létrehozásakor: ${error.message}`);
-            return { success: false };
-        }
+  const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
+    if (!organizationName || !checkPermission('coupon_manager')) {
+      showError('Nincs jogosultságod kupon létrehozásához, vagy hiányzik a szervezet neve.');
+      return { success: false };
+    }
 
-        if (newCoupon) {
-            showSuccess('Kupon sikeresen létrehozva!');
-            fetchCoupons(); // Refresh list
-            return { success: true, newCouponId: newCoupon.id };
-        }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        // Ensure new coupons are INACTIVE and not archived by default
+        .insert({ ...couponData, organization_name: organizationName, is_active: false, is_archived: false })
+        .select()
+        .single();
+
+      if (error) {
+        showError(`Hiba a kupon létrehozásakor: ${error.message}`);
         return { success: false };
-    };
+      }
 
-    const updateCoupon = async (id: string, data: Partial<CouponInsert>) => {
-        if (!organizationName || !checkPermission('coupon_manager')) {
-            showError('Nincs jogosultságod kupon szerkesztéséhez.');
-            return { success: false };
-        }
-        
-        setIsLoading(true);
-        
-        const { error } = await supabase
-            .from('coupons')
-            .update(data)
-            .eq('id', id)
-            .eq('organization_name', organizationName); // Extra biztonsági ellenőrzés
+      const newCoupon = data as Coupon;
+      setCoupons(prev => [newCoupon, ...prev]);
+      showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
+      return { success: true, newCouponId: newCoupon.id };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const updateCoupon = async (id: string, couponData: Partial<CouponInsert>): Promise<{ success: boolean, newCouponId?: string }> => {
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod kupon frissítéséhez.');
+        return { success: false };
+    }
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .update(couponData)
+        .eq('id', id)
+        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
+        .select()
+        .single();
 
-        setIsLoading(false);
+      if (error || !data) {
+        showError(`Hiba a kupon frissítésekor. Lehet, hogy nincs jogosultságod ehhez a kuponhoz, vagy a szervezet neve hiányzik.`);
+        console.error('Update coupon error:', error);
+        return { success: false };
+      }
 
-        if (error) {
-            console.error('Error updating coupon:', error);
-            showError(`Hiba a kupon frissítésekor: ${error.message}`);
-            return { success: false };
-        }
-
-        showSuccess('Kupon sikeresen frissítve!');
-        fetchCoupons(); // Refresh list
-        return { success: true };
-    };
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess('Kupon sikeresen frissítve!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon állapotának módosításához.');
+        return { success: false };
+    }
     
-    const toggleActiveStatus = async (id: string, currentStatus: boolean) => {
-        if (!organizationName || !checkPermission('coupon_manager')) {
-            showError('Nincs jogosultságod a kupon állapotának módosításához.');
-            return { success: false };
-        }
-        
-        setIsLoading(true);
-        const newStatus = !currentStatus;
-        
-        const { error } = await supabase
-            .from('coupons')
-            .update({ is_active: newStatus })
-            .eq('id', id)
-            .eq('organization_name', organizationName);
-
-        setIsLoading(false);
-
-        if (error) {
-            console.error('Error toggling coupon status:', error);
-            showError(`Hiba az állapot váltásakor: ${error.message}`);
-            return { success: false };
-        }
-
-        showSuccess(`Kupon sikeresen ${newStatus ? 'aktiválva' : 'inaktiválva'}!`);
-        fetchCoupons();
-        return { success: true };
-    };
-
-    const archiveCoupon = async (id: string) => {
-        if (!organizationName || !checkPermission('coupon_manager')) {
-            showError('Nincs jogosultságod a kupon archiválásához.');
-            return { success: false };
-        }
-        
-        setIsLoading(true);
-        
-        const { error } = await supabase
-            .from('coupons')
-            .update({ is_archived: true, is_active: false })
-            .eq('id', id)
-            .eq('organization_name', organizationName);
-
-        setIsLoading(false);
-
-        if (error) {
-            console.error('Error archiving coupon:', error);
-            showError(`Hiba az archiváláskor: ${error.message}`);
-            return { success: false };
-        }
-
-        showSuccess('Kupon sikeresen archiválva!');
-        fetchCoupons();
-        return { success: true };
-    };
+    const newStatus = !currentStatus;
     
-    const unarchiveCoupon = async (id: string) => {
-        if (!organizationName || !checkPermission('coupon_manager')) {
-            showError('Nincs jogosultságod a kupon visszaállításához.');
+    // CRITICAL CHECK: Prevent publishing if image_url is missing
+    if (newStatus === true) {
+        const couponToPublish = coupons.find(c => c.id === id);
+        if (!couponToPublish || !couponToPublish.image_url) {
+            showError('A kupon publikálásához kötelező feltölteni egy bannert!');
             return { success: false };
         }
-        
-        setIsLoading(true);
-        
-        const { error } = await supabase
-            .from('coupons')
-            .update({ is_archived: false, is_active: false }) // Visszaállítás piszkozatként
-            .eq('id', id)
-            .eq('organization_name', organizationName);
+    }
+    
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({ is_active: newStatus })
+        .eq('id', id)
+        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
+        .select()
+        .single();
 
-        setIsLoading(false);
+      if (error || !data) {
+        showError(`Hiba a kupon ${newStatus ? 'aktiválásakor' : 'deaktiválásakor'}. Ellenőrizd a jogosultságokat.`);
+        console.error('Toggle active status error:', error);
+        return { success: false };
+      }
 
-        if (error) {
-            console.error('Error unarchiving coupon:', error);
-            showError(`Hiba a visszaállításkor: ${error.message}`);
-            return { success: false };
-        }
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess(`Kupon sikeresen ${newStatus ? 'publikálva' : 'inaktiválva'}!`);
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const archiveCoupon = async (id: string) => {
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon archiválásához.');
+        return { success: false };
+    }
+    setIsLoading(true);
+    try {
+      // Archiving automatically sets is_active to false
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({ is_archived: true, is_active: false })
+        .eq('id', id)
+        .eq('organization_name', organizationName) // <-- ADDED SECURITY FILTER
+        .select()
+        .single();
 
-        showSuccess('Kupon sikeresen visszaállítva a piszkozatok közé!');
-        fetchCoupons();
-        return { success: true };
-    };
+      if (error || !data) {
+        showError('Hiba történt a kupon archiválásakor. Ellenőrizd a jogosultságokat.');
+        console.error('Archive coupon error:', error);
+        return { success: false };
+      }
 
-    const deleteCoupon = async (id: string, isArchived: boolean) => {
-        if (!organizationName || !checkPermission('coupon_manager')) {
-            showError('Nincs jogosultságod a kupon törléséhez.');
-            return { success: false };
-        }
-        
-        // Csak archivált kuponokat engedünk törölni a végleges törlés gombbal
-        if (!isArchived) {
-             showError('Csak archivált kuponokat lehet véglegesen törölni.');
-             return { success: false };
-        }
-        
-        setIsLoading(true);
-        
-        const { error } = await supabase
-            .from('coupons')
-            .delete()
-            .eq('id', id)
-            .eq('organization_name', organizationName);
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess('Kupon sikeresen archiválva!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // NEW: Function to unarchive a coupon
+  const unarchiveCoupon = async (id: string) => {
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon visszaállításához.');
+        return { success: false };
+    }
+    setIsLoading(true);
+    try {
+      // Unarchiving sets is_archived to false, but keeps is_active as false (draft state)
+      const { data, error } = await supabase
+        .from('coupons')
+        .update({ is_archived: false, is_active: false })
+        .eq('id', id)
+        .eq('organization_name', organizationName)
+        .select()
+        .single();
 
-        setIsLoading(false);
+      if (error || !data) {
+        showError('Hiba történt a kupon visszaállításakor.');
+        console.error('Unarchive coupon error:', error);
+        return { success: false };
+      }
 
-        if (error) {
-            console.error('Error deleting coupon:', error);
-            showError(`Hiba a törléskor: ${error.message}`);
-            return { success: false };
-        }
+      setCoupons(prev => prev.map(c => c.id === id ? data as Coupon : c));
+      showSuccess('Kupon sikeresen visszaállítva a piszkozatok közé!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        showSuccess('Kupon véglegesen törölve!');
-        fetchCoupons();
-        return { success: true };
-    };
+  const deleteCoupon = async (id: string, isArchived: boolean) => {
+    if (!isArchived) {
+      showError('Csak archivált kuponokat lehet véglegesen törölni.');
+      return { success: false };
+    }
+    if (!organizationName || !checkPermission('coupon_manager')) {
+        showError('Nincs jogosultságod a kupon törléséhez.');
+        return { success: false };
+    }
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('coupons')
+        .delete()
+        .eq('id', id)
+        .eq('organization_name', organizationName); // <-- ADDED SECURITY FILTER
 
+      if (error) {
+        showError('Hiba történt a kupon törlésekor. Ellenőrizd a jogosultságokat.');
+        console.error('Delete coupon error:', error);
+        return { success: false };
+      }
 
-    return {
-        coupons,
-        isLoading,
-        organizationName,
-        hasPermission,
-        fetchCoupons,
-        createCoupon,
-        updateCoupon,
-        toggleActiveStatus,
-        archiveCoupon,
-        unarchiveCoupon,
-        deleteCoupon,
-    };
+      setCoupons(prev => prev.filter(c => c.id !== id));
+      showSuccess('Kupon sikeresen törölve!');
+      return { success: true };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    coupons,
+    isLoading,
+    fetchCoupons,
+    createCoupon,
+    updateCoupon,
+    toggleActiveStatus,
+    archiveCoupon,
+    unarchiveCoupon, // NEW
+    deleteCoupon,
+    organizationName,
+  };
 };

@@ -8,32 +8,21 @@ import UsageCountdown from './UsageCountdown'; // Import the new component
 import { useAuth } from '@/hooks/use-auth'; // Import useAuth
 import UnauthorizedAccess from '@/components/UnauthorizedAccess';
 
-// Helper function to format date (assuming it's missing from context, adding a simple one)
-const formatDate = (dateString: string) => {
-    try {
-        return format(new Date(dateString), 'yyyy. MM. dd. HH:mm:ss');
-    } catch (e) {
-        return 'Érvénytelen dátum';
-    }
-};
-
 const CouponUsagesPage = () => {
-  const { usages, isLoading, fetchUsages, organizationName, hasPermission } = useCouponUsages();
+  const { usages, isLoading, fetchUsages, organizationName } = useCouponUsages();
+  const { checkPermission } = useAuth();
   
-  // Explicitly trigger fetch when organizationName changes
-  useEffect(() => {
-      if (organizationName) {
-          fetchUsages();
-      }
-  }, [organizationName, fetchUsages]);
+  const canViewUsages = checkPermission('viewer') || checkPermission('redemption_agent') || checkPermission('coupon_manager') || checkPermission('event_manager');
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Érvénytelen dátum';
+    }
+    return format(date, 'yyyy. MM. dd. HH:mm:ss');
+  };
   
-  // Ha a hook szerint nincs jogosultság, vagy nincs szervezet kiválasztva, 
-  // akkor a hook már üres listát ad vissza, és a komponens megjeleníti a megfelelő üzenetet.
-  if (!organizationName) {
-      return <p className="text-gray-400 text-center mt-10">Kérjük, válassz egy aktív szervezetet a beváltások megtekintéséhez.</p>;
-  }
-  
-  if (!hasPermission) {
+  if (!canViewUsages) {
       return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a beváltások megtekintéséhez.</p>;
   }
 

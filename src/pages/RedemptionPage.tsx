@@ -7,16 +7,18 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home, AtSign, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Tag, User, Clock, MapPin, Home, AtSign } from 'lucide-react';
 import { useRedemption } from '@/hooks/use-redemption';
 import { format } from 'date-fns';
 
 const RedemptionPage = () => {
-  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const { isLoading, usageDetails, checkCode, finalizeRedemption, clearDetails, hasPermission, activeOrganizationName } = useRedemption();
+  const { isAuthenticated, isAdmin, isLoading: isAuthLoading, checkPermission } = useAuth();
+  const { isLoading, usageDetails, checkCode, finalizeRedemption, clearDetails } = useRedemption();
   const navigate = useNavigate();
   const [codeInput, setCodeInput] = useState('');
   
+  const canRedeem = checkPermission('redemption_agent');
+
   useEffect(() => {
     if (!isAuthLoading && !isAuthenticated) {
       navigate('/login');
@@ -36,7 +38,7 @@ const RedemptionPage = () => {
     );
   }
 
-  if (isAuthenticated && !hasPermission) {
+  if (isAuthenticated && !canRedeem) {
     return <UnauthorizedAccess />;
   }
   
@@ -50,13 +52,6 @@ const RedemptionPage = () => {
     <AuthLayout>
       <div className="text-center">
         <h1 className="text-3xl font-bold mb-6 text-green-400">Kupon Beváltás (Admin)</h1>
-        
-        {!activeOrganizationName && (
-            <Card className="text-center p-4 bg-gray-800/50 rounded-lg border border-red-500/30 mb-6">
-                <AlertTriangle className="h-6 w-6 text-red-400 mx-auto mb-2" />
-                <p className="text-red-300 text-sm">Nincs aktív szervezet kiválasztva. Kérjük, válassz szervezetet az Admin Dashboardon.</p>
-            </Card>
-        )}
         
         <Card className="bg-black/50 border-green-500/30 backdrop-blur-sm text-white p-6">
           <CardHeader className="p-0 mb-6">
@@ -77,13 +72,13 @@ const RedemptionPage = () => {
                 onChange={(e) => setCodeInput(e.target.value)}
                 maxLength={6}
                 className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 text-center text-2xl font-mono tracking-widest"
-                disabled={isLoading || !activeOrganizationName}
+                disabled={isLoading}
               />
             </div>
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white"
-              disabled={isLoading || codeInput.length !== 6 || !activeOrganizationName}
+              disabled={isLoading || codeInput.length !== 6}
             >
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <CheckCircle className="h-4 w-4 mr-2" />}
               Kód ellenőrzése

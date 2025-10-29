@@ -33,13 +33,11 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(activeOrganizationProfile.organization_name || '');
       setLogoUrl(activeOrganizationProfile.logo_url || '');
       setIsPublic(activeOrganizationProfile.is_public ?? true);
-    } else {
-        // Reset state if no organization is active
-        setOrganizationName('');
-        setLogoUrl('');
-        setIsPublic(true);
     }
   }, [activeOrganizationProfile]);
+  
+  // Check if the user is the owner of the active organization
+  const isOwner = activeOrganizationProfile?.owner_id === user?.id;
   
   // Check if the user has permission to manage settings (owner or high-level admin)
   const canManageSettings = checkPermission('coupon_manager'); 
