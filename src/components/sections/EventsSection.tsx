@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Event } from '@/types/events';
-import EventCountdown from '@/components/EventCountdown'; // Import Countdown
+import EventCountdown, { isEventFinished } from '@/components/EventCountdown'; // Import Countdown and status check
 import EventDetailsModal from '@/components/EventDetailsModal'; // NEW IMPORT
 
 // Extend Event type to include organization profile data
@@ -62,15 +62,16 @@ const EventsSection = () => {
           <div className="flex flex-wrap justify-center gap-8">
             {events.map((event) => {
               const logoUrl = (event as PublicEvent).logo_url;
+              const isFinished = isEventFinished(new Date(event.start_time), event.end_time ? new Date(event.end_time) : null);
               
               return (
                 <div 
                     key={event.id} 
-                    className="relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.33rem)] max-w-sm transition-all duration-300 hover:scale-[1.02]"
+                    className={`relative w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.33%-1.33rem)] max-w-sm transition-all duration-300 ${isFinished ? 'opacity-60 grayscale' : 'hover:scale-[1.02]'}`}
                 >
                     
                     <Card 
-                      className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col w-full cursor-pointer"
+                      className={`bg-black/50 border-purple-500/30 backdrop-blur-sm text-white transition-shadow duration-300 flex flex-col w-full ${isFinished ? '' : 'hover:shadow-lg hover:shadow-purple-500/20'} cursor-pointer`}
                       onClick={() => openDetailsModal(event)}
                     >
                       <div className="relative h-40 w-full overflow-hidden rounded-t-xl">
@@ -154,6 +155,7 @@ const EventsSection = () => {
                             variant="outline"
                             onClick={(e) => { e.stopPropagation(); openDetailsModal(event); }}
                             className="w-full mt-4 border-purple-400 text-purple-400 hover:bg-purple-400/10"
+                            disabled={isFinished}
                         >
                             Részletek <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>

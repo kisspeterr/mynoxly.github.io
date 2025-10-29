@@ -1,11 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, Calendar, PlayCircle, CheckCircle } from 'lucide-react';
+import { Clock, Calendar, PlayCircle, CheckCircle, XCircle } from 'lucide-react';
 import { differenceInSeconds, format, isPast, isFuture, isSameDay, isSameHour } from 'date-fns';
 
 interface EventCountdownProps {
   startTime: string;
   endTime: string | null;
 }
+
+// Helper functions to check status
+export const isEventRunning = (start: Date, end: Date | null): boolean => {
+    return isPast(start) && (end ? isFuture(end) : true);
+};
+
+export const isEventFinished = (start: Date, end: Date | null): boolean => {
+    return end ? isPast(end) : isPast(start);
+};
+
+export const isEventUpcoming = (start: Date): boolean => {
+    return isFuture(start);
+};
+
 
 const EventCountdown: React.FC<EventCountdownProps> = ({ startTime, endTime }) => {
   const start = new Date(startTime);
@@ -20,11 +34,11 @@ const EventCountdown: React.FC<EventCountdownProps> = ({ startTime, endTime }) =
     return () => clearInterval(timer);
   }, []);
 
-  const isEventRunning = isPast(start) && (end ? isFuture(end) : true);
-  const isEventFinished = end ? isPast(end) : isPast(start);
-  const isEventUpcoming = isFuture(start);
+  const running = isEventRunning(start, end);
+  const finished = isEventFinished(start, end);
+  const upcoming = isEventUpcoming(start);
 
-  if (isEventRunning) {
+  if (running) {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-600/50 text-green-300 animate-pulse">
         <PlayCircle className="h-3 w-3 mr-1" /> ÉLŐBEN
@@ -32,16 +46,16 @@ const EventCountdown: React.FC<EventCountdownProps> = ({ startTime, endTime }) =
     );
   }
 
-  if (isEventFinished) {
+  if (finished) {
     return (
       <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-600/50 text-gray-300">
-        <CheckCircle className="h-3 w-3 mr-1" /> Befejezve
+        <XCircle className="h-3 w-3 mr-1" /> Lejárt
       </span>
     );
   }
   
   // Calculate time remaining for upcoming events
-  if (isEventUpcoming) {
+  if (upcoming) {
     const totalSeconds = differenceInSeconds(start, now);
     
     if (totalSeconds <= 0) {

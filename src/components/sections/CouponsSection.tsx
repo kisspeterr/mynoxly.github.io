@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Gift, Loader2, LogIn, Building, QrCode, CheckCircle, Coins } from 'lucide-react';
+import { Gift, Loader2, LogIn, Building, QrCode, CheckCircle, Coins, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,9 @@ const CouponsSection = () => {
     const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
     const pending = isAuthenticated && coupon.is_code_required && isCouponPending(coupon.id);
     
+    // Check if coupon is expired
+    const isExpired = coupon.expiry_date ? new Date(coupon.expiry_date) < new Date() : false;
+    
     const isPointCoupon = coupon.points_cost > 0;
     let canRedeem = true;
     let pointStatusText = '';
@@ -58,10 +61,12 @@ const CouponsSection = () => {
         }
     }
     
-    const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
+    const isDisabled = usedUp || pending || isRedeeming || !canRedeem || isExpired;
     
     let buttonText = coupon.is_code_required ? 'Kód generálása' : 'Beváltás';
-    if (isRedeeming) {
+    if (isExpired) {
+        buttonText = 'Lejárt';
+    } else if (isRedeeming) {
         buttonText = 'Feldolgozás...';
     } else if (usedUp) {
         buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
@@ -75,7 +80,7 @@ const CouponsSection = () => {
       ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
       : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600';
       
-    return { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem };
+    return { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem, isExpired };
   };
 
   const handleRedeemClick = async (coupon: PublicCoupon, e?: React.MouseEvent) => {
@@ -88,9 +93,13 @@ const CouponsSection = () => {
     
     if (isRedeeming) return;
 
-    const { isDisabled: preCheckDisabled } = getRedemptionStatus(coupon);
+    const { isDisabled: preCheckDisabled, isExpired } = getRedemptionStatus(coupon);
     if (preCheckDisabled) {
-        showError(getRedemptionStatus(coupon).buttonText);
+        if (isExpired) {
+            showError('Ez a kupon lejárt.');
+        } else {
+            showError(getRedemptionStatus(coupon).buttonText);
+        }
         return;
     }
 
@@ -129,7 +138,7 @@ const CouponsSection = () => {
       setSelectedCoupon(null);
   };
   
-  const modalProps = selectedCoupon ? getRedemptionStatus(selectedCoupon) : { isDisabled: false, buttonText: '', buttonClasses: '', usedUp: false, pending: false, canRedeem: true };
+  const modalProps = selectedCoupon ? getRedemptionStatus(selectedCoupon) : { isDisabled: false, buttonText: '', buttonClasses: '', usedUp: false, pending: false, canRedeem: true, isExpired: false };
 
 
   return (
@@ -158,7 +167,7 @@ const CouponsSection = () => {
         ) : (
           <div className="flex flex-wrap justify-center gap-8">
             {coupons.map((coupon) => {
-              const { isDisabled, usedUp, pending } = getRedemptionStatus(coupon);
+              const { isDisabled, usedUp, pending, isExpired } = getRedemptionStatus(coupon);
               const logoUrl = (coupon as PublicCoupon).logo_url;
               
               return (
@@ -222,7 +231,11 @@ const CouponsSection = () => {
                         
                         {/* Overlay Content (Top Right - Status Badge) */}
                         <div className="absolute top-3 right-3 p-1 flex items-start justify-end z-10">
-                            {pending ? (
+                            {isExpired ? (
+                                <Badge className="bg-gray-600/70 text-white flex items-center gap-1">
+                                    <XCircle className="h-3 w-3" /> Lejárt
+                                </Badge>
+                            ) : pending ? (
                                 <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
                                     <QrCode className="h-3 w-3" /> Aktív kód
                                 </Badge>
@@ -253,6 +266,7 @@ const CouponsSection = () => {
                             onClick={() => openDetailsModal(coupon)}
                             variant="outline"
                             className="w-full border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                            disabled={isExpired}
                         >
                             <Gift className="h-4 w-4 mr-2" /> Részletek & Beváltás
                         </Button>

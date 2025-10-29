@@ -33,6 +33,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
     buttonText
 }) => {
   const expiryDate = coupon.expiry_date ? format(new Date(coupon.expiry_date), 'yyyy. MM. dd.') : 'Nincs beállítva';
+  const isExpired = coupon.expiry_date ? new Date(coupon.expiry_date) < new Date() : false;
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -48,7 +49,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                     <img 
                         src={coupon.image_url} 
                         alt={coupon.title} 
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${isExpired ? 'grayscale opacity-70' : ''}`}
                     />
                 ) : (
                     <div className="w-full h-full bg-gray-800 flex items-center justify-center">
@@ -124,7 +125,7 @@ const CouponDetailsModal: React.FC<CouponDetailsModalProps> = ({
                     className={`w-full text-white px-6 py-3 text-lg ${coupon.is_code_required 
                         ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
                         : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600'}`}
-                    disabled={isDisabled || isRedeeming}
+                    disabled={isDisabled || isRedeeming || isExpired}
                 >
                     {isRedeeming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                     {buttonText}

@@ -18,7 +18,7 @@ import EventDetailsModal from '@/components/EventDetailsModal'; // NEW IMPORT
 import FavoriteButton from '@/components/FavoriteButton';
 import { useLoyaltyPoints } from '@/hooks/use-loyalty-points';
 import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import interested events hook
-import EventCountdown from '@/components/EventCountdown'; // Import EventCountdown
+import EventCountdown, { isEventFinished } from '@/components/EventCountdown'; // Import EventCountdown and status check
 import { Badge } from '@/components/ui/badge';
 
 // NOTE: This definition must match the one in use-public-coupons.ts
@@ -80,14 +80,16 @@ const OrganizationProfile = () => {
     const usedUp = isAuthenticated && isCouponUsedUp(coupon.id, coupon.max_uses_per_user);
     const pending = isAuthenticated && coupon.is_code_required && isCouponPending(coupon.id);
     
+    // Check if coupon is expired
+    const isExpired = coupon.expiry_date ? new Date(coupon.expiry_date) < new Date() : false;
+    
     const isPointCoupon = coupon.points_cost > 0;
     let canRedeem = true;
     let pointStatusText = '';
     
     if (isAuthenticated && isPointCoupon) {
-        // Use organization_id from the coupon object
+        // CRITICAL FIX: Use organization_id from the coupon object
         const organizationId = coupon.organization_id;
-        // CRITICAL FIX: Use organizationId from coupon object to check points
         const currentPoints = organizationId ? getPointsForOrganization(organizationId) : 0;
         
         if (currentPoints < coupon.points_cost) {
@@ -96,10 +98,12 @@ const OrganizationProfile = () => {
         }
     }
     
-    const isDisabled = usedUp || pending || isRedeeming || !canRedeem;
+    const isDisabled = usedUp || pending || isRedeeming || !canRedeem || isExpired;
     
     let buttonText = coupon.is_code_required ? 'Kód generálása' : 'Beváltás';
-    if (isRedeeming) {
+    if (isExpired) {
+        buttonText = 'Lejárt';
+    } else if (isRedeeming) {
         buttonText = 'Feldolgozás...';
     } else if (usedUp) {
         buttonText = `Limit elérve (${coupon.max_uses_per_user} / ${coupon.max_uses_per_user})`;
@@ -113,7 +117,7 @@ const OrganizationProfile = () => {
       ? 'bg-gradient-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600' 
       : 'bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600';
       
-    return { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem };
+    return { isDisabled, buttonText, buttonClasses, usedUp, pending, canRedeem, isExpired };
   };
   
   // --- Data Fetching ---
@@ -202,10 +206,13 @@ const OrganizationProfile = () => {
     if (isRedeeming) return;
 
     // Re-check status before starting redemption
-    const { isDisabled: preCheckDisabled } = getRedemptionStatus(coupon);
+    const { isDisabled: preCheckDisabled, isExpired } = getRedemptionStatus(coupon);
     if (preCheckDisabled) {
-        // If disabled, the status text should already be set by getRedemptionStatus
-        showError(getRedemptionStatus(coupon).buttonText);
+        if (isExpired) {
+            showError('Ez a kupon lejárt.');
+        } else {
+            showError(getRedemptionStatus(coupon).buttonText);
+        }
         return;
     }
 
@@ -263,6 +270,11 @@ const OrganizationProfile = () => {
       showError('Kérjük, jelentkezz be az érdeklődés jelöléséhez.');
       return;
     }
+    const finished = isEventFinished(new Date(event.start_time), event.end_time ? new Date(event.end_time) : null);
+    if (finished) {
+        showError('Ez az esemény már lejárt.');
+        return;
+    }
     setIsTogglingInterest(event.id);
     await toggleInterest(event.id, event.title);
     setIsTogglingInterest(null);
@@ -270,7 +282,7 @@ const OrganizationProfile = () => {
   // --- End Redemption Logic ---
 
   // Calculate modal props based on selectedCoupon state
-  const modalProps = selectedCoupon ? getRedemptionStatus(selectedCoupon) : { isDisabled: false, buttonText: '', buttonClasses: '', usedUp: false, pending: false, canRedeem: true };
+  const modalProps = selectedCoupon ? getRedemptionStatus(selectedCoupon) : { isDisabled: false, buttonText: '', buttonClasses: '', usedUp: false, pending: false, canRedeem: true, isExpired: false };
 
 
   if (isLoadingProfile || isLoadingCoupons || isLoadingPoints) {
@@ -361,7 +373,7 @@ const OrganizationProfile = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {organizationCoupons.map(coupon => {
-                const { isDisabled, usedUp, pending } = getRedemptionStatus(coupon);
+                const { isDisabled, usedUp, pending, isExpired } = getRedemptionStatus(coupon);
                 const logoUrl = profile.logo_url; // Use organization profile logo
                 
                 return (
@@ -425,7 +437,11 @@ const OrganizationProfile = () => {
                         
                         {/* Overlay Content (Top Right - Status Badge) */}
                         <div className="absolute top-3 right-3 p-1 flex items-start justify-end z-10">
-                            {pending ? (
+                            {isExpired ? (
+                                <Badge className="bg-gray-600/70 text-white flex items-center gap-1">
+                                    <XCircle className="h-3 w-3" /> Lejárt
+                                </Badge>
+                            ) : pending ? (
                                 <Badge className="bg-yellow-600/70 text-white flex items-center gap-1">
                                     <QrCode className="h-3 w-3" /> Aktív kód
                                 </Badge>
@@ -456,6 +472,7 @@ const OrganizationProfile = () => {
                             onClick={() => openCouponDetailsModal(coupon)}
                             variant="outline"
                             className="w-full border-purple-400 text-purple-400 hover:bg-purple-400/10"
+                            disabled={isExpired}
                         >
                             <Gift className="h-4 w-4 mr-2" /> Részletek & Beváltás
                         </Button>
@@ -481,11 +498,12 @@ const OrganizationProfile = () => {
                 const interested = isInterested(event.id);
                 const isCurrentToggling = isTogglingInterest === event.id;
                 const logoUrl = profile.logo_url; // Use organization profile logo
+                const isFinished = isEventFinished(new Date(event.start_time), event.end_time ? new Date(event.end_time) : null);
                 
                 return (
                   <div 
                     key={event.id} 
-                    className="relative w-full sm:w-full lg:w-full max-w-sm transition-all duration-300 hover:scale-[1.05]"
+                    className={`relative w-full sm:w-full lg:w-full max-w-sm transition-all duration-300 ${isFinished ? 'opacity-60 grayscale' : 'hover:scale-[1.05]'}`}
                   >
                     
                     <Card 
@@ -569,6 +587,7 @@ const OrganizationProfile = () => {
                             variant="outline"
                             onClick={(e) => { e.stopPropagation(); openEventDetailsModal(event); }}
                             className="w-full mt-4 border-cyan-400 text-cyan-400 hover:bg-cyan-400/10"
+                            disabled={isFinished}
                         >
                             Részletek <ArrowRight className="h-4 w-4 ml-2" />
                         </Button>

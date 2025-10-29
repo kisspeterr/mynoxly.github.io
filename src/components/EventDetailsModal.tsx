@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Calendar, MapPin, Clock, Tag, Building, Heart, Loader2, Info, ArrowRight, Link as LinkIcon } from 'lucide-react';
+import { Calendar, MapPin, Clock, Tag, Building, Heart, Loader2, Info, ArrowRight, Link as LinkIcon, XCircle } from 'lucide-react';
 import { Event } from '@/types/events';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { useInterestedEvents } from '@/hooks/use-interested-events';
 import { useAuth } from '@/hooks/use-auth';
 import { showError } from '@/utils/toast';
+import { isEventFinished } from '@/components/EventCountdown'; // Import status check
 
 // Extend Event type to include organization profile data
 interface PublicEvent extends Event {
@@ -26,11 +27,16 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, isOpen, on
   const [isToggling, setIsToggling] = useState(false);
   
   const interested = isInterested(event.id);
+  const finished = isEventFinished(new Date(event.start_time), event.end_time ? new Date(event.end_time) : null);
 
   const handleToggleInterest = async () => {
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be az érdeklődés jelöléséhez.');
       return;
+    }
+    if (finished) {
+        showError('Ez az esemény már lejárt.');
+        return;
     }
     setIsToggling(true);
     await toggleInterest(event.id, event.title);
@@ -49,7 +55,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, isOpen, on
                     <img 
                         src={event.image_url} 
                         alt={event.title} 
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover ${finished ? 'grayscale opacity-70' : ''}`}
                     />
                 ) : (
                     <div className="w-full h-full bg-gray-800 flex items-center justify-center">
@@ -92,19 +98,23 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({ event, isOpen, on
                     <div className="flex justify-between items-center border-b border-gray-700/50 pb-3">
                         <Button
                             onClick={handleToggleInterest}
-                            disabled={isToggling || !isAuthenticated}
+                            disabled={isToggling || !isAuthenticated || finished}
                             className={`w-full sm:w-auto transition-colors duration-300 ${
-                                interested 
-                                    ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
-                                    : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
+                                finished 
+                                    ? 'bg-gray-600/50 border-gray-500/50 text-gray-400'
+                                    : interested 
+                                        ? 'bg-red-600/20 border-red-500/50 text-red-400 hover:bg-red-600/30' 
+                                        : 'bg-gray-800/50 border-gray-700 text-gray-400 hover:bg-gray-700/50 hover:text-red-400'
                             }`}
                         >
                             {isToggling ? (
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : finished ? (
+                                <XCircle className="h-4 w-4 mr-2" />
                             ) : (
                                 <Heart className={`h-4 w-4 mr-2 ${interested ? 'fill-red-400' : ''}`} />
                             )}
-                            {interested ? 'Érdeklődés eltávolítása' : 'Érdekel'}
+                            {finished ? 'Lejárt' : (interested ? 'Érdeklődés eltávolítása' : 'Érdekel')}
                         </Button>
                     </div>
                 </DialogHeader>
