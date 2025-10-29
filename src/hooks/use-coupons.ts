@@ -228,7 +228,13 @@ export const useCoupons = () => {
     }
     
     setIsLoading(true);
+    
+    // 1. Find the coupon to delete to get the image URL
+    const couponToDelete = coupons.find(c => c.id === id);
+    const imageUrl = couponToDelete?.image_url;
+
     try {
+      // 2. Delete the coupon record from the database
       const { error } = await supabase
         .from('coupons')
         .delete()
@@ -240,10 +246,45 @@ export const useCoupons = () => {
         console.error('Delete coupon error:', error);
         return { success: false };
       }
+      
+      // 3. If an image exists, call the Edge Function to delete it from storage
+      if (imageUrl) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+              const edgeFunctionUrl = `https://ubpicfenhhsonfeeehfa.supabase.co/functions/v1/delete-storage-file`;
+              
+              const response = await fetch(
+                edgeFunctionUrl,
+                {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    publicUrl: imageUrl,
+                  }),
+                }
+              );
+              
+              if (!response.ok) {
+                  const errorBody = await response.json();
+                  console.error('Storage Delete Error:', errorBody);
+                  // We show a warning but proceed, as the DB record is already gone
+                  showError(`Figyelem: A tárhelyről való törlés sikertelen volt: ${errorBody.error || 'Ismeretlen hiba'}`);
+              }
+          } else {
+              console.warn('Cannot delete storage file: No active session.');
+          }
+      }
 
       setCoupons(prev => prev.filter(c => c.id !== id));
       showSuccess('Kupon sikeresen törölve!');
       return { success: true };
+    } catch (e) {
+        console.error('Unexpected delete error:', e);
+        showError('Váratlan hiba történt a törlés során.');
+        return { success: false };
     } finally {
       setIsLoading(false);
     }

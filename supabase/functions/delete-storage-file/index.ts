@@ -6,6 +6,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to check if the user is an accepted member of the organization
+async function isUserOrganizationMember(supabaseClient: any, userId: string, organizationId: string): Promise<boolean> {
+    const { count, error } = await supabaseClient
+        .from('organization_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('organization_id', organizationId)
+        .eq('status', 'accepted');
+        
+    if (error) {
+        console.error('Membership check error:', error);
+        return false;
+    }
+    return (count || 0) > 0;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -39,36 +55,47 @@ serve(async (req) => {
     // 1. Extract bucket name and file path from the public URL
     // Expected format: https://[project_id].supabase.co/storage/v1/object/public/[bucket_name]/[organization_id]/[file_name]
     const urlParts = publicUrl.split('/');
-    const bucketIndex = urlParts.indexOf('public') + 1;
+    const publicIndex = urlParts.indexOf('public');
     
-    if (bucketIndex === 0 || bucketIndex >= urlParts.length) {
+    if (publicIndex === -1 || publicIndex + 1 >= urlParts.length) {
         return new Response(JSON.stringify({ error: 'Invalid public URL format.' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     
-    const bucketName = urlParts[bucketIndex];
-    const filePath = urlParts.slice(bucketIndex + 1).join('/');
+    const bucketName = urlParts[publicIndex + 1];
+    const filePath = urlParts.slice(publicIndex + 2).join('/');
     
     // The first segment of the file path is the organization ID (or user ID for old logos)
     const pathSegments = filePath.split('/');
     const organizationId = pathSegments[0];
     
     // 2. Security Check: Ensure the user has permission to delete this file.
-    // We check if the user is the owner of the organization associated with the path.
+    let isAuthorized = false;
     
+    if (!organizationId) {
+        return new Response(JSON.stringify({ error: 'Forbidden: Missing organization ID in path.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Check 1: Is the user the owner of the organization? (Applies to all buckets)
     const { data: orgData, error: orgError } = await supabaseClient
         .from('organizations')
         .select('owner_id')
         .eq('id', organizationId)
         .single();
         
-    // If the organization doesn't exist or the user is not the owner, deny access.
-    if (orgError || orgData?.owner_id !== userId) {
-        // Fallback check for old user-based logo paths (where organizationId == userId)
-        if (bucketName === 'logos' && organizationId === userId) {
-            // Allow deletion if it's the user's old logo path
-        } else {
-            return new Response(JSON.stringify({ error: 'Forbidden: You do not have permission to delete this file.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    if (orgData?.owner_id === userId) {
+        isAuthorized = true;
+    }
+    
+    // Check 2: Is the user an accepted member of the organization? (Applies to banners)
+    if (!isAuthorized && (bucketName === 'coupon_banners' || bucketName === 'event_banners' || bucketName === 'logos')) {
+        if (await isUserOrganizationMember(supabaseClient, userId, organizationId)) {
+            isAuthorized = true;
         }
+    }
+    
+    // Final authorization check
+    if (!isAuthorized) {
+        return new Response(JSON.stringify({ error: 'Forbidden: You do not have permission to delete this file.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // 3. Delete the file
