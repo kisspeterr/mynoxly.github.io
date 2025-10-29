@@ -43,7 +43,7 @@ export const useCoupons = () => {
     }
   }, [isAuthenticated, organizationName, hasPermission]); // Dependencies for useCallback
 
-  // Automatically fetch coupons when activeOrganizationId changes
+  // Automatically fetch coupons when activeOrganizationId changes OR fetchCoupons changes (due to organizationName/permission change)
   useEffect(() => {
     if (activeOrganizationId) {
       fetchCoupons();
@@ -51,7 +51,38 @@ export const useCoupons = () => {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated, hasPermission, fetchCoupons]); // Added fetchCoupons to dependencies
+    
+    // --- Realtime Subscription ---
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    if (organizationName && hasPermission) {
+        // Subscribe to changes in the 'coupons' table
+        channel = supabase
+          .channel(`coupons_admin_feed_${organizationName}`)
+          .on(
+            'postgres_changes',
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'coupons',
+              // We cannot filter by organization_name here due to RLS, so we rely on fetchCoupons to filter
+            },
+            (payload) => {
+              // Refetch all data to ensure consistency and correct filtering/sorting
+              // We only refetch if the change is relevant to the current organization (which fetchCoupons handles)
+              fetchCoupons();
+            }
+          )
+          .subscribe();
+    }
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+    
+  }, [activeOrganizationId, isAuthenticated, hasPermission, fetchCoupons, organizationName]); // Added organizationName for Realtime channel name
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -74,6 +105,7 @@ export const useCoupons = () => {
       }
 
       const newCoupon = data as Coupon;
+      // Optimistic update (Realtime will eventually trigger fetchCoupons)
       setCoupons(prev => [newCoupon, ...prev]);
       showSuccess('Kupon sikeresen létrehozva! Kérjük, publikáld a megjelenítéshez.');
       return { success: true, newCouponId: newCoupon.id };
