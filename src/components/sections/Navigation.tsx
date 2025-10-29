@@ -160,12 +160,6 @@ const Navigation = () => {
           {!isMobile && (
             <div className="flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
               <button
-                onClick={() => navigateToSection('challenges-section')}
-                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 flex items-center gap-1"
-              >
-                <ListChecks className="h-4 w-4" /> Küldetések
-              </button>
-              <button
                 onClick={() => navigateToSection('coupons-section')}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
@@ -182,6 +176,12 @@ const Navigation = () => {
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
                 <Building className="h-4 w-4" /> Partnerek
+              </button>
+              <button
+                onClick={() => navigateToSection('challenges-section')}
+                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 flex items-center gap-1"
+              >
+                <ListChecks className="h-4 w-4" /> Küldetések
               </button>
             </div>
           )}
@@ -207,12 +207,6 @@ const Navigation = () => {
           <div className="mt-4 pb-4 border-t border-cyan-500/20 pt-4">
             <div className="flex flex-col space-y-4">
               <button
-                onClick={() => navigateToSection('challenges-section')}
-                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 py-2 flex items-center gap-1"
-              >
-                <ListChecks className="h-4 w-4 mr-2" /> Küldetések
-              </button>
-              <button
                 onClick={() => navigateToSection('coupons-section')}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
               >
@@ -230,6 +224,12 @@ const Navigation = () => {
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
               >
                 <Building className="h-4 w-4 mr-2" /> Partnerek
+              </button>
+              <button
+                onClick={() => navigateToSection('challenges-section')}
+                className="text-gray-300 hover:text-purple-400 transition-colors duration-300 py-2 flex items-center gap-1"
+              >
+                <ListChecks className="h-4 w-4 mr-2" /> Küldetések
               </button>
               
               {/* Add Profile/Dashboard links to mobile menu if authenticated */}
@@ -277,7 +277,3 @@ const Navigation = () => {
         )}
       </div>
     </nav>
-  );
-};
-
-export default Navigation;
