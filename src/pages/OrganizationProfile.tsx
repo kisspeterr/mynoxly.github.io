@@ -220,13 +220,10 @@ const OrganizationProfile = () => {
 
     setIsRedeeming(true);
     try {
-      // Pass fetchPoints to redeemCoupon
-      const result = await redeemCoupon(coupon, fetchPoints); 
+      // Pass fetchPoints AND fetchChallenges to redeemCoupon
+      const result = await redeemCoupon(coupon, fetchPoints, fetchChallenges); 
 
       if (result.success) {
-        // CRITICAL: If redemption was successful (simple or code generated), refresh challenges
-        fetchChallenges();
-        
         if (coupon.is_code_required && result.usageId && result.redemptionCode) {
             // Code Redemption: Open modal
             setSelectedCoupon(coupon); 
@@ -247,13 +244,11 @@ const OrganizationProfile = () => {
     setSelectedCoupon(null);
     setCurrentUsageId(undefined);
     setCurrentRedemptionCode(undefined);
-    refreshUsages();
     
-    // If the admin finalized the redemption via Realtime, the challenge update should have happened.
-    // If the user manually closed the modal, we still need to ensure challenges are up to date 
-    // in case the usage status changed (e.g., expired).
+    // Always refresh everything after modal close, regardless of Realtime status
+    refreshUsages();
     fetchChallenges();
-    fetchPoints(); // Manual refresh of points after modal close (just in case)
+    fetchPoints(); 
   };
   
   const openCouponDetailsModal = (coupon: PublicCoupon) => {

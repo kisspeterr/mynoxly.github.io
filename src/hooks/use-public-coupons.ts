@@ -124,34 +124,8 @@ export const usePublicCoupons = () => {
   useEffect(() => {
     fetchCouponsAndUsages();
     
-    // Setup Realtime subscription for user's own coupon usages
-    let channel: ReturnType<typeof supabase.channel> | null = null;
+    // NOTE: Realtime listener removed to rely on manual refreshUsages calls after redemption.
     
-    if (isAuthenticated && user) {
-      channel = supabase
-        .channel(`user_usages_${user.id}`)
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'coupon_usages',
-            filter: `user_id=eq.${user.id}`
-          },
-          (payload) => {
-            // We rely on explicit refreshUsages calls for immediate feedback, 
-            // but keep this for general consistency.
-            refreshUsages(); 
-          }
-        )
-        .subscribe();
-    }
-
-    return () => {
-      if (channel) {
-        supabase.removeChannel(channel);
-      }
-    };
   }, [isAuthenticated, user?.id]);
 
   // --- Logic for checking pending/expired codes ---
@@ -224,7 +198,7 @@ export const usePublicCoupons = () => {
     }
   };
   
-  const redeemCoupon = async (coupon: PublicCoupon, onPointsUpdated?: () => void): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
+  const redeemCoupon = async (coupon: PublicCoupon, onPointsUpdated?: () => void, onChallengesUpdated?: () => void): Promise<{ success: boolean, usageId?: string, redemptionCode?: string }> => {
     if (!isAuthenticated || !user) {
       showError('Kérjük, jelentkezz be a kupon beváltásához.');
       return { success: false };
@@ -277,6 +251,11 @@ export const usePublicCoupons = () => {
             // Manually trigger points refresh if callback is provided
             if (onPointsUpdated) {
                 onPointsUpdated();
+            }
+            
+            // Manually trigger challenges refresh if callback is provided
+            if (onChallengesUpdated) {
+                onChallengesUpdated();
             }
             
             // Refresh usages immediately after successful insertion to update local state

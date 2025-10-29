@@ -162,77 +162,14 @@ export const useChallenges = () => {
     }
   };
 
-  // --- Initialization and Realtime ---
+  // --- Initialization ---
   useEffect(() => {
     fetchChallengesAndProgress();
     
-    // Setup Realtime subscription for user's own challenge progress
-    let userChallengesChannel: ReturnType<typeof supabase.channel> | null = null;
-    let couponUsagesChannel: ReturnType<typeof supabase.channel> | null = null;
-    let loyaltyPointsChannel: ReturnType<typeof supabase.channel> | null = null;
+    // NOTE: Realtime listeners removed to rely on manual fetch calls after critical actions.
+    // The components calling redeemCoupon or claimReward must ensure fetchChallenges is called.
     
-    if (isAuthenticated && user) {
-      // 1. Listen to user_challenges (for claim status changes)
-      userChallengesChannel = supabase
-        .channel(`user_challenges_${user.id}`)
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'user_challenges',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            // Realtime update triggers a full fetch
-            fetchChallengesAndProgress();
-          }
-        )
-        .subscribe();
-        
-      // 2. Listen to coupon_usages (for REDEEM_COUNT and DIFFERENT_ORGANIZATIONS progress updates)
-      couponUsagesChannel = supabase
-        .channel(`user_coupon_usages_for_challenges_${user.id}`)
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'coupon_usages',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            // When a usage changes (inserted or marked as used), the trigger runs, 
-            // but we manually refetch here to ensure the UI updates quickly.
-            fetchChallengesAndProgress();
-          }
-        )
-        .subscribe();
-        
-      // 3. Listen to loyalty_points (for TOTAL_POINTS progress updates)
-      loyaltyPointsChannel = supabase
-        .channel(`user_loyalty_points_for_challenges_${user.id}`)
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'loyalty_points',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            // When points change, the trigger runs, we manually refetch here.
-            fetchChallengesAndProgress();
-          }
-        )
-        .subscribe();
-    }
-
-    return () => {
-      if (userChallengesChannel) supabase.removeChannel(userChallengesChannel);
-      if (couponUsagesChannel) supabase.removeChannel(couponUsagesChannel);
-      if (loyaltyPointsChannel) supabase.removeChannel(loyaltyPointsChannel);
-    };
+    // We keep the initial fetch on load/auth change
   }, [fetchChallengesAndProgress, isAuthenticated, user?.id]);
 
   return {
