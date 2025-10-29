@@ -36,9 +36,6 @@ const ProfileSettingsPage: React.FC = () => {
     }
   }, [activeOrganizationProfile]);
   
-  // Check if the user is the owner of the active organization
-  const isOwner = activeOrganizationProfile?.owner_id === user?.id;
-  
   // Check if the user has permission to manage settings (owner or high-level admin)
   const canManageSettings = checkPermission('coupon_manager'); 
 

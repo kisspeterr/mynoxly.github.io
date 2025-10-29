@@ -26,7 +26,7 @@ const ROLE_MAP: Record<MemberRole, string> = {
 };
 
 const AdminDashboard = () => {
-  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships } = useAuth();
+  const { isAuthenticated, isSuperadmin, isLoading, signOut, profile, activeOrganizationProfile, allMemberships, checkPermission } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('coupons');
 
@@ -68,6 +68,31 @@ const AdminDashboard = () => {
   
   // Determine if the user has an active organization selected (needed for most tabs)
   const isOrganizationActive = !!activeOrganizationProfile;
+  
+  // Permissions check for tabs (based on active organization)
+  const canManageCoupons = checkPermission('coupon_manager');
+  const canManageEvents = checkPermission('event_manager');
+  const canViewUsages = checkPermission('viewer') || checkPermission('redemption_agent') || canManageCoupons || canManageEvents;
+  const canManageMembers = checkPermission('coupon_manager'); // Only high-level admin/owner can manage members
+  const canManageSettings = checkPermission('coupon_manager'); // Only high-level admin/owner can manage settings
+
+  // Define tabs based on permissions
+  const tabs = [
+    { id: 'coupons', label: 'Kuponok', icon: Tag, component: CouponsPage, permission: canManageCoupons || canViewUsages },
+    { id: 'events', label: 'Események', icon: Calendar, component: EventsPage, permission: canManageEvents || canViewUsages },
+    { id: 'usages', label: 'Beváltások', icon: ListChecks, component: CouponUsagesPage, permission: canViewUsages },
+    { id: 'statistics', label: 'Statisztikák', icon: BarChart, component: UsageStatisticsPage, permission: canViewUsages },
+    { id: 'members', label: 'Tagok', icon: Users, component: OrganizationMembersPage, permission: canManageMembers },
+    { id: 'settings', label: 'Beállítások', icon: Settings, component: ProfileSettingsPage, permission: canManageSettings },
+  ].filter(tab => tab.permission);
+  
+  // Ensure activeTab is valid after filtering
+  useEffect(() => {
+      if (isOrganizationActive && !tabs.some(t => t.id === activeTab)) {
+          setActiveTab(tabs[0]?.id || 'coupons');
+      }
+  }, [isOrganizationActive, tabs]);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
@@ -164,46 +189,24 @@ const AdminDashboard = () => {
             </Card>
           ) : (
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              {/* Tabs List - Full width on mobile (6 tabs now) */}
-              <TabsList className="grid w-full grid-cols-6 bg-gray-800/50 border border-gray-700/50 h-auto p-1">
-                <TabsTrigger value="coupons" className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base">
-                  <Tag className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Kuponok</span>
-                </TabsTrigger>
-                <TabsTrigger value="events" className="data-[state=active]:bg-purple-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-purple-400 py-2 text-sm md:text-base">
-                  <Calendar className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Események</span>
-                </TabsTrigger>
-                <TabsTrigger value="usages" className="data-[state=active]:bg-green-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-green-400 py-2 text-sm md:text-base">
-                  <ListChecks className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beváltások</span>
-                </TabsTrigger>
-                <TabsTrigger value="statistics" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                  <BarChart className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Statisztikák</span>
-                </TabsTrigger>
-                <TabsTrigger value="members" className="data-[state=active]:bg-yellow-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 py-2 text-sm md:text-base">
-                  <Users className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Tagok</span>
-                </TabsTrigger>
-                <TabsTrigger value="settings" className="data-[state=active]:bg-pink-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-pink-400 py-2 text-sm md:text-base">
-                  <Settings className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">Beállítások</span>
-                </TabsTrigger>
+              {/* Tabs List - Dynamically generated based on permissions */}
+              <TabsList className={`grid w-full grid-cols-${tabs.length} bg-gray-800/50 border border-gray-700/50 h-auto p-1`}>
+                {tabs.map(tab => (
+                    <TabsTrigger 
+                        key={tab.id} 
+                        value={tab.id} 
+                        className="data-[state=active]:bg-cyan-600/50 data-[state=active]:text-white data-[state=active]:border-b-2 data-[state=active]:border-cyan-400 py-2 text-sm md:text-base"
+                    >
+                        <tab.icon className="h-4 w-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">{tab.label}</span>
+                    </TabsTrigger>
+                ))}
               </TabsList>
               <div className="mt-6">
-                <TabsContent value="coupons">
-                  <CouponsPage />
-                </TabsContent>
-                <TabsContent value="events">
-                  <EventsPage />
-                </TabsContent>
-                <TabsContent value="usages">
-                  <CouponUsagesPage />
-                </TabsContent>
-                <TabsContent value="statistics">
-                  <UsageStatisticsPage />
-                </TabsContent>
-                <TabsContent value="members">
-                  <OrganizationMembersPage />
-                </TabsContent>
-                <TabsContent value="settings">
-                  <ProfileSettingsPage />
-                </TabsContent>
+                {tabs.map(tab => (
+                    <TabsContent key={tab.id} value={tab.id}>
+                        <tab.component />
+                    </TabsContent>
+                ))}
               </div>
             </Tabs>
           )}

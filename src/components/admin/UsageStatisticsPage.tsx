@@ -20,20 +20,18 @@ const timeRangeLabels: Record<TimeRange, string> = {
 };
 
 const UsageStatisticsPage: React.FC = () => {
-  const { stats, detailedUsages, isLoading, fetchStatistics } = useUsageStatistics();
-  const { checkPermission } = useAuth();
+  const { stats, detailedUsages, isLoading, fetchStatistics, hasPermission } = useUsageStatistics();
+  const { activeOrganizationProfile } = useAuth();
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [timeRange, setTimeRange] = useState<TimeRange>('day');
   const [emailFilter, setEmailFilter] = useState('');
   
-  const canViewStatistics = checkPermission('viewer');
-
   // Fetch data whenever date, timeRange, or filter changes
   useEffect(() => {
-    if (canViewStatistics) {
+    if (activeOrganizationProfile && hasPermission) {
         fetchStatistics(selectedDate, timeRange, emailFilter);
     }
-  }, [selectedDate, timeRange, emailFilter, fetchStatistics, canViewStatistics]);
+  }, [selectedDate, timeRange, emailFilter, fetchStatistics, activeOrganizationProfile, hasPermission]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -62,7 +60,11 @@ const UsageStatisticsPage: React.FC = () => {
     }
   };
   
-  if (!canViewStatistics) {
+  if (!activeOrganizationProfile) {
+      return <p className="text-gray-400 text-center mt-10">Kérjük, válassz egy aktív szervezetet a statisztikák megtekintéséhez.</p>;
+  }
+  
+  if (!hasPermission) {
       return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a statisztikák megtekintéséhez.</p>;
   }
 

@@ -33,6 +33,9 @@ export const useRedemption = () => {
   const REDEMPTION_TIMEOUT_MINUTES = 3;
   
   const activeOrganizationName = activeOrganizationProfile?.organization_name;
+  
+  // Determine if the user has permission to redeem
+  const hasPermission = checkPermission('redemption_agent');
 
   const fetchUserProfileAndEmail = async (userId: string) => {
     // 1. Fetch Profile (Name, Username, and Organization)
@@ -73,7 +76,7 @@ export const useRedemption = () => {
   };
 
   const checkCode = async (code: string) => {
-    if (!checkPermission('redemption_agent') || !activeOrganizationName) {
+    if (!hasPermission || !activeOrganizationName) {
         showError('Nincs jogosultságod a beváltáshoz, vagy nincs aktív szervezet kiválasztva.');
         return;
     }
@@ -151,7 +154,7 @@ export const useRedemption = () => {
   const finalizeRedemption = async () => {
     if (!usageDetails) return;
     
-    if (!checkPermission('redemption_agent') || usageDetails.coupon.organization_name !== activeOrganizationName) {
+    if (!hasPermission || usageDetails.coupon.organization_name !== activeOrganizationName) {
         showError('Nincs jogosultságod a beváltás véglegesítéséhez.');
         return false;
     }
@@ -198,5 +201,7 @@ export const useRedemption = () => {
     checkCode,
     finalizeRedemption,
     clearDetails: () => setUsageDetails(null),
+    hasPermission, // NEW
+    activeOrganizationName,
   };
 };

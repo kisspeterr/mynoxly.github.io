@@ -10,21 +10,17 @@ export const useEvents = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const organizationName = activeOrganizationProfile?.organization_name;
+  
+  // Determine if the user has ANY permission to view events
+  const hasPermission = checkPermission('event_manager') || checkPermission('viewer');
 
   const fetchEvents = async () => {
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !organizationName || !hasPermission) {
       setEvents([]);
       setIsLoading(false);
       return;
     }
     
-    // Check if the user has any permission to view events (event_manager or viewer)
-    if (!checkPermission('event_manager') && !checkPermission('viewer')) {
-        setEvents([]);
-        setIsLoading(false);
-        return;
-    }
-
     setIsLoading(true);
     try {
       // Fetch events and optionally join the linked coupon data
@@ -57,7 +53,7 @@ export const useEvents = () => {
         setEvents([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
+  }, [activeOrganizationId, isAuthenticated, hasPermission]); // Watch the ID instead of the object
 
   const createEvent = async (eventData: EventInsert) => {
     if (!organizationName || !checkPermission('event_manager')) {
@@ -271,5 +267,6 @@ export const useEvents = () => {
     unarchiveEvent,
     deleteEvent,
     organizationName,
+    hasPermission, // NEW
   };
 };

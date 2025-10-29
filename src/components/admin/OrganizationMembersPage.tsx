@@ -266,19 +266,24 @@ const MemberCard: React.FC<MemberCardProps> = ({ member, onUpdateRoles, onRemove
 };
 
 const OrganizationMembersPage: React.FC = () => {
-    const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers } = useOrganizationMembers();
+    const { members, isLoading, inviteMember, updateMemberRoles, removeMember, fetchMembers, hasPermission, organizationName } = useOrganizationMembers();
     const { activeOrganizationProfile, checkPermission } = useAuth();
     const [isInviteFormOpen, setIsInviteFormOpen] = useState(false);
     
-    // Only the owner/main admin can manage members (using coupon_manager as proxy for now)
+    // Only the owner/main admin can manage members
     const canManageMembers = checkPermission('coupon_manager'); 
+
+    if (!activeOrganizationProfile) {
+        return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
+    }
+    
+    if (!canManageMembers) {
+        return <p className="text-red-400">Nincs jogosultságod a tagok kezeléséhez.</p>;
+    }
 
     const activeMembers = members.filter(m => m.status === 'accepted');
     const pendingMembers = members.filter(m => m.status === 'pending');
     
-    if (!activeOrganizationProfile) {
-        return <p className="text-gray-400">Kérjük, válassz egy aktív szervezetet a tagok kezeléséhez.</p>;
-    }
 
     return (
         <div>

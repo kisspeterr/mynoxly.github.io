@@ -52,12 +52,15 @@ export const useOrganizationMembers = () => {
 
   const organizationId = activeOrganizationId;
   const organizationName = activeOrganizationProfile?.organization_name;
+  
+  // Determine if the user has permission to manage members
+  const canManageMembers = checkPermission('coupon_manager'); 
 
   // --- Admin Functions ---
 
   const fetchMembers = useCallback(async () => {
     // Only fetch if the user has permission to manage members AND an organization is active
-    if (!isAuthenticated || !organizationId || !checkPermission('coupon_manager')) { 
+    if (!isAuthenticated || !organizationId || !canManageMembers) { 
       setMembers([]);
       return;
     }
@@ -109,10 +112,10 @@ export const useOrganizationMembers = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationId, checkPermission]);
+  }, [isAuthenticated, organizationId, canManageMembers]);
   
   const inviteMember = async (username: string, roles: MemberRole[]) => {
-    if (!organizationId || !organizationName || !checkPermission('coupon_manager')) { // Only managers can invite
+    if (!organizationId || !organizationName || !canManageMembers) { // Only managers can invite
         showError('Nincs jogosultságod tagok meghívásához.');
         return { success: false };
     }
@@ -162,7 +165,7 @@ export const useOrganizationMembers = () => {
   };
   
   const updateMemberRoles = async (memberId: string, roles: MemberRole[]) => {
-    if (!organizationId || !checkPermission('coupon_manager')) { // Only managers can update roles
+    if (!organizationId || !canManageMembers) { // Only managers can update roles
         showError('Nincs jogosultságod a jogosultságok frissítéséhez.');
         return { success: false };
     }
@@ -188,7 +191,7 @@ export const useOrganizationMembers = () => {
   };
   
   const removeMember = async (memberId: string) => {
-    if (!organizationId || !checkPermission('coupon_manager')) { // Only managers can remove members
+    if (!organizationId || !canManageMembers) { // Only managers can remove members
         showError('Nincs jogosultságod tagok eltávolításához.');
         return { success: false };
     }
@@ -227,7 +230,7 @@ export const useOrganizationMembers = () => {
         const { data, error } = await supabase
             .from('organization_members')
             .select(`
-                id, organization_id, user_id, status, roles, created_at,
+                id, organization_id, roles, status, created_at,
                 organization:organization_id (organization_name, logo_url)
             `)
             .eq('user_id', user.id)
@@ -305,7 +308,7 @@ export const useOrganizationMembers = () => {
     
     // Realtime subscription for admin view (members list)
     let adminChannel: ReturnType<typeof supabase.channel> | null = null;
-    if (organizationId) {
+    if (organizationId && canManageMembers) {
         adminChannel = supabase
             .channel(`org_members_${organizationId}`)
             .on(
@@ -347,7 +350,7 @@ export const useOrganizationMembers = () => {
       if (adminChannel) supabase.removeChannel(adminChannel);
       if (userChannel) supabase.removeChannel(userChannel);
     };
-  }, [organizationId, isAuthenticated, user?.id]); // Dependencies updated
+  }, [organizationId, isAuthenticated, user?.id, canManageMembers]); // Dependencies updated
 
   return {
     members,
@@ -360,5 +363,7 @@ export const useOrganizationMembers = () => {
     fetchInvitations,
     acceptInvitation,
     rejectInvitation,
+    hasPermission: canManageMembers, // NEW
+    organizationName,
   };
 };

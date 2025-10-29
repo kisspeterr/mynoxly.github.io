@@ -26,22 +26,19 @@ export const useUsageStatistics = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const organizationName = activeOrganizationProfile?.organization_name;
+  
+  // Determine if the user has ANY permission to view usages
+  const hasPermission = checkPermission('viewer') || checkPermission('redemption_agent') || checkPermission('coupon_manager') || checkPermission('event_manager');
+
 
   const fetchStatistics = useCallback(async (date: Date, timeRange: TimeRange, userEmailFilter: string = '') => {
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !organizationName || !hasPermission) {
       setStats([]);
       setDetailedUsages([]);
       setIsLoading(false);
       return;
     }
     
-    if (!checkPermission('viewer')) {
-        setStats([]);
-        setDetailedUsages([]);
-        setIsLoading(false);
-        return;
-    }
-
     setIsLoading(true);
     try {
       let start: string;
@@ -210,12 +207,13 @@ export const useUsageStatistics = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, organizationName, checkPermission, activeOrganizationId]); // Added activeOrganizationId to dependencies
+  }, [isAuthenticated, organizationName, hasPermission, activeOrganizationId]); // Added activeOrganizationId to dependencies
 
   return {
     stats,
     detailedUsages,
     isLoading,
     fetchStatistics,
+    hasPermission, // NEW
   };
 };

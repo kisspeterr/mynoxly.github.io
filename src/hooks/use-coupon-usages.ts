@@ -50,21 +50,18 @@ export const useCouponUsages = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const organizationName = activeOrganizationProfile?.organization_name;
+  
+  // Determine if the user has ANY permission to view usages
+  const hasPermission = checkPermission('viewer') || checkPermission('redemption_agent') || checkPermission('coupon_manager') || checkPermission('event_manager');
+
 
   const fetchUsages = async () => {
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !organizationName || !hasPermission) {
       setUsages([]);
       setIsLoading(false);
       return;
     }
     
-    // Check if the user has any permission to view usages
-    if (!checkPermission('viewer') && !checkPermission('redemption_agent') && !checkPermission('coupon_manager') && !checkPermission('event_manager')) {
-        setUsages([]);
-        setIsLoading(false);
-        return;
-    }
-
     setIsLoading(true);
     try {
       // 1. Fetch usages without joining the user profile (to avoid RLS conflict)
@@ -135,7 +132,7 @@ export const useCouponUsages = () => {
     // Setup Realtime subscription for new/updated usages
     let channel: ReturnType<typeof supabase.channel> | null = null;
     
-    if (organizationName) {
+    if (organizationName && hasPermission) {
         channel = supabase
           .channel('coupon_usages_admin_feed')
           .on(
@@ -159,12 +156,13 @@ export const useCouponUsages = () => {
         supabase.removeChannel(channel);
       }
     };
-  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
+  }, [activeOrganizationId, isAuthenticated, hasPermission]); // Watch the ID instead of the object
 
   return {
     usages,
     isLoading,
     fetchUsages,
     organizationName,
+    hasPermission, // NEW
   };
 };

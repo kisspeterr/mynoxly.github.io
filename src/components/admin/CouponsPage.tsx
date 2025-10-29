@@ -257,7 +257,7 @@ const CouponCard: React.FC<CouponCardProps> = ({ coupon, onToggleActive, onArchi
 };
 
 const CouponsPage = () => {
-  const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, toggleActiveStatus, archiveCoupon, unarchiveCoupon, deleteCoupon, organizationName } = useCoupons();
+  const { coupons, isLoading, fetchCoupons, createCoupon, updateCoupon, toggleActiveStatus, archiveCoupon, unarchiveCoupon, deleteCoupon, organizationName, hasPermission } = useCoupons();
   const { checkPermission } = useAuth();
   const [isCreateFormOpen, setIsCreateFormOpen] = useState(false);
   const [couponToEdit, setCouponToEdit] = useState<Coupon | null>(null); 
@@ -306,6 +306,14 @@ const CouponsPage = () => {
           // For now, we just ensure the state is set correctly.
       }
   }, [couponToEdit]);
+
+  if (!organizationName) {
+      return <p className="text-gray-400 text-center mt-10">Kérjük, válassz egy aktív szervezetet a kuponok kezeléséhez.</p>;
+  }
+  
+  if (!hasPermission) {
+      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod a kuponok megtekintéséhez.</p>;
+  }
 
 
   if (isLoading && coupons.length === 0) {

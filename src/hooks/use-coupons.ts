@@ -10,22 +10,18 @@ export const useCoupons = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const organizationName = activeOrganizationProfile?.organization_name;
+  
+  // Determine if the user has ANY permission to view coupons
+  const hasPermission = checkPermission('coupon_manager') || checkPermission('viewer');
 
   // Function to fetch coupons (used internally and exported for manual refresh)
   const fetchCoupons = async () => {
-    if (!isAuthenticated || !organizationName) {
+    if (!isAuthenticated || !organizationName || !hasPermission) {
       setCoupons([]);
       setIsLoading(false);
       return;
     }
     
-    // Check if the user has any permission to view coupons (coupon_manager or viewer)
-    if (!checkPermission('coupon_manager') && !checkPermission('viewer')) {
-        setCoupons([]);
-        setIsLoading(false);
-        return;
-    }
-
     setIsLoading(true);
     try {
       // CRITICAL: Explicitly filter by organization_name. 
@@ -55,7 +51,7 @@ export const useCoupons = () => {
         setCoupons([]);
         setIsLoading(false);
     }
-  }, [activeOrganizationId, isAuthenticated]); // Watch the ID instead of the object
+  }, [activeOrganizationId, isAuthenticated, hasPermission]); // Watch the ID instead of the object
 
   const createCoupon = async (couponData: CouponInsert): Promise<{ success: boolean, newCouponId?: string }> => {
     if (!organizationName || !checkPermission('coupon_manager')) {
@@ -260,5 +256,6 @@ export const useCoupons = () => {
     unarchiveCoupon, // NEW
     deleteCoupon,
     organizationName,
+    hasPermission, // NEW
   };
 };

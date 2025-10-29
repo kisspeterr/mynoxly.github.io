@@ -264,7 +264,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onUpdate, onTogg
 };
 
 const EventsPage = () => {
-  const { events, isLoading, fetchEvents, createEvent, updateEvent, toggleActiveStatus, archiveEvent, unarchiveEvent, deleteEvent, organizationName } = useEvents();
+  const { events, isLoading, fetchEvents, createEvent, updateEvent, toggleActiveStatus, archiveEvent, unarchiveEvent, deleteEvent, organizationName, hasPermission } = useEvents();
   const { checkPermission } = useAuth();
   const [isCreateFormOpen, setIsFormOpen] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<Event | null>(null);
@@ -296,6 +296,14 @@ const EventsPage = () => {
       }
       return result;
   };
+
+  if (!organizationName) {
+      return <p className="text-gray-400 text-center mt-10">Kérjük, válassz egy aktív szervezetet az események kezeléséhez.</p>;
+  }
+  
+  if (!hasPermission) {
+      return <p className="text-red-400 text-center mt-10">Nincs jogosultságod az események megtekintéséhez.</p>;
+  }
 
   if (isLoading && events.length === 0) {
     return (
