@@ -374,8 +374,8 @@ const CouponsPage = () => {
         </div>
       </div>
 
-      <div className="mb-6 p-4 bg-purple-900/50 rounded-lg border border-purple-500/50 flex items-center gap-3">
-        <MapPin className="h-5 w-5 text-purple-300" />
+      <div className="mb-6 p-4 bg-cyan-900/50 rounded-lg border border-cyan-500/50 flex items-center gap-3">
+        <MapPin className="h-5 w-5 text-cyan-300" />
         <p className="text-gray-300">
           Szervezet: <span className="font-semibold text-white">{organizationName || 'Nincs beállítva'}</span>
         </p>
