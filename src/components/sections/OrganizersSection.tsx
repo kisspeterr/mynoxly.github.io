@@ -20,7 +20,14 @@ interface PartnerProfile {
 }
 
 // Define available categories and their Lucide icons
-// Removed local CATEGORY_ICONS and CATEGORY_LABELS definitions
+const CATEGORY_ICONS: Record<string, React.FC<any>> = {
+    Bar: BarChart2,
+    Pub: Beer,
+    Restaurant: Utensils,
+    EventOrganizer: CalendarCheck,
+    Club: Music,
+    Other: MoreHorizontal,
+};
 
 const OrganizersSection = () => {
   const { isAuthenticated } = useAuth();
@@ -126,7 +133,7 @@ const OrganizersSection = () => {
         ) : sortedPartners.length === 0 ? (
           <p className="text-gray-400 text-center mt-10">Nincs találat a keresési feltételeknek megfelelő partnerre.</p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {sortedPartners.map((partner) => {
               const favorite = isFavorite(partner.id);
               const isCurrentToggling = isToggling === partner.id;
