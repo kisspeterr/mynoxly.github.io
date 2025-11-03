@@ -8,7 +8,7 @@ import { showError } from '@/utils/toast';
 import { Coupon } from '@/types/coupons';
 import { Event } from '@/types/events';
 import { format } from 'date-fns';
-import Navigation from '@/components/sections/Navigation';
+import Navigation from '@/components/sections/Navigation'; // IMPORT NAVIGATION
 import FooterSection from '@/components/sections/FooterSection';
 import { usePublicCoupons } from '@/hooks/use-public-coupons';
 import { useAuth, OrganizationProfileData } from '@/hooks/use-auth';
@@ -137,7 +137,7 @@ const OrganizationProfile = () => {
       // 1. Fetch Organization Profile from the new 'organizations' table
       const { data: profileData, error: profileError } = await supabase
         .from('organizations')
-        .select('id, organization_name, logo_url, is_public, owner_id')
+        .select('id, organization_name, logo_url, is_public, owner_id, category, formatted_address') // ADDED category, formatted_address
         .eq('organization_name', organizationName)
         .single();
 
@@ -347,7 +347,10 @@ const OrganizationProfile = () => {
               )}
               <div>
                 <h1 className="text-4xl font-bold text-cyan-300">{profile.organization_name}</h1>
-                <p className="text-gray-400 mt-1">Hivatalos partner profil</p>
+                <p className="text-gray-400 mt-1 flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-purple-400" />
+                    Kategória: <span className="font-semibold text-white">{profile.category || 'Nincs megadva'}</span>
+                </p>
               </div>
             </div>
             
@@ -368,6 +371,14 @@ const OrganizationProfile = () => {
                 )}
             </div>
           </div>
+          
+          {/* Address Display */}
+          {profile.formatted_address && (
+            <div className="mt-4 pt-4 border-t border-gray-700/50 flex items-center text-gray-300">
+                <MapPin className="h-5 w-5 mr-3 text-cyan-400 flex-shrink-0" />
+                <span className="font-medium">Cím:</span> <span className="ml-1 break-words">{profile.formatted_address}</span>
+            </div>
+          )}
         </Card>
 
         {/* Coupons Section */}

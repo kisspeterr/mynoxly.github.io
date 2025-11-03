@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Building, Search, Heart, Loader2, MapPin } from 'lucide-react';
+import { Building, Search, Heart, Loader2, MapPin, Tag, BarChart2, Beer, Utensils, CalendarCheck, Music, MoreHorizontal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,28 @@ interface PartnerProfile {
   id: string; // organizations.id
   organization_name: string;
   logo_url: string | null;
+  category: string | null; // NEW
+  formatted_address: string | null; // NEW
 }
+
+// Define available categories and their Lucide icons
+const CATEGORY_ICONS: Record<string, React.FC<any>> = {
+    Bar: BarChart2,
+    Pub: Beer,
+    Restaurant: Utensils,
+    EventOrganizer: CalendarCheck,
+    Club: Music,
+    Other: MoreHorizontal,
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+    Bar: 'Bár',
+    Pub: 'Kocsma',
+    Restaurant: 'Étterem',
+    EventOrganizer: 'Rendezvényszervezés',
+    Club: 'Klub',
+    Other: 'Egyéb',
+};
 
 const OrganizersSection = () => {
   const { isAuthenticated } = useAuth();
@@ -28,10 +49,10 @@ const OrganizersSection = () => {
     const fetchPartners = async () => {
       setIsLoading(true);
       try {
-        // Fetch all organizations that are marked as public
+        // Fetch all organizations that are marked as public, including new fields
         const { data, error } = await supabase
           .from('organizations')
-          .select('id, organization_name, logo_url')
+          .select('id, organization_name, logo_url, is_public, category, formatted_address') // ADDED category, formatted_address
           .eq('is_public', true) // <-- Filter for public organizations
           .order('organization_name', { ascending: true });
 
@@ -53,7 +74,9 @@ const OrganizersSection = () => {
   }, []);
 
   const filteredPartners = partners.filter(partner => 
-    partner.organization_name.toLowerCase().includes(searchTerm.toLowerCase())
+    partner.organization_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (partner.category && CATEGORY_LABELS[partner.category]?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (partner.formatted_address && partner.formatted_address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
   const handleToggleFavorite = async (partner: PartnerProfile) => {
@@ -88,7 +111,7 @@ const OrganizersSection = () => {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <Input 
             type="text"
-            placeholder="Keresés partner névre..."
+            placeholder="Keresés partner névre, kategóriára vagy címre..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder-gray-500 text-lg py-6 rounded-xl"
@@ -107,6 +130,8 @@ const OrganizersSection = () => {
             {filteredPartners.map((partner) => {
               const favorite = isFavorite(partner.id);
               const isCurrentToggling = isToggling === partner.id;
+              const category = partner.category;
+              const CategoryIcon = category ? CATEGORY_ICONS[category] || Building : Building;
               
               return (
                 <Card 
@@ -129,9 +154,18 @@ const OrganizersSection = () => {
                       )}
                     </div>
                     <CardTitle className="text-xl text-cyan-300 text-center mb-1">{partner.organization_name}</CardTitle>
-                    <CardDescription className="text-gray-400 flex items-center">
-                        <MapPin className="h-4 w-4 mr-1" /> Pécs
+                    
+                    {/* Category Display */}
+                    <CardDescription className="text-gray-400 flex items-center text-sm mb-2">
+                        <CategoryIcon className="h-4 w-4 mr-1" /> {CATEGORY_LABELS[category || 'Other'] || 'Egyéb'}
                     </CardDescription>
+                    
+                    {/* Address Display */}
+                    {partner.formatted_address && (
+                        <CardDescription className="text-gray-500 flex items-center text-xs text-center">
+                            <MapPin className="h-3 w-3 mr-1" /> {partner.formatted_address}
+                        </CardDescription>
+                    )}
                   </Link>
                   
                   {isAuthenticated && (

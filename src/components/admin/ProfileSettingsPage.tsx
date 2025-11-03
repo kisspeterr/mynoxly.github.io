@@ -4,12 +4,34 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, User, MapPin, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff, Building, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
 import LogoUploader from './LogoUploader'; // Import the new component
 import { MemberRole } from '@/types/organization';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+
+// Define available categories
+const CATEGORIES = [
+    { value: 'Bar', label: 'Bár', icon: 'BarChart2' },
+    { value: 'Pub', label: 'Kocsma', icon: 'Beer' },
+    { value: 'Restaurant', label: 'Étterem', icon: 'Utensils' },
+    { value: 'EventOrganizer', label: 'Rendezvényszervezés', icon: 'CalendarCheck' },
+    { value: 'Club', label: 'Klub', icon: 'Music' },
+    { value: 'Other', label: 'Egyéb', icon: 'MoreHorizontal' },
+];
+
+// Helper to map string icon name to Lucide icon component (for display only)
+const IconMap: Record<string, React.FC<any>> = {
+    BarChart2: BarChart2,
+    Beer: Building, // Using Building as a placeholder for Beer/Pub icon
+    Utensils: Tag, // Using Tag as a placeholder for Utensils icon
+    CalendarCheck: Calendar, // Using Calendar as a placeholder for CalendarCheck icon
+    Music: Tag, // Using Tag as a placeholder for Music icon
+    MoreHorizontal: Tag, // Using Tag as a placeholder for MoreHorizontal icon
+};
 
 const ProfileSettingsPage: React.FC = () => {
   const { 
@@ -25,6 +47,8 @@ const ProfileSettingsPage: React.FC = () => {
   const [organizationName, setOrganizationName] = useState(activeOrganizationProfile?.organization_name || '');
   const [logoUrl, setLogoUrl] = useState(activeOrganizationProfile?.logo_url || '');
   const [isPublic, setIsPublic] = useState(activeOrganizationProfile?.is_public ?? true);
+  const [category, setCategory] = useState(activeOrganizationProfile?.category || 'null'); // NEW
+  const [formattedAddress, setFormattedAddress] = useState(activeOrganizationProfile?.formatted_address || ''); // NEW
   const [isSaving, setIsSaving] = useState(false);
   
   // Sync state when active organization profile loads/changes
@@ -33,11 +57,10 @@ const ProfileSettingsPage: React.FC = () => {
       setOrganizationName(activeOrganizationProfile.organization_name || '');
       setLogoUrl(activeOrganizationProfile.logo_url || '');
       setIsPublic(activeOrganizationProfile.is_public ?? true);
+      setCategory(activeOrganizationProfile.category || 'null'); // Sync category
+      setFormattedAddress(activeOrganizationProfile.formatted_address || ''); // Sync address
     }
   }, [activeOrganizationProfile]);
-  
-  // Check if the user is the owner of the active organization
-  const isOwner = activeOrganizationProfile?.owner_id === user?.id;
   
   // Check if the user has permission to manage settings (owner or high-level admin)
   const canManageSettings = checkPermission('coupon_manager'); 
@@ -79,13 +102,26 @@ const ProfileSettingsPage: React.FC = () => {
     setIsSaving(true);
     
     const trimmedOrgName = organizationName.trim();
+    const finalCategory = category === 'null' ? null : category;
+    const finalAddress = formattedAddress.trim() || null;
     
+    if (!trimmedOrgName) {
+        showError('A szervezet neve kötelező.');
+        setIsSaving(false);
+        return;
+    }
+    if (!finalCategory) {
+        showError('A szervezet kategóriájának kiválasztása kötelező.');
+        setIsSaving(false);
+        return;
+    }
+
     const updates = {
-      organization_name: trimmedOrgName || null, 
-      // NOTE: logo_url is handled by saveLogoUrlImmediately, but we include it here 
-      // in case the user changes the name and saves without touching the logo.
+      organization_name: trimmedOrgName, 
       logo_url: logoUrl || null, 
       is_public: isPublic,
+      category: finalCategory, // NEW
+      formatted_address: finalAddress, // NEW
     };
 
     try {
@@ -148,7 +184,7 @@ const ProfileSettingsPage: React.FC = () => {
           {/* Organization Name */}
           <div className="space-y-2">
             <Label htmlFor="organizationName" className="text-gray-300 flex items-center">
-              <MapPin className="h-4 w-4 mr-2" /> Szervezet neve *
+              <Building className="h-4 w-4 mr-2" /> Szervezet neve *
             </Label>
             <Input 
               id="organizationName"
@@ -161,6 +197,47 @@ const ProfileSettingsPage: React.FC = () => {
             />
             <p className="text-xs text-gray-500">Ez a név jelenik meg a kuponoknál és az eseményeknél.</p>
           </div>
+
+          {/* Category Selector */}
+          <div className="space-y-2">
+            <Label htmlFor="category" className="text-gray-300 flex items-center">
+              <Tag className="h-4 w-4 mr-2" /> Kategória *
+            </Label>
+            <Select 
+              value={category} 
+              onValueChange={setCategory}
+              disabled={isSaving}
+            >
+              <SelectTrigger className="w-full bg-gray-800/50 border-gray-700 text-white hover:bg-gray-700/50">
+                <SelectValue placeholder="Válassz kategóriát" />
+              </SelectTrigger>
+              <SelectContent className="bg-black/90 border-purple-500/30 text-white">
+                <SelectItem value="null">Válassz kategóriát</SelectItem>
+                {CATEGORIES.map(cat => (
+                  <SelectItem key={cat.value} value={cat.value}>
+                    {cat.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Formatted Address */}
+          <div className="space-y-2">
+            <Label htmlFor="formattedAddress" className="text-gray-300 flex items-center">
+              <MapPin className="h-4 w-4 mr-2" /> Cím (Pl. Pécs, Király utca 1.)
+            </Label>
+            <Textarea 
+              id="formattedAddress"
+              value={formattedAddress}
+              onChange={(e) => setFormattedAddress(e.target.value)}
+              className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-500"
+              disabled={isSaving}
+              placeholder="Pécs, Király utca 1."
+            />
+            <p className="text-xs text-gray-500">Ez a cím jelenik meg a nyilvános profilodon.</p>
+          </div>
+
 
           {/* Logo Uploader Component */}
           <div className="space-y-2">
@@ -196,7 +273,7 @@ const ProfileSettingsPage: React.FC = () => {
           <Button 
             type="submit" 
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-            disabled={isSaving || !organizationName.trim()}
+            disabled={isSaving || !organizationName.trim() || category === 'null'}
           >
             {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Beállítások mentése
