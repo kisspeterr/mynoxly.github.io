@@ -13,6 +13,7 @@ import UserInvitationsList from '@/components/user/UserInvitationsList';
 import UserChallengesList from '@/components/user/UserChallengesList'; // NEW IMPORT
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import Navigation from '@/components/sections/Navigation'; // IMPORT NAVIGATION
 
 const Profile = () => {
   const { isAuthenticated, isLoading, signOut, profile, user } = useAuth();
@@ -43,8 +44,9 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white p-4 md:p-8">
-      <div className="container mx-auto max-w-7xl">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950 to-blue-950 text-white">
+      <Navigation />
+      <div className="pt-24 pb-12 px-4 md:px-8 container mx-auto max-w-7xl">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
             Személyes Profil
