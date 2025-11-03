@@ -47,8 +47,8 @@ const FooterSection = () => {
           <div>
             <h3 className="text-cyan-300 font-semibold mb-4">Kapcsolat</h3>
             <ul className="space-y-2">
-              <li><a href="mailto:hello@noxly.hu" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">hello@noxly.hu</a></li>
-              <li><a href="tel:+36309876543" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">+36 30 987 6543</a></li>
+              <li><a href="mailto:noxlynightlife@gmail.com" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">noxlynightlife@gmail.com</a></li>
+              <li><a href="tel:+36702829406" className="text-gray-400 hover:text-cyan-300 transition-colors duration-300">+36 70 282 9406</a></li>
             </ul>
           </div>
           

@@ -30,7 +30,7 @@ const PartnerSection: React.FC = () => {
             asChild
             className="w-full md:w-auto bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white px-8 py-6 text-lg rounded-xl transition-all duration-300 hover:scale-105"
           >
-            <a href="mailto:hello@noxly.hu?subject=Partneri%20érdeklődés%20-%20NOXLY">
+            <a href="mailto:noxlynightlife@gmail.com?subject=Partneri%20érdeklődés%20-%20NOXLY">
               <Mail className="mr-2 h-5 w-5" />
               Kapcsolatfelvétel
               <ArrowRight className="ml-2 h-5 w-5" />
