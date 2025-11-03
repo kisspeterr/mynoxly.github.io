@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart, QrCode, Eye, ArrowRight } from 'lucide-react';
+import { Loader2, Building, MapPin, Tag, Calendar, Clock, Gift, Home, BarChart2, CheckCircle, LogIn, User, Loader2 as Spinner, Coins, Heart, QrCode, Eye, ArrowRight, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { showError } from '@/utils/toast';

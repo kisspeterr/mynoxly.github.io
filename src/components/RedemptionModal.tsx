@@ -54,7 +54,7 @@ const RedemptionModal: React.FC<RedemptionModalProps> = ({ coupon, redemptionCod
             
             // Wait 2 seconds before closing the modal
             setTimeout(() => {
-              onClose(true); 
+              onClose(true); // This calls handleRedemptionModalClose which triggers full refresh
             }, 2000);
           }
         }
