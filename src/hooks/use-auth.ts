@@ -27,6 +27,8 @@ export interface OrganizationProfileData {
     owner_id: string | null; // The user ID of the owner
     category: string | null; // NEW FIELD
     formatted_address: string | null; // NEW FIELD
+    latitude: number | null; // NEW FIELD
+    longitude: number | null; // NEW FIELD
 }
 
 // 🔹 Szervezeti tagság adatok
@@ -68,7 +70,7 @@ const fetchAllAcceptedMemberships = async (userId: string): Promise<Organization
             .from('organization_members')
             .select(`
                 id, organization_id, roles, status,
-                organization_profile:organization_id (id, organization_name, logo_url, is_public, owner_id, category, formatted_address)
+                organization_profile:organization_id (id, organization_name, logo_url, is_public, owner_id, category, formatted_address, latitude, longitude)
             `)
             .eq('user_id', userId)
             .eq('status', 'accepted');

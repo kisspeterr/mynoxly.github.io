@@ -1,4 +1,4 @@
-import { Sparkles, Moon, Bell, Play, Gift, Calendar, Building, ListChecks } from "lucide-react";
+import { Sparkles, Moon, Bell, Play, Gift, Calendar, Building, ListChecks, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -30,6 +30,13 @@ const HeroSection = () => {
     const challengesSection = document.getElementById('challenges-section');
     if (challengesSection) {
       challengesSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+  
+  const scrollToMap = () => {
+    const mapSection = document.getElementById('partner-map');
+    if (mapSection) {
+      mapSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -73,9 +80,17 @@ const HeroSection = () => {
             Kuponok
           </Button>
           <Button 
-            onClick={scrollToEvents}
+            onClick={scrollToMap}
             variant="outline" 
             className="w-full sm:w-auto border-cyan-400 text-cyan-400 hover:bg-cyan-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
+          >
+            <MapPin className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
+            Térkép
+          </Button>
+          <Button 
+            onClick={scrollToEvents}
+            variant="outline" 
+            className="w-full sm:w-auto border-purple-400 text-purple-400 hover:bg-purple-400/10 px-8 py-6 text-lg rounded-2xl group transition-all duration-300 hover:scale-105"
           >
             <Calendar className="mr-2 h-5 w-5 group-hover:scale-110 transition-transform" />
             Események

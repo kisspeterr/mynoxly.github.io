@@ -8,6 +8,7 @@ import FaqSection from '@/components/sections/FaqSection';
 import PartnerSection from '@/components/sections/PartnerSection'; // Import new section
 import Navigation from '@/components/sections/Navigation';
 import ChallengesSection from '@/components/sections/ChallengesSection'; // NEW IMPORT
+import PartnerMap from '@/components/sections/PartnerMap'; // NEW IMPORT
 
 const IndexPage = () => {
   return (
@@ -15,10 +16,11 @@ const IndexPage = () => {
       <Navigation />
       <main>
         <HeroSection />
+        <PartnerMap /> {/* NEW: Interactive Map */}
         <CouponsSection />
         <EventsSection />
         <OrganizersSection />
-        <ChallengesSection /> {/* Moved Challenges section here */}
+        <ChallengesSection />
         <FaqSection />
         <PartnerSection />
       </main>
