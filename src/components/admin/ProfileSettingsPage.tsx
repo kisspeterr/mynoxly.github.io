@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Save, User, MapPin, Eye, EyeOff, Building, Tag, BarChart2, Beer, Utensils, CalendarCheck, Music, MoreHorizontal } from 'lucide-react';
+import { Loader2, Save, User, MapPin, Eye, EyeOff, Building, Tag, BarChart2, Beer, Utensils, CalendarCheck, Music, MoreHorizontal, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showError, showSuccess } from '@/utils/toast';
 import { Switch } from '@/components/ui/switch';
