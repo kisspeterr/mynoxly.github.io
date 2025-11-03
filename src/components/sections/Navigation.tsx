@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building, Loader2, ListChecks, MapPin } from "lucide-react";
+import { Menu, X, LogIn, LogOut, Shield, User, Gift, Calendar, QrCode, Building, Loader2, ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/use-auth";
@@ -166,12 +166,6 @@ const Navigation = () => {
                 <Gift className="h-4 w-4" /> Kuponok
               </button>
               <button
-                onClick={() => navigateToSection('partner-map')}
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
-              >
-                <MapPin className="h-4 w-4" /> Térkép
-              </button>
-              <button
                 onClick={() => navigateToSection('events-section')}
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 flex items-center gap-1"
               >
@@ -217,12 +211,6 @@ const Navigation = () => {
                 className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
               >
                 <Gift className="h-4 w-4 mr-2" /> Kuponok
-              </button>
-              <button
-                onClick={() => navigateToSection('partner-map')}
-                className="text-gray-300 hover:text-cyan-400 transition-colors duration-300 py-2 flex items-center gap-1"
-              >
-                <MapPin className="h-4 w-4 mr-2" /> Térkép
               </button>
               <button
                 onClick={() => navigateToSection('events-section')}

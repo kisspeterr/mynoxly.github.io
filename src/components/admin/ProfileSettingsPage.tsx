@@ -13,7 +13,6 @@ import { MemberRole } from '@/types/organization';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { CATEGORY_LABELS } from '@/utils/categories'; // Import CATEGORY_LABELS
-import MapPicker from './MapPicker'; // NEW IMPORT
 
 // Define available categories
 const CATEGORIES = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
@@ -48,11 +47,6 @@ const ProfileSettingsPage: React.FC = () => {
   const [isPublic, setIsPublic] = useState(activeOrganizationProfile?.is_public ?? true);
   const [category, setCategory] = useState(activeOrganizationProfile?.category || 'null'); // NEW
   const [formattedAddress, setFormattedAddress] = useState(activeOrganizationProfile?.formatted_address || ''); // NEW
-  
-  // NEW STATE for coordinates
-  const [latitude, setLatitude] = useState<number | null>(activeOrganizationProfile?.latitude || null);
-  const [longitude, setLongitude] = useState<number | null>(activeOrganizationProfile?.longitude || null);
-  
   const [isSaving, setIsSaving] = useState(false);
   
   // Sync state when active organization profile loads/changes
@@ -63,8 +57,6 @@ const ProfileSettingsPage: React.FC = () => {
       setIsPublic(activeOrganizationProfile.is_public ?? true);
       setCategory(activeOrganizationProfile.category || 'null'); // Sync category
       setFormattedAddress(activeOrganizationProfile.formatted_address || ''); // Sync address
-      setLatitude(activeOrganizationProfile.latitude || null); // Sync latitude
-      setLongitude(activeOrganizationProfile.longitude || null); // Sync longitude
     }
   }, [activeOrganizationProfile]);
   
@@ -128,8 +120,6 @@ const ProfileSettingsPage: React.FC = () => {
       is_public: isPublic,
       category: finalCategory, // NEW
       formatted_address: finalAddress, // NEW
-      latitude: latitude, // NEW
-      longitude: longitude, // NEW
     };
 
     try {
@@ -244,21 +234,6 @@ const ProfileSettingsPage: React.FC = () => {
               placeholder="Pécs, Király utca 1."
             />
             <p className="text-xs text-gray-500">Ez a cím jelenik meg a nyilvános profilodon.</p>
-          </div>
-          
-          {/* Map Picker for Coordinates */}
-          <div className="space-y-2 pt-4 border-t border-gray-700/50">
-            <Label className="text-gray-300 flex items-center">
-              <MapPin className="h-4 w-4 mr-2" /> Pontos helyszín a térképen (Kattints a jelöléshez)
-            </Label>
-            <MapPicker 
-                initialPosition={latitude && longitude ? [latitude, longitude] : null}
-                onPositionChange={(lat, lng) => {
-                    setLatitude(lat);
-                    setLongitude(lng);
-                }}
-            />
-            <p className="text-xs text-gray-500">A térképen kattintva állíthatod be a pontos GPS koordinátákat.</p>
           </div>
 
 
