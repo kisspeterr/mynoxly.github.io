@@ -39,7 +39,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const OrganizersSection = () => {
   const { isAuthenticated } = useAuth();
-  const { isFavorite, toggleFavorite } = useFavorites();
+  const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const [partners, setPartners] = useState<PartnerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +79,21 @@ const OrganizersSection = () => {
     (partner.formatted_address && partner.formatted_address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
+  // Sorting logic: Favorites first if authenticated
+  const sortedPartners = isAuthenticated
+    ? [...filteredPartners].sort((a, b) => {
+        const aIsFavorite = isFavorite(a.id);
+        const bIsFavorite = isFavorite(b.id);
+        
+        if (aIsFavorite && !bIsFavorite) return -1;
+        if (!aIsFavorite && bIsFavorite) return 1;
+        
+        // Secondary sort by name
+        return a.organization_name.localeCompare(b.organization_name);
+      })
+    : filteredPartners;
+  
+  
   const handleToggleFavorite = async (partner: PartnerProfile) => {
     if (!isAuthenticated) {
       showError('Kérjük, jelentkezz be a kedvencek kezeléséhez.');
@@ -106,7 +121,7 @@ const OrganizersSection = () => {
           Keresd meg kedvenc szórakozóhelyeidet és éttermeidet Pécsen.
         </p>
         
-        {/* Search Input */}
+        {/* Search Input (Kept for filtering functionality) */}
         <div className="max-w-lg mx-auto mb-12 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <Input 
@@ -123,58 +138,50 @@ const OrganizersSection = () => {
             <Loader2 className="h-8 w-8 animate-spin text-purple-400" />
             <p className="ml-3 text-gray-300">Partnerek betöltése...</p>
           </div>
-        ) : filteredPartners.length === 0 ? (
+        ) : sortedPartners.length === 0 ? (
           <p className="text-gray-400 text-center mt-10">Nincs találat a keresési feltételeknek megfelelő partnerre.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredPartners.map((partner) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            {sortedPartners.map((partner) => {
               const favorite = isFavorite(partner.id);
               const isCurrentToggling = isToggling === partner.id;
-              const category = partner.category;
-              const CategoryIcon = category ? CATEGORY_ICONS[category] || Building : Building;
               
               return (
                 <Card 
                   key={partner.id} 
-                  className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col items-center p-6"
+                  className="bg-black/50 border-purple-500/30 backdrop-blur-sm text-white hover:shadow-lg hover:shadow-purple-500/20 transition-shadow duration-300 flex flex-col items-center p-4 sm:p-6"
                 >
                   {/* Link to Organization Profile Page */}
                   <Link to={`/organization/${partner.organization_name}`} className="w-full flex flex-col items-center">
                     <div className="relative mb-4">
-                      {partner.logo_url ? (
-                        <img 
-                          src={partner.logo_url} 
-                          alt={partner.organization_name} 
-                          className="h-20 w-20 rounded-full object-cover border-4 border-purple-400 shadow-lg"
-                        />
-                      ) : (
-                        <div className="h-20 w-20 rounded-full bg-gray-800 flex items-center justify-center border-4 border-purple-400">
-                          <Building className="h-10 w-10 text-purple-400" />
-                        </div>
-                      )}
+                      {/* Larger Logo Area */}
+                      <div className="h-24 w-24 sm:h-32 sm:w-32 rounded-full bg-gray-800 flex items-center justify-center border-4 border-purple-400 shadow-lg overflow-hidden">
+                        {partner.logo_url ? (
+                          <img 
+                            src={partner.logo_url} 
+                            alt={partner.organization_name} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Building className="h-12 w-12 text-purple-400" />
+                        )}
+                      </div>
                     </div>
-                    <CardTitle className="text-xl text-cyan-300 text-center mb-1">{partner.organization_name}</CardTitle>
                     
-                    {/* Category Display */}
-                    <CardDescription className="text-gray-400 flex items-center text-sm mb-2">
-                        <CategoryIcon className="h-4 w-4 mr-1" /> {CATEGORY_LABELS[category || 'Other'] || 'Egyéb'}
-                    </CardDescription>
+                    {/* Organization Name (Title) */}
+                    <CardTitle className="text-lg sm:text-xl text-cyan-300 text-center mb-2 truncate w-full px-2">{partner.organization_name}</CardTitle>
                     
-                    {/* Address Display */}
-                    {partner.formatted_address && (
-                        <CardDescription className="text-gray-500 flex items-center text-xs text-center">
-                            <MapPin className="h-3 w-3 mr-1" /> {partner.formatted_address}
-                        </CardDescription>
-                    )}
+                    {/* Removed Category and Address */}
                   </Link>
                   
+                  {/* Favorite Button (Only if authenticated) */}
                   {isAuthenticated && (
                     <Button
                       variant="ghost"
                       size="icon"
                       onClick={() => handleToggleFavorite(partner)}
                       disabled={isCurrentToggling}
-                      className={`mt-4 transition-colors duration-300 ${
+                      className={`mt-2 transition-colors duration-300 ${
                         favorite 
                           ? 'text-red-400 hover:text-red-500 hover:bg-red-500/10' 
                           : 'text-gray-500 hover:text-red-400 hover:bg-gray-700/20'
