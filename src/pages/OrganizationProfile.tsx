@@ -21,6 +21,7 @@ import { useInterestedEvents } from '@/hooks/use-interested-events'; // Import i
 import EventCountdown, { isEventFinished } from '@/components/EventCountdown'; // Import EventCountdown and status check
 import { Badge } from '@/components/ui/badge';
 import { useChallenges } from '@/hooks/use-challenges'; // NEW IMPORT
+import { CATEGORY_LABELS } from '@/utils/categories'; // NEW IMPORT
 
 // NOTE: This definition must match the one in use-public-coupons.ts
 interface PublicCoupon extends Coupon {
@@ -323,6 +324,9 @@ const OrganizationProfile = () => {
   // Get current user points for this organization
   // CRITICAL FIX: Use profile.id (organization_id) to look up points
   const currentPoints = getPointsForOrganization(profile.id);
+  
+  // Get Hungarian category label
+  const categoryLabel = profile.category ? CATEGORY_LABELS[profile.category] || profile.category : 'Nincs megadva';
 
 
   return (
@@ -349,7 +353,7 @@ const OrganizationProfile = () => {
                 <h1 className="text-4xl font-bold text-cyan-300">{profile.organization_name}</h1>
                 <p className="text-gray-400 mt-1 flex items-center gap-2">
                     <Tag className="h-4 w-4 text-purple-400" />
-                    Kategória: <span className="font-semibold text-white">{profile.category || 'Nincs megadva'}</span>
+                    Kategória: <span className="font-semibold text-white">{categoryLabel}</span>
                 </p>
               </div>
             </div>

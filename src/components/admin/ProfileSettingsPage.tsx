@@ -12,18 +12,16 @@ import LogoUploader from './LogoUploader'; // Import the new component
 import { MemberRole } from '@/types/organization';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { CATEGORY_LABELS } from '@/utils/categories'; // Import CATEGORY_LABELS
 
 // Define available categories
-const CATEGORIES = [
-    { value: 'Bar', label: 'Bár', icon: 'BarChart2' },
-    { value: 'Pub', label: 'Kocsma', icon: 'Beer' },
-    { value: 'Restaurant', label: 'Étterem', icon: 'Utensils' },
-    { value: 'EventOrganizer', label: 'Rendezvényszervezés', icon: 'CalendarCheck' },
-    { value: 'Club', label: 'Klub', icon: 'Music' },
-    { value: 'Other', label: 'Egyéb', icon: 'MoreHorizontal' },
-];
+const CATEGORIES = Object.entries(CATEGORY_LABELS).map(([value, label]) => ({
+    value,
+    label,
+}));
 
 // Helper to map string icon name to Lucide icon component (for display only)
+// NOTE: This map is no longer strictly needed here but kept for reference if needed elsewhere.
 const IconMap: Record<string, React.FC<any>> = {
     BarChart2: BarChart2,
     Beer: Building, // Using Building as a placeholder for Beer/Pub icon

@@ -9,6 +9,7 @@ import { showError } from '@/utils/toast';
 import { useAuth } from '@/hooks/use-auth';
 import { useFavorites } from '@/hooks/use-favorites';
 import { Button } from '@/components/ui/button';
+import { CATEGORY_LABELS } from '@/utils/categories'; // Import CATEGORY_LABELS
 
 interface PartnerProfile {
   id: string; // organizations.id
@@ -19,23 +20,7 @@ interface PartnerProfile {
 }
 
 // Define available categories and their Lucide icons
-const CATEGORY_ICONS: Record<string, React.FC<any>> = {
-    Bar: BarChart2,
-    Pub: Beer,
-    Restaurant: Utensils,
-    EventOrganizer: CalendarCheck,
-    Club: Music,
-    Other: MoreHorizontal,
-};
-
-const CATEGORY_LABELS: Record<string, string> = {
-    Bar: 'Bár',
-    Pub: 'Kocsma',
-    Restaurant: 'Étterem',
-    EventOrganizer: 'Rendezvényszervezés',
-    Club: 'Klub',
-    Other: 'Egyéb',
-};
+// Removed local CATEGORY_ICONS and CATEGORY_LABELS definitions
 
 const OrganizersSection = () => {
   const { isAuthenticated } = useAuth();
